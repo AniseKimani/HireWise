@@ -25,16 +25,19 @@ The dataset provides real-world job/service demand information. Synthetic worker
 
 ## Project Status
 
-Day 2 - Reproducible Upwork data preparation pipeline. See
-`docs/experimental_design.md` for the approved methodology,
-`docs/data_quality_report.md` for pipeline results, and
-`docs/data_dictionary.md` for output field definitions.
+Day 3 - Synthetic worker/client/interaction generation on top of the Day 2
+real-data foundation. See `docs/experimental_design.md` for the approved
+methodology, `docs/data_quality_report.md` / `docs/synthetic_data_report.md`
+for pipeline results, and `docs/data_dictionary.md` for output field
+definitions. No recommenders have been implemented yet.
 
-## Running the Day 2 pipeline
+## Running the pipeline
 
 ```bash
 pip install -r requirements.txt
-python scripts/run_data_pipeline.py   # requires data/raw/upwork-jobs.csv (git-ignored, not redistributed)
+python scripts/run_data_pipeline.py       # Day 2: requires data/raw/upwork-jobs.csv (git-ignored, not redistributed)
 python scripts/verify_pipeline.py
+python scripts/generate_synthetic_data.py # Day 3: requires Day 2's outputs in data/processed/
+python scripts/verify_synthetic_data.py
 python -m unittest discover -s tests
 ```

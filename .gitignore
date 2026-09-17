@@ -16,6 +16,11 @@ env/
 # Raw and generated datasets
 data/raw/
 data/processed/
+# data/processed/synthetic_private/ (Day 3 generator-private truth: latent
+# quality/taste, raw utility, noise, oracle relevance) is already covered
+# by data/processed/ above; named here too as defense in depth so intent
+# is explicit even if the parent rule is ever narrowed.
+data/processed/synthetic_private/
 
 # VS Code
 .vscode/
