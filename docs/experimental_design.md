@@ -121,6 +121,8 @@ click to apply
 
 **Skill parsing:** take the first `Skills:` block only, split on commas, collapse internal whitespace, strip, and remove within-job duplicates while preserving order.
 
+**Day 2 amendment [IMPL].** The footer's actual skill separator is a comma followed by 2+ spaces (empirically, almost always exactly 5), not a bare comma: some skill labels contain an internal comma-plus-single-space (e.g. "Religious, Charitable & Nonprofit"). `src/data/parse.py` splits on `,\s{2,}` accordingly. This changes the raw unique-skill count (5,912 → 5,905) but leaves the approved 1,187-skill controlled vocabulary in Section 6.2 unchanged, because the affected labels do not individually clear the ≥20-job threshold either way. See `docs/data_quality_report.md` Section 4 for the verification.
+
 **Validation:** the footer `Country:` agrees with the `country` column in 99.99% of rows. The `country` column remains the stored source.
 
 ## 5. Category Extraction
