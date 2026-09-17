@@ -363,6 +363,53 @@ A single master seed **42** is set in `config/data_config.yaml`. Each pipeline s
 - Automated validation checks run after generation. Every hire must have a matching shortlist entry; ratings exist only for hires; new entrants have zero training interactions; no worker exceeds capacity; no location-restricted request has an ineligible hire.
 - The generator configuration is Git-tagged (`data-v1`) before recommender work begins.
 
+## 17. Day 3 Implementation Notes (amendments)
+
+Day 3 implemented Sections 7-14 above as designed, with the following
+amendments recorded here rather than silently folded into the original
+text. Full detail, realised statistics, and leakage verification are in
+`docs/synthetic_data_report.md`; this section records only what changed
+or was newly fixed relative to the abstract design.
+
+1. **Utility standardization is two-pass [IMPL].** Section 9.3 defines
+   utility components as standardized "across all generated
+   request-applicant pairs" -- a global quantity -- while worker capacity
+   (Step 6) depends on prior hire *outcomes* in chronological order,
+   which depend on that same standardized utility. Computing it live
+   during a capacity-aware pass is circular. The implementation resolves
+   this with a Pass 1 (moment estimation, capacity ignored -- capacity is
+   the only eligibility factor that depends on simulation state) followed
+   by Pass 2 (the real chronological simulation, standardizing with Pass
+   1's frozen moments). See `docs/synthetic_data_report.md` Section 6.2.
+2. **Hire-rate calibration target is the shortlist's max utility**, not
+   the full applicant pool's, since Step 5's hire decision follows
+   shortlisting. Pass 1 calibrates `theta` against the same
+   shortlist-then-max quantity Pass 2 actually uses.
+3. **Candidate pools are capped at 150 workers** (uniform subsample when
+   an eligible pool exceeds this) before skill-fit and applicant sampling,
+   for computational tractability. This is generous relative to the
+   30-applicant / 5-shortlist sizes actually drawn.
+4. **Frozen configuration file**: `config/generator_v1.yaml` (hash in
+   `docs/synthetic_data_report.md` Section 15), referenced from
+   `config/data_config.yaml`'s `generator_config_path`, rather than a
+   single monolithic config file, so the generator's behavioural
+   parameters can be versioned and hashed independently of Day 2's
+   dataset thresholds.
+5. **Sensitivity configurations** exist as complete, standalone frozen
+   files (`generator_v1_content_leaning.yaml`,
+   `generator_v1_collaborative_leaning.yaml`) with the exact weights
+   Section 14's table specifies, rather than diffs applied at runtime.
+   Both were smoke-tested during Day 3 but not run as full evaluations
+   (out of Day 3's scope); their datasets were not kept.
+6. **Rate/price-tier sampling detail**: a worker's `rate` and `price_tier`
+   are drawn *together* from the same real (price_tier, pay_amount) row
+   within its category (not independently from each marginal), biased
+   toward lower percentiles for entry-level workers and higher for
+   experts via a power-law transform of the sampling draw. The exact
+   bias exponents (2.0 / 1.0 / 0.6 for entry/intermediate/expert) are an
+   implementation choice not specified in Section 8's abstract
+   description.
+
 ---
 
 ## Appendix A: Synthetic Dataset Scale
