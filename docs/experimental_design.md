@@ -3,7 +3,14 @@
 **Project:** Knowledge Graph-Enhanced Hybrid Recommender System for Digital Worker-Service Platforms
 **Status:** Draft v1 (end of Day 1). Pending approval before implementation.
 **Numbers source:** every dataset statistic below is reproducible with
-`python scripts/verify_day1.py data/raw/upwork-jobs.csv docs/day1_stats.json`.
+`python scripts/verify_day1.py data/raw/upwork-jobs.csv data/raw/day1_stats.json`.
+The output path is kept alongside the git-ignored raw CSV rather than
+under `docs/` -- it is a derived intermediate re-creatable from the raw
+data at any time, not committed evidence, so it does not need to live in
+a tracked directory. `scripts/verify_day1.py`'s own default argument
+(`docs/day1_stats.json`) is unchanged; the command above simply passes
+an explicit output path, as was actually used to produce the numbers
+below.
 
 Each decision is labelled:
 
@@ -388,7 +395,11 @@ or was newly fixed relative to the abstract design.
 3. **Candidate pools are capped at 150 workers** (uniform subsample when
    an eligible pool exceeds this) before skill-fit and applicant sampling,
    for computational tractability. This is generous relative to the
-   30-applicant / 5-shortlist sizes actually drawn.
+   30-applicant / 5-shortlist sizes actually drawn. The reported
+   candidate-pool statistics (mean/median/min/max, e.g. a realised max of
+   193) describe the *raw* eligible pool **before** this cap is applied --
+   see `docs/synthetic_data_report.md` Section 8 for the exact
+   distinction; a raw pool exceeding 150 is expected and not a bug.
 4. **Frozen configuration file**: `config/generator_v1.yaml` (hash in
    `docs/synthetic_data_report.md` Section 15), referenced from
    `config/data_config.yaml`'s `generator_config_path`, rather than a

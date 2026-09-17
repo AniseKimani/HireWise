@@ -108,13 +108,19 @@ frozen run: **~0.37**, close to target given the discretization.
 Rate and price tier are sampled *together* from the same real
 (`price_tier`, `pay_amount`) pair within the worker's category
 (`eligible_jobs.csv`), biased toward lower percentiles for entry-level
-workers and higher for experts (a power-law bias on the uniform draw used
-to pick the row) `[IMPL: exact bias exponents are an implementation
-choice, not specified in the approved design]`. Because real fixed-price
-budgets are heavy-tailed and never capped (docs/experimental_design.md
-Section 3.5), a handful of workers in high-budget categories inherit very
-high `rate` values -- this mirrors the real data's own dispersion rather
-than being a generation error.
+workers and higher for experts via power-law exponents 2.0 / 1.0 / 0.6
+(entry / intermediate / expert) applied to the uniform draw used to pick
+the row `[ASSUMPTION]`. **These exponents are a synthetic modelling
+choice, not empirically observed Upwork freelancer behaviour** -- the raw
+dataset is demand-side only and contains no freelancer rate-by-experience
+data of any kind for this to be derived from (docs/experimental_design.md
+Section 2, Limitation 1). Only the *category's real pay distribution*
+that the exponents bias *within* is grounded in real data; the bias
+direction and strength are not. Because real fixed-price budgets are
+heavy-tailed and never capped (docs/experimental_design.md Section 3.5),
+a handful of workers in high-budget categories inherit very high `rate`
+values -- this mirrors the real data's own dispersion rather than being a
+generation error.
 
 ### 4.5 Country [ASSUMPTION: no real worker-location data exists]
 
@@ -188,8 +194,11 @@ pass is circular. This generator resolves it in two passes:
   hire-capacity tracking (a rolling 30-day, max-4-hires window per
   worker), standardizing every pair with Pass 1's frozen moments.
 
-Realised hire rate: **84.7%** (target 85%; the ~0.3 point gap is the real
-effect of capacity exclusions, which Pass 1 does not model).
+Realised hire rate: **10,163 of the 12,000 requests resulted in a hire
+(84.7%)** -- a *request-level* proportion, not a share of the 60,000
+worker-request interaction rows (Section 8 below reports that separately).
+Target was 85%; the ~0.3 point gap is the real effect of capacity
+exclusions, which Pass 1 does not model.
 
 ### 6.3 Anti-circularity and variable classification
 
@@ -232,19 +241,43 @@ filtering**; `SHORTLISTED` (without hire) is a weaker positive signal
 kept for graded relevance (docs/experimental_design.md Section 15:
 hired=2, shortlisted=1, otherwise 0).
 
-**Candidate-pool statistics** (ignoring capacity, all 12,000 requests):
-mean 85.6, median 84, min 5, max 193; 719 requests (6.0%) have a pool
-below 20 candidates -- these are niche categories near the 20-worker
+**Candidate-pool statistics** describe the *raw eligible pool* per
+request -- every worker matching category, join day, and location,
+**before** any downstream subsampling (`candidate_pool_sizes()`, ignoring
+capacity, all 12,000 requests): mean 85.6, median 84, min 5, **max 193**.
+This is a different quantity from `CANDIDATE_POOL_CAP = 150`: the cap is
+a *downstream* subsampling step applied inside Pass 1/Pass 2, after this
+statistic is measured, immediately before skill-fit scoring and the
+30-applicant self-selection step (Section 6.2's `_subsample`) -- so a
+raw pool of 193 is expected and not inconsistent with a cap of 150; it
+simply means that particular request's pool was subsampled down to 150
+candidates before applicants were drawn from it. The cap never binds
+below the 30-applicant / 5-shortlist sizes actually used downstream (see
+Section 13, Limitation 2). Separately, 719 requests (6.0%) have a raw
+pool below 20 candidates -- these are niche categories near the 20-worker
 floor and are flagged for later evaluation-methodology attention (docs
 Section 15 already excludes eligible pools below 20 from evaluation).
 
-**Realised totals:** 60,000 interaction rows (5 per request x 12,000),
-10,163 hires (84.7%), 49,837 shortlisted-not-hired.
+**Realised totals:** 60,000 interaction rows (5 shortlist slots per
+request x 12,000 requests), of which 10,163 are `HIRED` and 49,837 are
+`SHORTLISTED`-only. Two different proportions can be read from these
+numbers, and they are **not the same denominator**:
+
+- **Request-level hire rate: 10,163 / 12,000 = 84.7%** -- the proportion
+  of requests that resulted in a hire. This is the number quoted
+  elsewhere in this document and in `generation_summary.json`'s
+  `hire_rate` field, and the one calibrated against the 85% target.
+- **Interaction-level hire share: 10,163 / 60,000 = 16.9%** -- the
+  proportion of the 60,000 shortlist *rows* that are `HIRED` rather than
+  `SHORTLISTED`-only (mechanically close to 1/5, since exactly one of
+  each request's 5 shortlist slots can be hired).
 
 ## 9. Ratings
 
-Conditional on `HIRED` only, with a 90% completion probability
-(realised: 90.3%, 9,173 ratings). Rating is
+Conditional on `HIRED` only: **9,173 of the 10,163 hires (90.3%) were
+completed and received a rating** -- the denominator is hires, not the
+60,000 interaction rows or the 12,000 requests. Target completion
+probability was 90%. Rating is
 `r* = 0.5·Q̃ + 0.3·S̃ + 0.2·B̃ + N(0, 0.5²)` (weights from
 `rating_weights`), mapped to 1-5 via quantile thresholds calibrated on
 this run's realised `r*` distribution to target the documented J-shape.
