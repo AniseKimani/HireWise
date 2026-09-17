@@ -33,3 +33,9 @@ winsorize_high_percentile: 0.99
 # --- Price tiers -----------------------------------------------------------
 # Reference population for percentile-rank price tiers.
 price_tier_reference: in_scope_jobs
+
+# --- Day 3 generator (frozen, versioned separately) -----------------------
+# Detailed synthetic-worker/client/interaction parameters live in their own
+# versioned file so the generator can be frozen and hashed independently of
+# this file's Day 2 dataset thresholds. See docs/synthetic_data_report.md.
+generator_config_path: config/generator_v1.yaml

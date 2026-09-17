@@ -1,0 +1,74 @@
+# Sensitivity-analysis variant of generator_v1.yaml: "collaborative-leaning"
+# weights (docs/experimental_design.md Section 14 / "Mixture ground truth
+# favouring the hybrid"). This exists to test whether conclusions drawn
+# under the balanced default weights are an artefact of that one weight
+# choice, NOT to make any particular recommender win. It is not run by
+# default; scripts/generate_synthetic_data.py takes --generator-config to
+# select it explicitly. Every other parameter is identical to
+# generator_v1.yaml. Do not modify after freezing (see that file's header).
+
+version: v1-collaborative-leaning
+
+simulated_days: 365
+
+# --- Clients (docs/experimental_design.md Section 7) ------------------------
+client_activity_mean: 6
+client_activity_min: 1
+client_activity_max: 40
+client_category_coherence: 0.65   # share of a client's requests drawn from its primary category
+client_start_day_max: 330         # activity start day ~ U(0, this) on the simulated calendar
+client_taste_dim: 8
+
+# --- Workers (docs/experimental_design.md Section 8) ------------------------
+worker_category_floor: 20                  # minimum workers per primary category
+worker_secondary_category_min: 0
+worker_secondary_category_max: 2
+worker_secondary_category_pool: 5          # secondary categories drawn from the top-N most similar
+worker_true_skills_min: 5
+worker_true_skills_max: 12
+worker_secondary_skills_min: 1
+worker_secondary_skills_max: 3
+worker_quality_beta_a: 2.0
+worker_quality_beta_b: 2.0
+worker_quality_experience_correlation: 0.4
+worker_taste_dim: 8
+worker_declared_high_prob: 0.85            # P(declare | true proficiency >= threshold)
+worker_declared_low_prob: 0.40
+worker_declared_proficiency_threshold: 0.4
+worker_padding_skill_prob: 0.30
+worker_padding_skill_max: 2
+worker_experience_proportions: {entry: 0.40, intermediate: 0.40, expert: 0.20}
+worker_country_top_n: 20
+worker_country_smoothing_power: 0.5        # sqrt smoothing (power=0.5) of country shares
+worker_location_min_eligible: 10           # target minimum eligible workers per (category, required country)
+
+# --- Skill relatedness used by the true skill-fit component -----------------
+skill_relatedness_topn: 10
+skill_relatedness_lambda: 0.5
+
+# --- Candidate / applicant generation (docs Section 9.3) --------------------
+applicant_pool_max: 30
+applicant_base_prob: 0.3
+
+# --- Latent utility weights: balanced/default configuration [EXP] -----------
+utility_weights:
+  skill: 0.15
+  taste: 0.45
+  quality: 0.20
+  budget: 0.10
+  category: 0.10
+utility_noise_variance_share: 0.20
+
+# --- Shortlist / hire ---------------------------------------------------------
+shortlist_size: 5
+shortlist_temperature: 1.0
+hire_temperature: 0.3
+hire_rate_target: 0.85
+worker_capacity_max_hires: 4
+worker_capacity_window_days: 30
+
+# --- Ratings / reviews (docs Section 10) -------------------------------------
+rating_completion_rate: 0.90
+rating_weights: {quality: 0.5, skill: 0.3, budget: 0.2}
+rating_noise_std: 0.5
+review_rate: 0.60
