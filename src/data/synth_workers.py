@@ -79,6 +79,12 @@ def _category_pay_table(eligible_jobs: pd.DataFrame) -> dict[str, pd.DataFrame]:
     return tables
 
 
+# [ASSUMPTION] These exponents bias which real (price_tier, pay_amount)
+# row an entry/intermediate/expert worker inherits (lower row index ==
+# lower price tier). They are a synthetic modelling choice, not a value
+# derived from observed Upwork freelancer behaviour -- the raw dataset is
+# demand-side only and contains no freelancer rate-by-experience data at
+# all (docs/experimental_design.md Section 2, Limitation 1).
 _EXPERIENCE_BIAS_POWER = {"entry": 2.0, "intermediate": 1.0, "expert": 0.6}
 
 

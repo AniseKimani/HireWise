@@ -4,7 +4,13 @@ Re-derives every number cited in docs/experimental_design.md from the raw CSV.
 Read-only: the raw file is never modified.
 
 Usage:
-    python scripts/verify_day1.py data/raw/upwork-jobs.csv docs/day1_stats.json
+    python scripts/verify_day1.py data/raw/upwork-jobs.csv data/raw/day1_stats.json
+
+(The stats file above sits next to the git-ignored raw CSV rather than
+under docs/, since it's a re-creatable intermediate, not committed
+evidence. The default OUT_PATH below is unchanged; pass an explicit
+second argument, as above, to reproduce the numbers as they were
+actually generated.)
 """
 import html
 import json
