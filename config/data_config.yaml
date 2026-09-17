@@ -1,0 +1,35 @@
+# Single source of truth for Day 2 data-pipeline thresholds and experimental
+# parameters. Values here mirror docs/experimental_design.md; do not
+# duplicate magic numbers in Python — read them from here instead.
+
+seed: 42
+
+# --- Scope and vocabulary -----------------------------------------------
+min_category_jobs: 100      # categories need >= this many in-scope jobs
+min_skill_frequency: 20     # skills need >= this many in-scope-job mentions
+
+# --- Sampling -------------------------------------------------------------
+model_requests: 12000
+
+# --- Day 3 targets (recorded here now, consumed starting Day 3) ----------
+synthetic_clients: 2000
+synthetic_workers: 3000
+
+# --- Temporal split (Day 3+) ----------------------------------------------
+train_ratio: 0.70
+validation_ratio: 0.10
+test_ratio: 0.20
+
+cold_start_ratio: 0.10
+
+# --- Skill co-occurrence (src/data/stats.py) ------------------------------
+cooccurrence_min_support: 5   # pair must co-occur in >= this many jobs
+cooccurrence_min_npmi: 0.0    # pair must exceed this NPMI to be kept
+
+# --- Winsorisation (analysis/figures only; stored values are untouched) --
+winsorize_low_percentile: 0.01
+winsorize_high_percentile: 0.99
+
+# --- Price tiers -----------------------------------------------------------
+# Reference population for percentile-rank price tiers.
+price_tier_reference: in_scope_jobs
