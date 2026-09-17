@@ -27,6 +27,7 @@ class DataConfig:
     winsorize_low_percentile: float
     winsorize_high_percentile: float
     price_tier_reference: str
+    generator_config_path: str
 
     @property
     def split_ratios(self) -> tuple[float, float, float]:
