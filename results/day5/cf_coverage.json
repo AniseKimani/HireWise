@@ -1,0 +1,29 @@
+{
+  "fallback_usage": {
+    "test": {
+      "fully_fallback_request_rate": 0.2175824175824176,
+      "n_fully_fallback_requests": 495,
+      "n_recommendations": 22750,
+      "n_recommendations_via_fallback": 7942,
+      "n_requests": 2275,
+      "recommendation_fallback_rate": 0.3490989010989011
+    },
+    "validation": {
+      "fully_fallback_request_rate": 0.16341030195381884,
+      "n_fully_fallback_requests": 184,
+      "n_recommendations": 11260,
+      "n_recommendations_via_fallback": 3401,
+      "n_requests": 1126,
+      "recommendation_fallback_rate": 0.30204262877442273
+    }
+  },
+  "median_distinct_workers_per_client_with_history": 15.0,
+  "n_clients_total": 2000,
+  "n_clients_with_no_training_history": 133,
+  "n_clients_with_training_history": 1867,
+  "n_cold_start_workers_in_training_matrix": 0,
+  "n_cold_start_workers_total": 300,
+  "n_workers_total": 3000,
+  "n_workers_with_no_training_history": 315,
+  "n_workers_with_training_history": 2685
+}

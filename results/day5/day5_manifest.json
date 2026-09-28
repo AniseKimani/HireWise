@@ -1,0 +1,58 @@
+{
+  "cf_config_sha256": "5e51f4d758963b2e756bdeae8f1cf49a74874850566cfb443bf811cd7c62f1fb",
+  "day4_cbf_config_sha256": "9703172273d3626ab6fae194220b4e1f3ab02c36e5937b88c3c8104a9bbd01f2",
+  "files": [
+    {
+      "bytes": 973,
+      "path": "results/day5/cf_coverage.json",
+      "sha256": "b7339fed3b20f8fbc99d1fa4015a9758e99e901b84ab467c3cd57eafbf8bd263"
+    },
+    {
+      "bytes": 1926,
+      "path": "results/day5/cf_tuning.csv",
+      "rows": 16,
+      "sha256": "b3e7c1c7e71a90cf1a3595ec911f82eafde5bca8bc1b151ed4823491ed9da420"
+    },
+    {
+      "bytes": 1000,
+      "path": "results/day5/cold_start_metrics.csv",
+      "rows": 8,
+      "sha256": "d00399a1dc80f9181366e3ec30f02ec505f4e295bc0be7bffeb042d6cc5ed0e8"
+    },
+    {
+      "bytes": 47447,
+      "path": "results/day5/figures/cf_validation_tuning.png",
+      "sha256": "7b30538532be45004c9b1225fad4eb60fec654c1ef8525dd75b3a76e625b8f90"
+    },
+    {
+      "bytes": 32786,
+      "path": "results/day5/figures/cold_start_comparison.png",
+      "sha256": "e44cb773d3777e65e6a840e16d42038b174397cebccce14e058c8db883801e5b"
+    },
+    {
+      "bytes": 34948,
+      "path": "results/day5/figures/model_comparison_test_k10.png",
+      "sha256": "b948da88de6ee82e117e318cddff5ddcf920c31cdea73e64ad8ab70057d2f2ec"
+    },
+    {
+      "bytes": 393,
+      "path": "results/day5/selected_cf_config.json",
+      "sha256": "52cdac818b2b936e00920137116486cabc52530773ebdecdd5033b8c6fcb9a15"
+    },
+    {
+      "bytes": 550,
+      "path": "results/day5/test_metrics.csv",
+      "rows": 4,
+      "sha256": "2786d48f4a65b6baaf679bd3d8046e47b73d660e2d2c65efa8184c57888b1f32"
+    },
+    {
+      "bytes": 563,
+      "path": "results/day5/validation_metrics.csv",
+      "rows": 4,
+      "sha256": "1f08821bae364784e418fd373931f4cadbaac8ea0464ba9013b8113bb476a3b5"
+    }
+  ],
+  "generator_v1_sha256": "e4e94d917f269a0b0100804bde0e0555171cc7527521a1a0990692bfeebfb5a1",
+  "k": 10,
+  "seed": 42
+}

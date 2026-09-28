@@ -1,0 +1,16 @@
+{
+  "aggregation": "sum",
+  "event_weights": {
+    "HIRED": 2.0,
+    "SHORTLISTED": 1.0
+  },
+  "fallback": "popularity_training_only",
+  "k_neighbors": 20,
+  "method": "user",
+  "min_similarity": 0.0,
+  "primary_metric": "ndcg_at_10",
+  "primary_metric_value": 0.1154929675185676,
+  "tiebreak_metric": "recall_at_10",
+  "tiebreak_metric_value": 0.16341030195381884,
+  "tuning_grid_size": 16
+}
