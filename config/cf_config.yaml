@@ -1,0 +1,45 @@
+# Day 5 Collaborative Filtering configuration.
+#
+# The master seed lives in config/data_config.yaml; K=10 and the
+# candidate-universe/relevance protocol live in config/evaluation_config.yaml
+# and are reused unchanged (docs/day4_recommender_report.md Section 1;
+# docs/day5_cf_report.md documents the CF-specific choices below).
+
+k: 10   # reference only; the shared evaluation protocol's k is authoritative
+
+# --- Interaction weights (implicit feedback) --------------------------------
+# SHORTLISTED counts as weaker positive evidence than HIRED. Ratings are
+# deliberately not used: they only exist for a subset of hires, so adding
+# them would re-weight the same HIRED event rather than add independent
+# signal (see docs/day5_cf_report.md Section 2).
+event_weights:
+  HIRED: 2.0
+  SHORTLISTED: 1.0
+
+# --- Repeated client-worker interaction aggregation -------------------------
+# A client can interact with the same worker across multiple distinct
+# training requests. Both predeclared alternatives below are included in
+# the validation-only tuning grid (Section 5) rather than picked by
+# assertion:
+#   sum: total weight across all training interactions for the pair
+#   max: the single strongest observed signal for the pair
+aggregation_grid: [sum, max]
+
+# --- Validation-only tuning grid (Section 5) --------------------------------
+method_grid: [user, item]
+k_neighbors_grid: [10, 20, 40, 80]
+
+# Only positive similarity is treated as useful collaborative evidence;
+# self-similarity is always excluded before neighbor selection.
+min_similarity: 0.0
+
+tuning_primary_metric: ndcg_at_10
+tuning_tiebreak_metric: recall_at_10
+
+# --- Fallback -----------------------------------------------------------------
+# When a client has no training history at all, or a specific candidate
+# has no collaborative evidence (similarity-weighted score of exactly 0),
+# fall back to Day 4's training-only Popularity signal. Fallback never
+# outranks a candidate with a genuine positive CF score -- see
+# src/recommenders/collaborative.py.
+fallback: popularity_training_only
