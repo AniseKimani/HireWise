@@ -1,0 +1,57 @@
+{
+  "evaluation_config_sha256": "c1d06b9bf5ee62f93e37cbc3d77ac2596382129226a64fc3a37ed26f5497a4f8",
+  "files": [
+    {
+      "bytes": 954,
+      "path": "results/day4/cbf_tuning.csv",
+      "rows": 7,
+      "sha256": "1ea3723ca6ee87114e308ec79162aa95cc58002fac726e515215047845aeffe1"
+    },
+    {
+      "bytes": 812,
+      "path": "results/day4/cold_start_metrics.csv",
+      "rows": 6,
+      "sha256": "6015b995c2772087042eb2c9c972d4e846a21da41cf5cf9d0f302f95e4ad39e5"
+    },
+    {
+      "bytes": 55458,
+      "path": "results/day4/figures/cbf_validation_tuning.png",
+      "sha256": "e30ef4d5901dcc56eb1b6801a2cba0ab96eafac87b8042df16fb35e697dd639d"
+    },
+    {
+      "bytes": 28862,
+      "path": "results/day4/figures/cold_start_comparison.png",
+      "sha256": "422b74e036ecfe6d18c0e73ac6cc0c6a10f6d2c15953c6639e2eab0ecdaaeecf"
+    },
+    {
+      "bytes": 29270,
+      "path": "results/day4/figures/model_comparison_test_k10.png",
+      "sha256": "1dafd7662a2f8c4ab06bb91a592cf89a634aa6b41844a501d9037ada625ca162"
+    },
+    {
+      "bytes": 217,
+      "path": "results/day4/selected_cbf_config.json",
+      "sha256": "9703172273d3626ab6fae194220b4e1f3ab02c36e5937b88c3c8104a9bbd01f2"
+    },
+    {
+      "bytes": 457,
+      "path": "results/day4/test_metrics.csv",
+      "rows": 3,
+      "sha256": "ba44f03a1b27163d46072949ccba81275a948b6df628955ccee27eb916a93689"
+    },
+    {
+      "bytes": 469,
+      "path": "results/day4/validation_metrics.csv",
+      "rows": 3,
+      "sha256": "199eb5e4e68c1d8c6bf3cc9d0a44533ccfe1be2c8be40fb827171cfaafce8251"
+    }
+  ],
+  "generator_v1_sha256": "e4e94d917f269a0b0100804bde0e0555171cc7527521a1a0990692bfeebfb5a1",
+  "k": 10,
+  "min_candidate_pool_size": 20,
+  "n_test_excluded": 125,
+  "n_test_requests": 2400,
+  "n_validation_excluded": 74,
+  "n_validation_requests": 1200,
+  "seed": 42
+}

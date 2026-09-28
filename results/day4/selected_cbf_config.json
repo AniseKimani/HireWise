@@ -1,0 +1,11 @@
+{
+  "price_neutral_score": 0.5,
+  "primary_metric": "ndcg_at_10",
+  "primary_metric_value": 0.14102184899768008,
+  "tuning_grid_size": 7,
+  "weights": {
+    "category": 0.25,
+    "price": 0.25,
+    "skill": 0.5
+  }
+}
