@@ -78,3 +78,34 @@ Every row is uniquely identified by `link`, so the original text can
 always be recovered by joining back to `data/raw/upwork-jobs.csv` (which
 is git-ignored and never redistributed). This keeps `data/processed/`
 outputs an order of magnitude smaller without losing any information.
+
+## 6. Day 6 knowledge graph artifacts (`data/processed/kg/`)
+
+Deterministic, graph-ready node/relationship tables produced by
+`scripts/prepare_kg_data.py` (see `docs/day6_knowledge_graph_report.md`
+for the full schema). Each file's columns are exactly the properties
+`src/kg/loader.py` writes to the corresponding Neo4j label/relationship
+type -- nothing more.
+
+| File | Represents | Key columns |
+|---|---|---|
+| `nodes_client.csv` | `Client` nodes | `client_id`, `preferred_pay_type`, `median_price_tier` |
+| `nodes_worker.csv` | `Worker` nodes | `worker_id`, `experience_level`, `experience_years`, `price_tier`, `rate`, `join_day`, `is_cold_start` |
+| `nodes_skill.csv` | `Skill` nodes (full 1,187-skill controlled vocabulary) | `name` |
+| `nodes_category.csv` | `ServiceCategory` nodes (all 88 in-scope categories) | `name` |
+| `nodes_location.csv` | `Location` nodes (normalized worker/client countries) | `name` |
+| `rel_has_skill.csv` | `(Worker)-[:HAS_SKILL]->(Skill)` | `worker_id`, `skill` |
+| `rel_specializes_in.csv` | `(Worker)-[:SPECIALIZES_IN]->(ServiceCategory)` | `worker_id`, `category`, `role` |
+| `rel_located_in_worker.csv`, `rel_located_in_client.csv` | `(Worker\|Client)-[:LOCATED_IN]->(Location)` | `worker_id`/`client_id`, `location` |
+| `rel_requested_service.csv` | `(Client)-[:REQUESTED_SERVICE]->(ServiceCategory)`, one row per request | `client_id`, `category`, `link`, `simulated_day`, `split` |
+| `rel_interested_in.csv` | `(Client)-[:INTERESTED_IN]->(ServiceCategory)`, derived, training-only | `client_id`, `category`, `training_request_count` (>= 2) |
+| `rel_hired.csv` | `(Client)-[:HIRED]->(Worker)`, one row per hire event | `client_id`, `worker_id`, `link`, `simulated_day`, `split` |
+| `rel_reviewed.csv` | `(Client)-[:REVIEWED]->(Worker)`, one row per rated hire | `client_id`, `worker_id`, `link`, `rating`, `has_review` |
+| `rel_related_to.csv` | `(Skill)-[:RELATED_TO]->(Skill)`, background-corpus co-occurrence | `skill_a`, `skill_b`, `support`, `npmi` |
+| `kg_prepare_manifest.json` | SHA-256/byte-size/row-count per file above | — |
+| `kg_prepare_summary.json` | Top-level node/relationship counts | — |
+
+No `Request` node and no `Review` node exist -- see
+`docs/day6_knowledge_graph_report.md` Section 1 for why (request context
+lives on relationship properties instead; no review text was ever
+generated to justify a dedicated node).
