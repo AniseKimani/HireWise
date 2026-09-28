@@ -50,7 +50,10 @@ boolean flag, but no review *text*
 misrepresent data that doesn't exist. `REVIEWED` is a relationship
 carrying `rating` and `has_review` properties, which is what the
 established "Knowledge Graph ... REVIEWED edges" language already
-describes and is consistent with the data actually available.
+describes and is consistent with the data actually available. (Section
+10 below documents the full pre-freeze consistency review of this
+specific decision, re-checked explicitly against Day 3's actual data
+before the graph was finalized.)
 
 `SPECIALIZES_IN` was used for the worker-category relationship (as the
 Day 6 brief itself suggests as "a justified operational name"), as the
@@ -253,15 +256,69 @@ KG queries never need to conditionally create nodes. No relationship was
 fabricated for any node to justify this -- in the event, every skill and
 category turned out to have at least one genuine edge anyway (Section 7).
 
-## 10. Review/rating representation and its limitation
+## 10. Rating/Review schema consistency review
 
-Only a `rating` (1-5) and `has_review` (boolean) property exist on
-`REVIEWED` edges, matching exactly what Day 3 generates
-(`docs/synthetic_data_report.md` Section 9: review text is explicitly
-out of scope, "Large language models are not used for generation").
-`has_review = true` records that a review *would* exist in a real
-platform, without asserting any content for it. No textual review
-content is stored anywhere in the graph.
+A dedicated re-check was performed before freezing Day 6, specifically
+to confirm the `REVIEWED`-relationship representation (rather than
+dedicated `Rating`/`Review` node labels) is correct and not merely
+convenient.
+
+**What the documentation requires.** Every reference to rating/review
+data in the repository -- `docs/experimental_design.md` Sections 8, 9.4,
+10, 14, Appendix B; `docs/synthetic_data_report.md` Section 9;
+`docs/day4_recommender_report.md` (signal-access table) -- names
+`REVIEWED` as a **Knowledge Graph edge**: e.g. "Knowledge Graph
+`HIRED`/`REVIEWED` edges" (Section 14), "Partial (training `REVIEWED`
+edges)" (Section 9.4's signal-access matrix). No document in this
+repository, including the earliest design document
+(`docs/experimental_design.md`, committed before any Day 2-6 work),
+ever specifies a `Rating` or `Review` *node* label. The README (the only
+other pre-existing document, committed before `experimental_design.md`)
+contains no schema detail at all. There is therefore no documented
+requirement this section's design decision could conflict with.
+
+**What Day 3 actually generates** (`data/processed/synthetic/ratings.csv`,
+re-verified directly for this review):
+
+| Question | Answer |
+|---|---|
+| Actual numeric rating? | Yes -- `rating`, integer 1-5 |
+| Structured review metadata? | Only `has_review` (boolean); no date, length, sentiment, or other structured field |
+| Textual review content? | **No** -- zero text columns exist anywhere in the file or the generator that produced it |
+| Does every rating correspond to a completed/hired interaction? | Yes -- all 9,173 `(link, worker_id)` rating pairs are a strict subset of the 10,163 `HIRED` pairs (never a `SHORTLISTED`-only pair), matching the documented ~90% completion assumption exactly |
+| Stable event/request identifier available? | Yes -- `link`, the same identifier already used on `HIRED`/`REQUESTED_SERVICE` edges |
+
+**Decision, applying the stated precedence:**
+
+1. *Preserve actual available data* -- satisfied: `rating` and
+   `has_review` are both stored, unmodified, as `REVIEWED` edge
+   properties (Section 3 above). Nothing available was discarded.
+2. *Preserve the approved documented architecture where it can be done
+   honestly* -- satisfied: the only documented architecture is
+   "`REVIEWED` edges," which is exactly what exists. There is no
+   documented `Rating`/`Review` node to preserve or conflict with.
+3. *Do not create fake textual reviews merely to satisfy a diagram* --
+   satisfied by construction: no `Review` node was created, so no review
+   text was ever at risk of being fabricated.
+4. *Prefer a small documented schema amendment over inventing unsupported
+   data* -- not applicable: no data needs inventing to satisfy any
+   documented requirement, because none exists.
+
+**Conclusion: no schema change.** The current `REVIEWED`-relationship
+representation is an **intentional implementation refinement of the
+earlier conceptual schema**, not a deviation from it: the project's
+README-level concept of "Knowledge Graph reasoning" and
+`docs/experimental_design.md`'s "`REVIEWED` edges" language are both
+satisfied precisely as written. A `Rating` node would add a label with
+no property `REVIEWED` doesn't already carry (the rating value, the
+completion flag, and the stable `link` identifier), at the cost of an
+extra traversal hop with no documented justification. A `Review` node
+would necessarily be an empty placeholder, since no grounded review text
+exists to populate it -- creating one "merely to satisfy a diagram"
+is explicitly what this review was tasked with avoiding. This decision
+was made purely on data/documentation consistency grounds, not on
+anticipated Day 7 KG-recommender convenience (which this review did not
+consider).
 
 ## 11. Reproducibility
 

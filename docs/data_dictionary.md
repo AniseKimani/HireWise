@@ -105,7 +105,9 @@ type -- nothing more.
 | `kg_prepare_manifest.json` | SHA-256/byte-size/row-count per file above | — |
 | `kg_prepare_summary.json` | Top-level node/relationship counts | — |
 
-No `Request` node and no `Review` node exist -- see
-`docs/day6_knowledge_graph_report.md` Section 1 for why (request context
-lives on relationship properties instead; no review text was ever
-generated to justify a dedicated node).
+No `Request` node and no `Review`/`Rating` node exist -- see
+`docs/day6_knowledge_graph_report.md` Sections 1 and 10 for why (request
+context lives on relationship properties instead; no review text was
+ever generated to justify a dedicated node; a pre-freeze consistency
+review confirmed no documentation anywhere requires a `Rating`/`Review`
+node label, only "`REVIEWED` edges").
