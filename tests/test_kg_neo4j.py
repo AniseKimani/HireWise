@@ -3,11 +3,17 @@ cleanly (not a confusing error) if no Neo4j instance is reachable or
 configured -- see src/kg/neo4j_client.py's Neo4jConfigError/
 ConnectionError handling.
 
-These tests write to whatever database NEO4J_DATABASE points at. To
-avoid disturbing a database that might hold other data, they operate
-inside their own uniquely-prefixed test nodes rather than touching the
-main HireWise graph, and clean up after themselves.
+The idempotent-loading tests write to whatever database NEO4J_DATABASE
+points at. To avoid disturbing a database that might hold other data,
+they operate inside their own uniquely-prefixed test nodes rather than
+touching the main HireWise graph, and clean up after themselves.
+
+Since Day 7 these write tests are OPT-IN: they run only when
+HIREWISE_RUN_NEO4J_WRITE_TESTS=1 is set, so the default test suite never
+writes to the live database. The connectivity check (`RETURN 1`) is
+read-only and still runs by default.
 """
+import os
 import unittest
 import uuid
 
@@ -26,6 +32,7 @@ def _neo4j_available() -> bool:
 
 
 NEO4J_AVAILABLE = _neo4j_available()
+RUN_WRITE_TESTS = os.environ.get("HIREWISE_RUN_NEO4J_WRITE_TESTS") == "1"
 
 
 @unittest.skipUnless(NEO4J_AVAILABLE, "Neo4j not configured/reachable (set NEO4J_URI/USER/PASSWORD and start the server)")
@@ -36,6 +43,7 @@ class TestNeo4jClientLive(unittest.TestCase):
             self.assertEqual(result, [{"x": 1}])
 
 
+@unittest.skipUnless(RUN_WRITE_TESTS, "opt-in live-write test: set HIREWISE_RUN_NEO4J_WRITE_TESTS=1 to run")
 @unittest.skipUnless(NEO4J_AVAILABLE, "Neo4j not configured/reachable (set NEO4J_URI/USER/PASSWORD and start the server)")
 class TestIdempotentLoading(unittest.TestCase):
     """Uses an isolated, uniquely-tagged test label/id space so this test
