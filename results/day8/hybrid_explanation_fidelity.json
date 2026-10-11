@@ -1,0 +1,24 @@
+{
+  "test": {
+    "n_recommendations": 22750,
+    "n_recommendations_with_no_positive_contribution": 0,
+    "share_contributions_reconstruct_score": 1.0,
+    "share_first_cited_is_largest_contribution": 1.0,
+    "single_source_explanation_fidelity": {
+      "cbf": 0.2257142857142857,
+      "cf": 0.0,
+      "kg": 0.7742857142857142
+    }
+  },
+  "validation": {
+    "n_recommendations": 11260,
+    "n_recommendations_with_no_positive_contribution": 0,
+    "share_contributions_reconstruct_score": 1.0,
+    "share_first_cited_is_largest_contribution": 1.0,
+    "single_source_explanation_fidelity": {
+      "cbf": 0.2202486678507993,
+      "cf": 0.0,
+      "kg": 0.7797513321492007
+    }
+  }
+}

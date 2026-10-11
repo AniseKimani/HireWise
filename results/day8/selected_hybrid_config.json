@@ -1,0 +1,19 @@
+{
+  "cf_score": "raw collaborative score (no popularity fallback in the score)",
+  "constant_component_policy": "zero",
+  "grid_index": 10,
+  "hybrid_config_sha256": "4d956748204f7f6f01eedac742399393bf753452f7c5b182a213326358533f95",
+  "normalization": "minmax_within_candidate_pool",
+  "primary_metric": "ndcg_at_10",
+  "primary_metric_value": 0.15606596635120873,
+  "selected_on": "validation",
+  "tie_break": "worker_id_ascending",
+  "tiebreak_metric": "recall_at_10",
+  "tiebreak_metric_value": 0.19644760213143875,
+  "tuning_grid_size": 12,
+  "weights": {
+    "cbf": 0.4,
+    "cf": 0.1,
+    "kg": 0.5
+  }
+}

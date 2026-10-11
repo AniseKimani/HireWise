@@ -1,0 +1,3082 @@
+{
+  "explanations": [
+    {
+      "cited_components": [
+        "kg",
+        "cbf"
+      ],
+      "contributions": {
+        "cbf": 0.29242391544222984,
+        "cf": 0.0,
+        "kg": 0.38477737191407796
+      },
+      "dominant_component": "kg",
+      "kg_paths": [
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.06851026309303557,
+          "nodes": [
+            {
+              "id": "Translation",
+              "label": "Skill"
+            },
+            {
+              "id": "W002126",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'Translation'"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.0648679293173769,
+          "nodes": [
+            {
+              "id": "Proofreading",
+              "label": "Skill"
+            },
+            {
+              "id": "W002126",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'Proofreading'"
+        },
+        {
+          "edges": [
+            {
+              "role": "primary",
+              "type": "SPECIALIZES_IN"
+            }
+          ],
+          "kg_internal_contribution": 0.04753549498134164,
+          "nodes": [
+            {
+              "id": "Proofreading",
+              "label": "ServiceCategory"
+            },
+            {
+              "id": "W002126",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "category",
+          "text": "Specializes in 'Proofreading' (primary category)"
+        }
+      ],
+      "kg_summary": "Average training-period rating 5.00/5 from 1 review (smoothed 4.54); Has required skill 'Translation'; Has 'English to Chinese Translation', related to required skill 'Translation' (background-corpus NPMI 0.52)",
+      "link": "https://www.upwork.com/jobs/Bulgarian-Medical-Text-Proofreadings_%7E01239f7bdb3df1c65d?source=rss",
+      "normalized_scores": {
+        "cbf": 0.7310597886055746,
+        "cf": 0.0,
+        "kg": 0.7695547438281559
+      },
+      "rank": 4,
+      "raw_scores": {
+        "cbf": 0.5643802870214937,
+        "cf": 0.0,
+        "kg": 0.5190774864113459
+      },
+      "score": 0.6772012873563078,
+      "text": "Recommended because knowledge-graph evidence (KG) contributed 0.38, profile match (CBF) contributed 0.29 (hybrid score 0.68); no contribution from collaborative history (CF). Strongest KG evidence: Average training-period rating 5.00/5 from 1 review (smoothed 4.54); Has required skill 'Translation'; Has 'English to Chinese Translation', related to required skill 'Translation' (background-corpus NPMI 0.52)",
+      "weights": {
+        "cbf": 0.4,
+        "cf": 0.1,
+        "kg": 0.5
+      },
+      "worker_id": "W002126"
+    },
+    {
+      "cited_components": [
+        "cbf",
+        "kg"
+      ],
+      "contributions": {
+        "cbf": 0.3532776808638878,
+        "cf": 0.0,
+        "kg": 0.2705744560107676
+      },
+      "dominant_component": "cbf",
+      "kg_paths": [
+        {
+          "edges": [
+            {
+              "role": "primary",
+              "type": "SPECIALIZES_IN"
+            }
+          ],
+          "kg_internal_contribution": 0.03190729994903973,
+          "nodes": [
+            {
+              "id": "Presentation Design",
+              "label": "ServiceCategory"
+            },
+            {
+              "id": "W002072",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "category",
+          "text": "Specializes in 'Presentation Design' (primary category)"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.024823776323428567,
+          "nodes": [
+            {
+              "id": "Business Presentation",
+              "label": "Skill"
+            },
+            {
+              "id": "W002072",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'Business Presentation'"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.02056931629018427,
+          "nodes": [
+            {
+              "id": "Branding Template",
+              "label": "Skill"
+            },
+            {
+              "id": "W002072",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'Branding Template'"
+        }
+      ],
+      "kg_summary": "Average training-period rating 4.75/5 from 4 reviews (smoothed 4.58); Has required skill 'Business Presentation'; Has 'Pitchbook', related to required skill 'Google Slides' (background-corpus NPMI 0.58)",
+      "link": "https://www.upwork.com/jobs/Business-Development-Slide-Deck-Design_%7E016698270efa843f56?source=rss",
+      "normalized_scores": {
+        "cbf": 0.8831942021597194,
+        "cf": 0.0,
+        "kg": 0.5411489120215351
+      },
+      "rank": 8,
+      "raw_scores": {
+        "cbf": 0.6128378378378379,
+        "cf": 0.0,
+        "kg": 0.4310147953026994
+      },
+      "score": 0.6238521368746553,
+      "text": "Recommended because profile match (CBF) contributed 0.35, knowledge-graph evidence (KG) contributed 0.27 (hybrid score 0.62); no contribution from collaborative history (CF). Strongest KG evidence: Average training-period rating 4.75/5 from 4 reviews (smoothed 4.58); Has required skill 'Business Presentation'; Has 'Pitchbook', related to required skill 'Google Slides' (background-corpus NPMI 0.58)",
+      "weights": {
+        "cbf": 0.4,
+        "cf": 0.1,
+        "kg": 0.5
+      },
+      "worker_id": "W002072"
+    },
+    {
+      "cited_components": [
+        "kg",
+        "cbf"
+      ],
+      "contributions": {
+        "cbf": 0.4,
+        "cf": 0.0,
+        "kg": 0.4801993132915817
+      },
+      "dominant_component": "kg",
+      "kg_paths": [
+        {
+          "edges": [
+            {
+              "role": "primary",
+              "type": "SPECIALIZES_IN"
+            }
+          ],
+          "kg_internal_contribution": 0.1,
+          "nodes": [
+            {
+              "id": "3D Modeling & Rendering",
+              "label": "ServiceCategory"
+            },
+            {
+              "id": "W000054",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "category",
+          "text": "Specializes in '3D Modeling & Rendering' (primary category)"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.05105740159906135,
+          "nodes": [
+            {
+              "id": "Autodesk AutoCAD",
+              "label": "Skill"
+            },
+            {
+              "id": "W000054",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'Autodesk AutoCAD'"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.050794554777282896,
+          "nodes": [
+            {
+              "id": "3D Rendering",
+              "label": "Skill"
+            },
+            {
+              "id": "W000054",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill '3D Rendering'"
+        }
+      ],
+      "kg_summary": "Average training-period rating 4.67/5 from 3 reviews (smoothed 4.53); Has required skill 'Autodesk AutoCAD'; Specializes in '3D Modeling & Rendering' (primary category)",
+      "link": "https://www.upwork.com/jobs/CAD-designer-put-furniture-into-picture_%7E01f7eb3d73d472b654?source=rss",
+      "normalized_scores": {
+        "cbf": 1.0,
+        "cf": 0.0,
+        "kg": 0.9603986265831634
+      },
+      "rank": 1,
+      "raw_scores": {
+        "cbf": 0.7222222222222222,
+        "cf": 0.0,
+        "kg": 0.6229692317588459
+      },
+      "score": 0.8801993132915817,
+      "text": "Recommended because knowledge-graph evidence (KG) contributed 0.48, profile match (CBF) contributed 0.40 (hybrid score 0.88); no contribution from collaborative history (CF). Strongest KG evidence: Average training-period rating 4.67/5 from 3 reviews (smoothed 4.53); Has required skill 'Autodesk AutoCAD'; Specializes in '3D Modeling & Rendering' (primary category)",
+      "weights": {
+        "cbf": 0.4,
+        "cf": 0.1,
+        "kg": 0.5
+      },
+      "worker_id": "W000054"
+    },
+    {
+      "cited_components": [
+        "cbf",
+        "kg"
+      ],
+      "contributions": {
+        "cbf": 0.3768726279375303,
+        "cf": 0.0,
+        "kg": 0.34973612268562687
+      },
+      "dominant_component": "cbf",
+      "kg_paths": [
+        {
+          "edges": [
+            {
+              "role": "primary",
+              "type": "SPECIALIZES_IN"
+            }
+          ],
+          "kg_internal_contribution": 0.1,
+          "nodes": [
+            {
+              "id": "Social Media Marketing",
+              "label": "ServiceCategory"
+            },
+            {
+              "id": "W002405",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "category",
+          "text": "Specializes in 'Social Media Marketing' (primary category)"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.03429319868801063,
+          "nodes": [
+            {
+              "id": "Social Media Content",
+              "label": "Skill"
+            },
+            {
+              "id": "W002405",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'Social Media Content'"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.025466891682291524,
+          "nodes": [
+            {
+              "id": "Social Media Management",
+              "label": "Skill"
+            },
+            {
+              "id": "W002405",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'Social Media Management'"
+        }
+      ],
+      "kg_summary": "Average training-period rating 5.00/5 from 1 review (smoothed 4.54); Has required skill 'Social Media Content'; Specializes in 'Social Media Marketing' (primary category)",
+      "link": "https://www.upwork.com/jobs/Content-Creator-Social-Media-Manager-for-dog-brand_%7E01aec906aea51aec71?source=rss",
+      "normalized_scores": {
+        "cbf": 0.9421815698438257,
+        "cf": 0.0,
+        "kg": 0.6994722453712537
+      },
+      "rank": 4,
+      "raw_scores": {
+        "cbf": 0.6044131296022426,
+        "cf": 0.0,
+        "kg": 0.5673996088210614
+      },
+      "score": 0.7266087506231571,
+      "text": "Recommended because profile match (CBF) contributed 0.38, knowledge-graph evidence (KG) contributed 0.35 (hybrid score 0.73); no contribution from collaborative history (CF). Strongest KG evidence: Average training-period rating 5.00/5 from 1 review (smoothed 4.54); Has required skill 'Social Media Content'; Specializes in 'Social Media Marketing' (primary category)",
+      "weights": {
+        "cbf": 0.4,
+        "cf": 0.1,
+        "kg": 0.5
+      },
+      "worker_id": "W002405"
+    },
+    {
+      "cited_components": [
+        "kg",
+        "cbf"
+      ],
+      "contributions": {
+        "cbf": 0.2866865580616668,
+        "cf": 0.0,
+        "kg": 0.5
+      },
+      "dominant_component": "kg",
+      "kg_paths": [
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.11486983549970349,
+          "nodes": [
+            {
+              "id": "Microsoft Excel",
+              "label": "Skill"
+            },
+            {
+              "id": "W000650",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'Microsoft Excel'"
+        },
+        {
+          "edges": [
+            {
+              "role": "primary",
+              "type": "SPECIALIZES_IN"
+            }
+          ],
+          "kg_internal_contribution": 0.1,
+          "nodes": [
+            {
+              "id": "Data Entry",
+              "label": "ServiceCategory"
+            },
+            {
+              "id": "W000650",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "category",
+          "text": "Specializes in 'Data Entry' (primary category)"
+        },
+        {
+          "edges": [
+            {
+              "npmi": 0.2656730453989844,
+              "support": 23,
+              "type": "RELATED_TO"
+            },
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.029294265498182724,
+          "nodes": [
+            {
+              "id": "Microsoft Excel",
+              "label": "Skill"
+            },
+            {
+              "id": "PDF Conversion",
+              "label": "Skill"
+            },
+            {
+              "id": "W000650",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "related_skill",
+          "text": "Has 'PDF Conversion', related to required skill 'Microsoft Excel' (background-corpus NPMI 0.27)"
+        }
+      ],
+      "kg_summary": "Average training-period rating 4.67/5 from 3 reviews (smoothed 4.53); Has required skill 'Microsoft Excel'; Specializes in 'Data Entry' (primary category)",
+      "link": "https://www.upwork.com/jobs/Cyber-Security-Interview-Question-Matrix_%7E013ca2f3ede654c8f1?source=rss",
+      "normalized_scores": {
+        "cbf": 0.7167163951541671,
+        "cf": 0.0,
+        "kg": 1.0
+      },
+      "rank": 2,
+      "raw_scores": {
+        "cbf": 0.4952921821773789,
+        "cf": 0.0,
+        "kg": 0.6059501649318713
+      },
+      "score": 0.7866865580616669,
+      "text": "Recommended because knowledge-graph evidence (KG) contributed 0.50, profile match (CBF) contributed 0.29 (hybrid score 0.79); no contribution from collaborative history (CF). Strongest KG evidence: Average training-period rating 4.67/5 from 3 reviews (smoothed 4.53); Has required skill 'Microsoft Excel'; Specializes in 'Data Entry' (primary category)",
+      "weights": {
+        "cbf": 0.4,
+        "cf": 0.1,
+        "kg": 0.5
+      },
+      "worker_id": "W000650"
+    },
+    {
+      "cited_components": [
+        "kg",
+        "cf"
+      ],
+      "contributions": {
+        "cbf": 0.0,
+        "cf": 0.022610105154521314,
+        "kg": 0.2592810714426681
+      },
+      "dominant_component": "kg",
+      "kg_paths": [
+        {
+          "edges": [
+            {
+              "role": "primary",
+              "type": "SPECIALIZES_IN"
+            }
+          ],
+          "kg_internal_contribution": 0.1,
+          "nodes": [
+            {
+              "id": "Public Relations",
+              "label": "ServiceCategory"
+            },
+            {
+              "id": "W002143",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "category",
+          "text": "Specializes in 'Public Relations' (primary category)"
+        },
+        {
+          "edges": [
+            {
+              "links": [
+                "https://www.upwork.com/jobs/Need-Forbes-placement_%7E01de50fe8df6e64481?source=rss"
+              ],
+              "n_hires": 1,
+              "split": "train",
+              "type": "HIRED"
+            },
+            {
+              "type": "HAS_SKILL"
+            },
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.006589604348198957,
+          "nodes": [
+            {
+              "id": "C001422",
+              "label": "Client"
+            },
+            {
+              "id": "W002147",
+              "label": "Worker"
+            },
+            {
+              "id": "Press Distribution",
+              "label": "Skill"
+            },
+            {
+              "id": "W002143",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "hired_similar_skill",
+          "text": "Shares skill 'Press Distribution' with W002147, whom you hired before"
+        },
+        {
+          "edges": [
+            {
+              "links": [
+                "https://www.upwork.com/jobs/Need-Forbes-placement_%7E01de50fe8df6e64481?source=rss"
+              ],
+              "n_hires": 1,
+              "split": "train",
+              "type": "HIRED"
+            },
+            {
+              "type": "HAS_SKILL"
+            },
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.005825080182777283,
+          "nodes": [
+            {
+              "id": "C001422",
+              "label": "Client"
+            },
+            {
+              "id": "W002147",
+              "label": "Worker"
+            },
+            {
+              "id": "Outreach Strategy",
+              "label": "Skill"
+            },
+            {
+              "id": "W002143",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "hired_similar_skill",
+          "text": "Shares skill 'Outreach Strategy' with W002147, whom you hired before"
+        }
+      ],
+      "kg_summary": "No training-period reviews yet; neutral prior rating 4.45 used; Specializes in 'Public Relations' (primary category); Shares skill 'Press Distribution' with W002147, whom you hired before",
+      "link": "https://www.upwork.com/jobs/Dermatologist-Endorsement-Needed-For-New-Skin-Care-Brand_%7E01c801267f5de073fe?source=rss",
+      "normalized_scores": {
+        "cbf": 0.0,
+        "cf": 0.22610105154521312,
+        "kg": 0.5185621428853362
+      },
+      "rank": 10,
+      "raw_scores": {
+        "cbf": 0.375,
+        "cf": 0.3282439759448873,
+        "kg": 0.37743322741079055
+      },
+      "score": 0.28189117659718943,
+      "text": "Recommended because knowledge-graph evidence (KG) contributed 0.26, collaborative history (CF) contributed 0.02 (hybrid score 0.28); no contribution from profile match (CBF). Strongest KG evidence: No training-period reviews yet; neutral prior rating 4.45 used; Specializes in 'Public Relations' (primary category); Shares skill 'Press Distribution' with W002147, whom you hired before",
+      "weights": {
+        "cbf": 0.4,
+        "cf": 0.1,
+        "kg": 0.5
+      },
+      "worker_id": "W002143"
+    },
+    {
+      "cited_components": [
+        "kg",
+        "cbf",
+        "cf"
+      ],
+      "contributions": {
+        "cbf": 0.37192050316368125,
+        "cf": 0.03311376741244057,
+        "kg": 0.4153944694383699
+      },
+      "dominant_component": "kg",
+      "kg_paths": [
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.20000000000000004,
+          "nodes": [
+            {
+              "id": "Graphic Design",
+              "label": "Skill"
+            },
+            {
+              "id": "W001397",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'Graphic Design'"
+        },
+        {
+          "edges": [
+            {
+              "role": "primary",
+              "type": "SPECIALIZES_IN"
+            }
+          ],
+          "kg_internal_contribution": 0.06427550196442397,
+          "nodes": [
+            {
+              "id": "Graphic Design",
+              "label": "ServiceCategory"
+            },
+            {
+              "id": "W001397",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "category",
+          "text": "Specializes in 'Graphic Design' (primary category)"
+        },
+        {
+          "edges": [
+            {
+              "npmi": 0.3759534293532572,
+              "support": 184,
+              "type": "RELATED_TO"
+            },
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.017870040276108824,
+          "nodes": [
+            {
+              "id": "Graphic Design",
+              "label": "Skill"
+            },
+            {
+              "id": "Banner Ad Design",
+              "label": "Skill"
+            },
+            {
+              "id": "W001397",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "related_skill",
+          "text": "Has 'Banner Ad Design', related to required skill 'Graphic Design' (background-corpus NPMI 0.38)"
+        }
+      ],
+      "kg_summary": "Average training-period rating 4.90/5 from 10 reviews (smoothed 4.75); Has required skill 'Graphic Design'; Specializes in 'Graphic Design' (primary category)",
+      "link": "https://www.upwork.com/jobs/Graphic-designer-needed-design-creative-for-multiple-campaigns_%7E01836a25ffdbe6fc76?source=rss",
+      "normalized_scores": {
+        "cbf": 0.9298012579092031,
+        "cf": 0.3311376741244057,
+        "kg": 0.8307889388767398
+      },
+      "rank": 3,
+      "raw_scores": {
+        "cbf": 0.5612627474505099,
+        "cf": 1.2861748701229507,
+        "kg": 0.6321219363714013
+      },
+      "score": 0.8204287400144917,
+      "text": "Recommended because knowledge-graph evidence (KG) contributed 0.42, profile match (CBF) contributed 0.37, collaborative history (CF) contributed 0.03 (hybrid score 0.82). Strongest KG evidence: Average training-period rating 4.90/5 from 10 reviews (smoothed 4.75); Has required skill 'Graphic Design'; Specializes in 'Graphic Design' (primary category)",
+      "weights": {
+        "cbf": 0.4,
+        "cf": 0.1,
+        "kg": 0.5
+      },
+      "worker_id": "W001397"
+    },
+    {
+      "cited_components": [
+        "kg",
+        "cbf"
+      ],
+      "contributions": {
+        "cbf": 0.16632777874956828,
+        "cf": 0.0,
+        "kg": 0.5
+      },
+      "dominant_component": "kg",
+      "kg_paths": [
+        {
+          "edges": [
+            {
+              "links": [
+                "https://www.upwork.com/jobs/Website-Data-Investigation_%7E01d03eaa5e27e0ce82?source=rss"
+              ],
+              "n_hires": 1,
+              "split": "train",
+              "type": "HIRED"
+            },
+            {
+              "type": "HAS_SKILL"
+            },
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.1895977664639732,
+          "nodes": [
+            {
+              "id": "C001745",
+              "label": "Client"
+            },
+            {
+              "id": "W001207",
+              "label": "Worker"
+            },
+            {
+              "id": "Market Research",
+              "label": "Skill"
+            },
+            {
+              "id": "W002067",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "hired_similar_skill",
+          "text": "Shares skill 'Market Research' with W001207, whom you hired before"
+        },
+        {
+          "edges": [
+            {
+              "role": "primary",
+              "type": "SPECIALIZES_IN"
+            }
+          ],
+          "kg_internal_contribution": 0.1,
+          "nodes": [
+            {
+              "id": "Presentation Design",
+              "label": "ServiceCategory"
+            },
+            {
+              "id": "W002067",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "category",
+          "text": "Specializes in 'Presentation Design' (primary category)"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.05605191649426824,
+          "nodes": [
+            {
+              "id": "Business Presentation",
+              "label": "Skill"
+            },
+            {
+              "id": "W002067",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'Business Presentation'"
+        }
+      ],
+      "kg_summary": "No training-period reviews yet; neutral prior rating 4.45 used; Shares skill 'Market Research' with W001207, whom you hired before; Has required skill 'Business Presentation'",
+      "link": "https://www.upwork.com/jobs/Improve-and-Convert-Powerpoint-presentation-into-canva-presentation_%7E0120e1b3bc9117a15f?source=rss",
+      "normalized_scores": {
+        "cbf": 0.4158194468739207,
+        "cf": 0.0,
+        "kg": 1.0
+      },
+      "rank": 4,
+      "raw_scores": {
+        "cbf": 0.4953538380008968,
+        "cf": 0.0,
+        "kg": 0.7405862192349191
+      },
+      "score": 0.6663277787495683,
+      "text": "Recommended because knowledge-graph evidence (KG) contributed 0.50, profile match (CBF) contributed 0.17 (hybrid score 0.67); no contribution from collaborative history (CF). Strongest KG evidence: No training-period reviews yet; neutral prior rating 4.45 used; Shares skill 'Market Research' with W001207, whom you hired before; Has required skill 'Business Presentation'",
+      "weights": {
+        "cbf": 0.4,
+        "cf": 0.1,
+        "kg": 0.5
+      },
+      "worker_id": "W002067"
+    },
+    {
+      "cited_components": [
+        "kg",
+        "cbf",
+        "cf"
+      ],
+      "contributions": {
+        "cbf": 0.4,
+        "cf": 0.015637196625751325,
+        "kg": 0.5
+      },
+      "dominant_component": "kg",
+      "kg_paths": [
+        {
+          "edges": [
+            {
+              "role": "primary",
+              "type": "SPECIALIZES_IN"
+            }
+          ],
+          "kg_internal_contribution": 0.09999999999999999,
+          "nodes": [
+            {
+              "id": "CMS Development",
+              "label": "ServiceCategory"
+            },
+            {
+              "id": "W000403",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "category",
+          "text": "Specializes in 'CMS Development' (primary category)"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.09037237454728454,
+          "nodes": [
+            {
+              "id": "WordPress Theme",
+              "label": "Skill"
+            },
+            {
+              "id": "W000403",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'WordPress Theme'"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.02198727778352029,
+          "nodes": [
+            {
+              "id": "PHP",
+              "label": "Skill"
+            },
+            {
+              "id": "W000403",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'PHP'"
+        }
+      ],
+      "kg_summary": "Average training-period rating 5.00/5 from 3 reviews (smoothed 4.66); Has required skill 'WordPress Theme'; Specializes in 'CMS Development' (primary category)",
+      "link": "https://www.upwork.com/jobs/LMS-Website-using-WordPress_%7E01aeb1eddb077ec1b3?source=rss",
+      "normalized_scores": {
+        "cbf": 1.0,
+        "cf": 0.15637196625751323,
+        "kg": 1.0
+      },
+      "rank": 1,
+      "raw_scores": {
+        "cbf": 0.7326555023923444,
+        "cf": 0.6509234412252967,
+        "kg": 0.6684240889986942
+      },
+      "score": 0.9156371966257513,
+      "text": "Recommended because knowledge-graph evidence (KG) contributed 0.50, profile match (CBF) contributed 0.40, collaborative history (CF) contributed 0.02 (hybrid score 0.92). Strongest KG evidence: Average training-period rating 5.00/5 from 3 reviews (smoothed 4.66); Has required skill 'WordPress Theme'; Specializes in 'CMS Development' (primary category)",
+      "weights": {
+        "cbf": 0.4,
+        "cf": 0.1,
+        "kg": 0.5
+      },
+      "worker_id": "W000403"
+    },
+    {
+      "cited_components": [
+        "cbf",
+        "kg"
+      ],
+      "contributions": {
+        "cbf": 0.3872418210938077,
+        "cf": 0.0,
+        "kg": 0.2987731549899006
+      },
+      "dominant_component": "cbf",
+      "kg_paths": [
+        {
+          "edges": [
+            {
+              "role": "primary",
+              "type": "SPECIALIZES_IN"
+            }
+          ],
+          "kg_internal_contribution": 0.04753549498134165,
+          "nodes": [
+            {
+              "id": "Lead Generation",
+              "label": "ServiceCategory"
+            },
+            {
+              "id": "W001612",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "category",
+          "text": "Specializes in 'Lead Generation' (primary category)"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.03748878500858021,
+          "nodes": [
+            {
+              "id": "Prospect List",
+              "label": "Skill"
+            },
+            {
+              "id": "W001612",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'Prospect List'"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.029571655941042867,
+          "nodes": [
+            {
+              "id": "List Building",
+              "label": "Skill"
+            },
+            {
+              "id": "W001612",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'List Building'"
+        }
+      ],
+      "kg_summary": "No training-period reviews yet; neutral prior rating 4.45 used; Has required skill 'Prospect List'; Has 'Lead Generation Analysis', related to required skill 'Lead Generation Strategy' (background-corpus NPMI 0.75)",
+      "link": "https://www.upwork.com/jobs/Lead-Generation-SAAS-Startup_%7E011efc364e639467c9?source=rss",
+      "normalized_scores": {
+        "cbf": 0.9681045527345192,
+        "cf": 0.0,
+        "kg": 0.5975463099798012
+      },
+      "rank": 4,
+      "raw_scores": {
+        "cbf": 0.6618161094224924,
+        "cf": 0.0,
+        "kg": 0.47005338182822354
+      },
+      "score": 0.6860149760837083,
+      "text": "Recommended because profile match (CBF) contributed 0.39, knowledge-graph evidence (KG) contributed 0.30 (hybrid score 0.69); no contribution from collaborative history (CF). Strongest KG evidence: No training-period reviews yet; neutral prior rating 4.45 used; Has required skill 'Prospect List'; Has 'Lead Generation Analysis', related to required skill 'Lead Generation Strategy' (background-corpus NPMI 0.75)",
+      "weights": {
+        "cbf": 0.4,
+        "cf": 0.1,
+        "kg": 0.5
+      },
+      "worker_id": "W001612"
+    },
+    {
+      "cited_components": [
+        "kg",
+        "cbf",
+        "cf"
+      ],
+      "contributions": {
+        "cbf": 0.22082097094975706,
+        "cf": 0.025777638908977003,
+        "kg": 0.383002636868105
+      },
+      "dominant_component": "kg",
+      "kg_paths": [
+        {
+          "edges": [
+            {
+              "role": "primary",
+              "type": "SPECIALIZES_IN"
+            }
+          ],
+          "kg_internal_contribution": 0.1,
+          "nodes": [
+            {
+              "id": "Creative Writing",
+              "label": "ServiceCategory"
+            },
+            {
+              "id": "W000561",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "category",
+          "text": "Specializes in 'Creative Writing' (primary category)"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.03857718677000399,
+          "nodes": [
+            {
+              "id": "Article Writing",
+              "label": "Skill"
+            },
+            {
+              "id": "W000561",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'Article Writing'"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.03783756790846294,
+          "nodes": [
+            {
+              "id": "Creative Writing",
+              "label": "Skill"
+            },
+            {
+              "id": "W000561",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'Creative Writing'"
+        }
+      ],
+      "kg_summary": "Average training-period rating 4.60/5 from 5 reviews (smoothed 4.53); Has required skill 'Article Writing'; Has 'Short Story Writing', related to required skill 'Creative Writing' (background-corpus NPMI 0.48)",
+      "link": "https://www.upwork.com/jobs/Lead-Magnet-Writing-Support-Biopharmaceutical-Knowledge-and-Experience-Essential_%7E01e6e769de25e2c7b9?source=rss",
+      "normalized_scores": {
+        "cbf": 0.5520524273743926,
+        "cf": 0.25777638908977,
+        "kg": 0.76600527373621
+      },
+      "rank": 8,
+      "raw_scores": {
+        "cbf": 0.586231884057971,
+        "cf": 0.5992390290913747,
+        "kg": 0.6481200830333155
+      },
+      "score": 0.629601246726839,
+      "text": "Recommended because knowledge-graph evidence (KG) contributed 0.38, profile match (CBF) contributed 0.22, collaborative history (CF) contributed 0.03 (hybrid score 0.63). Strongest KG evidence: Average training-period rating 4.60/5 from 5 reviews (smoothed 4.53); Has required skill 'Article Writing'; Has 'Short Story Writing', related to required skill 'Creative Writing' (background-corpus NPMI 0.48)",
+      "weights": {
+        "cbf": 0.4,
+        "cf": 0.1,
+        "kg": 0.5
+      },
+      "worker_id": "W000561"
+    },
+    {
+      "cited_components": [
+        "kg",
+        "cbf"
+      ],
+      "contributions": {
+        "cbf": 0.23571331896001202,
+        "cf": 0.0,
+        "kg": 0.4792565884614425
+      },
+      "dominant_component": "kg",
+      "kg_paths": [
+        {
+          "edges": [
+            {
+              "role": "primary",
+              "type": "SPECIALIZES_IN"
+            }
+          ],
+          "kg_internal_contribution": 0.1,
+          "nodes": [
+            {
+              "id": "Business & Corporate Law",
+              "label": "ServiceCategory"
+            },
+            {
+              "id": "W000306",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "category",
+          "text": "Specializes in 'Business & Corporate Law' (primary category)"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.08621198400317394,
+          "nodes": [
+            {
+              "id": "Contract Law",
+              "label": "Skill"
+            },
+            {
+              "id": "W000306",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'Contract Law'"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.06272983950604892,
+          "nodes": [
+            {
+              "id": "Legal Writing",
+              "label": "Skill"
+            },
+            {
+              "id": "W000306",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'Legal Writing'"
+        }
+      ],
+      "kg_summary": "Average training-period rating 5.00/5 from 3 reviews (smoothed 4.66); Has required skill 'Contract Law'; Has 'Partnership Agreement', related to required skill 'Contract Law' (background-corpus NPMI 0.74)",
+      "link": "https://www.upwork.com/jobs/Legal-contract_%7E01544516c0ff7090ca?source=rss",
+      "normalized_scores": {
+        "cbf": 0.58928329740003,
+        "cf": 0.0,
+        "kg": 0.958513176922885
+      },
+      "rank": 2,
+      "raw_scores": {
+        "cbf": 0.4571577380952381,
+        "cf": 0.0,
+        "kg": 0.6702680203428248
+      },
+      "score": 0.7149699074214545,
+      "text": "Recommended because knowledge-graph evidence (KG) contributed 0.48, profile match (CBF) contributed 0.24 (hybrid score 0.71); no contribution from collaborative history (CF). Strongest KG evidence: Average training-period rating 5.00/5 from 3 reviews (smoothed 4.66); Has required skill 'Contract Law'; Has 'Partnership Agreement', related to required skill 'Contract Law' (background-corpus NPMI 0.74)",
+      "weights": {
+        "cbf": 0.4,
+        "cf": 0.1,
+        "kg": 0.5
+      },
+      "worker_id": "W000306"
+    },
+    {
+      "cited_components": [
+        "kg",
+        "cbf",
+        "cf"
+      ],
+      "contributions": {
+        "cbf": 0.228375222784195,
+        "cf": 0.06646790286295161,
+        "kg": 0.37447909494817994
+      },
+      "dominant_component": "kg",
+      "kg_paths": [
+        {
+          "edges": [
+            {
+              "role": "primary",
+              "type": "SPECIALIZES_IN"
+            }
+          ],
+          "kg_internal_contribution": 0.06427550196442397,
+          "nodes": [
+            {
+              "id": "Machine Learning",
+              "label": "ServiceCategory"
+            },
+            {
+              "id": "W001718",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "category",
+          "text": "Specializes in 'Machine Learning' (primary category)"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.048909554464613064,
+          "nodes": [
+            {
+              "id": "Deep Learning",
+              "label": "Skill"
+            },
+            {
+              "id": "W001718",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'Deep Learning'"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.034604155991956424,
+          "nodes": [
+            {
+              "id": "Data Science",
+              "label": "Skill"
+            },
+            {
+              "id": "W001718",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'Data Science'"
+        }
+      ],
+      "kg_summary": "Average training-period rating 5.00/5 from 3 reviews (smoothed 4.66); Has required skill 'Deep Learning'; Has 'TensorFlow', related to required skill 'Deep Learning' (background-corpus NPMI 0.74)",
+      "link": "https://www.upwork.com/jobs/Machine-Learning-Horse-Racing_%7E01cce6b117ae4c161e?source=rss",
+      "normalized_scores": {
+        "cbf": 0.5709380569604875,
+        "cf": 0.6646790286295161,
+        "kg": 0.7489581898963599
+      },
+      "rank": 9,
+      "raw_scores": {
+        "cbf": 0.5542926747311827,
+        "cf": 1.4056426056533267,
+        "kg": 0.5822756750551583
+      },
+      "score": 0.6693222205953265,
+      "text": "Recommended because knowledge-graph evidence (KG) contributed 0.37, profile match (CBF) contributed 0.23, collaborative history (CF) contributed 0.07 (hybrid score 0.67). Strongest KG evidence: Average training-period rating 5.00/5 from 3 reviews (smoothed 4.66); Has required skill 'Deep Learning'; Has 'TensorFlow', related to required skill 'Deep Learning' (background-corpus NPMI 0.74)",
+      "weights": {
+        "cbf": 0.4,
+        "cf": 0.1,
+        "kg": 0.5
+      },
+      "worker_id": "W001718"
+    },
+    {
+      "cited_components": [
+        "kg",
+        "cbf",
+        "cf"
+      ],
+      "contributions": {
+        "cbf": 0.2380616842322997,
+        "cf": 0.07854467041332422,
+        "kg": 0.3712894940422562
+      },
+      "dominant_component": "kg",
+      "kg_paths": [
+        {
+          "edges": [
+            {
+              "role": "primary",
+              "type": "SPECIALIZES_IN"
+            }
+          ],
+          "kg_internal_contribution": 0.047535494981341644,
+          "nodes": [
+            {
+              "id": "Social Media Marketing",
+              "label": "ServiceCategory"
+            },
+            {
+              "id": "W002421",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "category",
+          "text": "Specializes in 'Social Media Marketing' (primary category)"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.03837081173026535,
+          "nodes": [
+            {
+              "id": "Social Media Management",
+              "label": "Skill"
+            },
+            {
+              "id": "W002421",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'Social Media Management'"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.03792418011651906,
+          "nodes": [
+            {
+              "id": "Facebook",
+              "label": "Skill"
+            },
+            {
+              "id": "W002421",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'Facebook'"
+        }
+      ],
+      "kg_summary": "Average training-period rating 4.80/5 from 15 reviews (smoothed 4.71); Has required skill 'Social Media Management'; Has 'Social Media Marketing Strategy', related to required skill 'Social Media Management' (background-corpus NPMI 0.46)",
+      "link": "https://www.upwork.com/jobs/Marketing-Manager-Long-Term_%7E0116b2862dbccfc6b8?source=rss",
+      "normalized_scores": {
+        "cbf": 0.5951542105807492,
+        "cf": 0.7854467041332421,
+        "kg": 0.7425789880845124
+      },
+      "rank": 10,
+      "raw_scores": {
+        "cbf": 0.5151716572018585,
+        "cf": 0.6507690281838274,
+        "kg": 0.5897968535917133
+      },
+      "score": 0.6878958486878801,
+      "text": "Recommended because knowledge-graph evidence (KG) contributed 0.37, profile match (CBF) contributed 0.24, collaborative history (CF) contributed 0.08 (hybrid score 0.69). Strongest KG evidence: Average training-period rating 4.80/5 from 15 reviews (smoothed 4.71); Has required skill 'Social Media Management'; Has 'Social Media Marketing Strategy', related to required skill 'Social Media Management' (background-corpus NPMI 0.46)",
+      "weights": {
+        "cbf": 0.4,
+        "cf": 0.1,
+        "kg": 0.5
+      },
+      "worker_id": "W002421"
+    },
+    {
+      "cited_components": [
+        "kg",
+        "cbf"
+      ],
+      "contributions": {
+        "cbf": 0.2666666666666666,
+        "cf": 0.0,
+        "kg": 0.4095051286962073
+      },
+      "dominant_component": "kg",
+      "kg_paths": [
+        {
+          "edges": [
+            {
+              "role": "primary",
+              "type": "SPECIALIZES_IN"
+            }
+          ],
+          "kg_internal_contribution": 0.09999999999999999,
+          "nodes": [
+            {
+              "id": "Front-End Development",
+              "label": "ServiceCategory"
+            },
+            {
+              "id": "W001077",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "category",
+          "text": "Specializes in 'Front-End Development' (primary category)"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.045501290761029566,
+          "nodes": [
+            {
+              "id": "TypeScript",
+              "label": "Skill"
+            },
+            {
+              "id": "W001077",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'TypeScript'"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.03468848737682055,
+          "nodes": [
+            {
+              "id": "HTML5",
+              "label": "Skill"
+            },
+            {
+              "id": "W001077",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'HTML5'"
+        }
+      ],
+      "kg_summary": "Average training-period rating 5.00/5 from 1 review (smoothed 4.54); Has required skill 'TypeScript'; Specializes in 'Front-End Development' (primary category)",
+      "link": "https://www.upwork.com/jobs/Mid-Senior-React-Developer_%7E01d55be1f60270b45b?source=rss",
+      "normalized_scores": {
+        "cbf": 0.6666666666666665,
+        "cf": 0.0,
+        "kg": 0.8190102573924146
+      },
+      "rank": 8,
+      "raw_scores": {
+        "cbf": 0.5083333333333333,
+        "cf": 0.0,
+        "kg": 0.5665722078528566
+      },
+      "score": 0.6761717953628739,
+      "text": "Recommended because knowledge-graph evidence (KG) contributed 0.41, profile match (CBF) contributed 0.27 (hybrid score 0.68); no contribution from collaborative history (CF). Strongest KG evidence: Average training-period rating 5.00/5 from 1 review (smoothed 4.54); Has required skill 'TypeScript'; Specializes in 'Front-End Development' (primary category)",
+      "weights": {
+        "cbf": 0.4,
+        "cf": 0.1,
+        "kg": 0.5
+      },
+      "worker_id": "W001077"
+    },
+    {
+      "cited_components": [
+        "kg",
+        "cbf"
+      ],
+      "contributions": {
+        "cbf": 0.25955735023182724,
+        "cf": 0.0,
+        "kg": 0.43593533391509504
+      },
+      "dominant_component": "kg",
+      "kg_paths": [
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.2,
+          "nodes": [
+            {
+              "id": "Python",
+              "label": "Skill"
+            },
+            {
+              "id": "W001091",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'Python'"
+        },
+        {
+          "edges": [
+            {
+              "role": "primary",
+              "type": "SPECIALIZES_IN"
+            }
+          ],
+          "kg_internal_contribution": 0.1,
+          "nodes": [
+            {
+              "id": "Full Stack Development",
+              "label": "ServiceCategory"
+            },
+            {
+              "id": "W001091",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "category",
+          "text": "Specializes in 'Full Stack Development' (primary category)"
+        },
+        {
+          "edges": [
+            {
+              "npmi": 0.2374556211286425,
+              "support": 14,
+              "type": "RELATED_TO"
+            },
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.02477381338008968,
+          "nodes": [
+            {
+              "id": "Python",
+              "label": "Skill"
+            },
+            {
+              "id": "AI App Development",
+              "label": "Skill"
+            },
+            {
+              "id": "W001091",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "related_skill",
+          "text": "Has 'AI App Development', related to required skill 'Python' (background-corpus NPMI 0.24)"
+        }
+      ],
+      "kg_summary": "Average training-period rating 4.33/5 from 3 reviews (smoothed 4.41); Has required skill 'Python'; Specializes in 'Full Stack Development' (primary category)",
+      "link": "https://www.upwork.com/jobs/Need-BowlingSim-App-python-code_%7E01b53658b8c4a33302?source=rss",
+      "normalized_scores": {
+        "cbf": 0.648893375579568,
+        "cf": 0.0,
+        "kg": 0.8718706678301901
+      },
+      "rank": 8,
+      "raw_scores": {
+        "cbf": 0.44576671880713437,
+        "cf": 0.0,
+        "kg": 0.6045462595102016
+      },
+      "score": 0.6954926841469222,
+      "text": "Recommended because knowledge-graph evidence (KG) contributed 0.44, profile match (CBF) contributed 0.26 (hybrid score 0.70); no contribution from collaborative history (CF). Strongest KG evidence: Average training-period rating 4.33/5 from 3 reviews (smoothed 4.41); Has required skill 'Python'; Specializes in 'Full Stack Development' (primary category)",
+      "weights": {
+        "cbf": 0.4,
+        "cf": 0.1,
+        "kg": 0.5
+      },
+      "worker_id": "W001091"
+    },
+    {
+      "cited_components": [
+        "cbf",
+        "kg",
+        "cf"
+      ],
+      "contributions": {
+        "cbf": 0.32509196353341985,
+        "cf": 0.03869611444756752,
+        "kg": 0.2982292646565094
+      },
+      "dominant_component": "cbf",
+      "kg_paths": [
+        {
+          "edges": [
+            {
+              "role": "primary",
+              "type": "SPECIALIZES_IN"
+            }
+          ],
+          "kg_internal_contribution": 0.1,
+          "nodes": [
+            {
+              "id": "Full Stack Development",
+              "label": "ServiceCategory"
+            },
+            {
+              "id": "W001091",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "category",
+          "text": "Specializes in 'Full Stack Development' (primary category)"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.02248582712710122,
+          "nodes": [
+            {
+              "id": "Python",
+              "label": "Skill"
+            },
+            {
+              "id": "W001091",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'Python'"
+        },
+        {
+          "edges": [
+            {
+              "npmi": 0.2957946314496853,
+              "support": 30,
+              "type": "RELATED_TO"
+            },
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.011992002495948305,
+          "nodes": [
+            {
+              "id": "JavaScript",
+              "label": "Skill"
+            },
+            {
+              "id": "Blockchain Architecture",
+              "label": "Skill"
+            },
+            {
+              "id": "W001091",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "related_skill",
+          "text": "Has 'Blockchain Architecture', related to required skill 'JavaScript' (background-corpus NPMI 0.30)"
+        }
+      ],
+      "kg_summary": "Average training-period rating 4.33/5 from 3 reviews (smoothed 4.41); Specializes in 'Full Stack Development' (primary category); Has 'Blockchain Architecture', related to required skill 'JavaScript' (background-corpus NPMI 0.30)",
+      "link": "https://www.upwork.com/jobs/Python-code-bug-fix-and-deployment_%7E0169a92d57ed6ceb0b?source=rss",
+      "normalized_scores": {
+        "cbf": 0.8127299088335496,
+        "cf": 0.3869611444756752,
+        "kg": 0.5964585293130188
+      },
+      "rank": 6,
+      "raw_scores": {
+        "cbf": 0.5582067911266404,
+        "cf": 0.28097574347450816,
+        "kg": 0.43181097469182894
+      },
+      "score": 0.6620173426374968,
+      "text": "Recommended because profile match (CBF) contributed 0.33, knowledge-graph evidence (KG) contributed 0.30, collaborative history (CF) contributed 0.04 (hybrid score 0.66). Strongest KG evidence: Average training-period rating 4.33/5 from 3 reviews (smoothed 4.41); Specializes in 'Full Stack Development' (primary category); Has 'Blockchain Architecture', related to required skill 'JavaScript' (background-corpus NPMI 0.30)",
+      "weights": {
+        "cbf": 0.4,
+        "cf": 0.1,
+        "kg": 0.5
+      },
+      "worker_id": "W001091"
+    },
+    {
+      "cited_components": [
+        "kg",
+        "cbf"
+      ],
+      "contributions": {
+        "cbf": 0.32612512084336526,
+        "cf": 0.0,
+        "kg": 0.3356027730412292
+      },
+      "dominant_component": "kg",
+      "kg_paths": [
+        {
+          "edges": [
+            {
+              "role": "primary",
+              "type": "SPECIALIZES_IN"
+            }
+          ],
+          "kg_internal_contribution": 0.09999999999999999,
+          "nodes": [
+            {
+              "id": "Front-End Development",
+              "label": "ServiceCategory"
+            },
+            {
+              "id": "W001060",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "category",
+          "text": "Specializes in 'Front-End Development' (primary category)"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.05377753597136478,
+          "nodes": [
+            {
+              "id": "HTML",
+              "label": "Skill"
+            },
+            {
+              "id": "W001060",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'HTML'"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.052811541428439066,
+          "nodes": [
+            {
+              "id": "CSS",
+              "label": "Skill"
+            },
+            {
+              "id": "W001060",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'CSS'"
+        }
+      ],
+      "kg_summary": "Average training-period rating 4.71/5 from 7 reviews (smoothed 4.60); Has required skill 'HTML'; Specializes in 'Front-End Development' (primary category)",
+      "link": "https://www.upwork.com/jobs/React-Website-Bug-Fix_%7E010e193eefb0fc4570?source=rss",
+      "normalized_scores": {
+        "cbf": 0.8153128021084131,
+        "cf": 0.0,
+        "kg": 0.6712055460824584
+      },
+      "rank": 4,
+      "raw_scores": {
+        "cbf": 0.664519906323185,
+        "cf": 0.0,
+        "kg": 0.5431529759017508
+      },
+      "score": 0.6617278938845945,
+      "text": "Recommended because knowledge-graph evidence (KG) contributed 0.34, profile match (CBF) contributed 0.33 (hybrid score 0.66); no contribution from collaborative history (CF). Strongest KG evidence: Average training-period rating 4.71/5 from 7 reviews (smoothed 4.60); Has required skill 'HTML'; Specializes in 'Front-End Development' (primary category)",
+      "weights": {
+        "cbf": 0.4,
+        "cf": 0.1,
+        "kg": 0.5
+      },
+      "worker_id": "W001060"
+    },
+    {
+      "cited_components": [
+        "kg",
+        "cbf"
+      ],
+      "contributions": {
+        "cbf": 0.20279651258430664,
+        "cf": 0.0,
+        "kg": 0.3429380890514157
+      },
+      "dominant_component": "kg",
+      "kg_paths": [
+        {
+          "edges": [
+            {
+              "role": "primary",
+              "type": "SPECIALIZES_IN"
+            }
+          ],
+          "kg_internal_contribution": 0.10000000000000002,
+          "nodes": [
+            {
+              "id": "Systems Administration",
+              "label": "ServiceCategory"
+            },
+            {
+              "id": "W002577",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "category",
+          "text": "Specializes in 'Systems Administration' (primary category)"
+        },
+        {
+          "edges": [
+            {
+              "npmi": 0.5141048556138746,
+              "support": 13,
+              "type": "RELATED_TO"
+            },
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.023131612375751974,
+          "nodes": [
+            {
+              "id": "Ubuntu",
+              "label": "Skill"
+            },
+            {
+              "id": "System Administration",
+              "label": "Skill"
+            },
+            {
+              "id": "W002577",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "related_skill",
+          "text": "Has 'System Administration', related to required skill 'Ubuntu' (background-corpus NPMI 0.51)"
+        },
+        {
+          "edges": [
+            {
+              "npmi": 0.4630551935517125,
+              "support": 7,
+              "type": "RELATED_TO"
+            },
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.02141836357916992,
+          "nodes": [
+            {
+              "id": "Ubuntu",
+              "label": "Skill"
+            },
+            {
+              "id": "Network Security",
+              "label": "Skill"
+            },
+            {
+              "id": "W002577",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "related_skill",
+          "text": "Has 'Network Security', related to required skill 'Ubuntu' (background-corpus NPMI 0.46)"
+        }
+      ],
+      "kg_summary": "No training-period reviews yet; neutral prior rating 4.45 used; Specializes in 'Systems Administration' (primary category); Has 'System Administration', related to required skill 'Ubuntu' (background-corpus NPMI 0.51)",
+      "link": "https://www.upwork.com/jobs/SSL-certificate-installation-with-certbot-apache-server-through-console_%7E011ebe1cf8ff07197b?source=rss",
+      "normalized_scores": {
+        "cbf": 0.5069912814607666,
+        "cf": 0.0,
+        "kg": 0.6858761781028314
+      },
+      "rank": 10,
+      "raw_scores": {
+        "cbf": 0.4552325581395349,
+        "cf": 0.0,
+        "kg": 0.39275935099289766
+      },
+      "score": 0.5457346016357223,
+      "text": "Recommended because knowledge-graph evidence (KG) contributed 0.34, profile match (CBF) contributed 0.20 (hybrid score 0.55); no contribution from collaborative history (CF). Strongest KG evidence: No training-period reviews yet; neutral prior rating 4.45 used; Specializes in 'Systems Administration' (primary category); Has 'System Administration', related to required skill 'Ubuntu' (background-corpus NPMI 0.51)",
+      "weights": {
+        "cbf": 0.4,
+        "cf": 0.1,
+        "kg": 0.5
+      },
+      "worker_id": "W002577"
+    },
+    {
+      "cited_components": [
+        "kg",
+        "cbf"
+      ],
+      "contributions": {
+        "cbf": 0.3507874057001665,
+        "cf": 0.0,
+        "kg": 0.45712991067480213
+      },
+      "dominant_component": "kg",
+      "kg_paths": [
+        {
+          "edges": [
+            {
+              "role": "primary",
+              "type": "SPECIALIZES_IN"
+            }
+          ],
+          "kg_internal_contribution": 0.1,
+          "nodes": [
+            {
+              "id": "Social Media Marketing",
+              "label": "ServiceCategory"
+            },
+            {
+              "id": "W002435",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "category",
+          "text": "Specializes in 'Social Media Marketing' (primary category)"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.08807046403232677,
+          "nodes": [
+            {
+              "id": "YouTube Marketing",
+              "label": "Skill"
+            },
+            {
+              "id": "W002435",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'YouTube Marketing'"
+        },
+        {
+          "edges": [
+            {
+              "npmi": 0.3499430375907522,
+              "support": 30,
+              "type": "RELATED_TO"
+            },
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.005325521530843288,
+          "nodes": [
+            {
+              "id": "YouTube",
+              "label": "Skill"
+            },
+            {
+              "id": "TikTok",
+              "label": "Skill"
+            },
+            {
+              "id": "W002435",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "related_skill",
+          "text": "Has 'TikTok', related to required skill 'YouTube' (background-corpus NPMI 0.35)"
+        }
+      ],
+      "kg_summary": "Average training-period rating 5.00/5 from 6 reviews (smoothed 4.75); Specializes in 'Social Media Marketing' (primary category); Has required skill 'YouTube Marketing'",
+      "link": "https://www.upwork.com/jobs/Seeking-Expert-YouTube-Strategist-for-Comprehensive-Channel-Growth-and-Optimization_%7E01dd72c0a97e075e1f?source=rss",
+      "normalized_scores": {
+        "cbf": 0.8769685142504161,
+        "cf": 0.0,
+        "kg": 0.9142598213496043
+      },
+      "rank": 2,
+      "raw_scores": {
+        "cbf": 0.503021407589392,
+        "cf": 0.0,
+        "kg": 0.5414409030530476
+      },
+      "score": 0.8079173163749687,
+      "text": "Recommended because knowledge-graph evidence (KG) contributed 0.46, profile match (CBF) contributed 0.35 (hybrid score 0.81); no contribution from collaborative history (CF). Strongest KG evidence: Average training-period rating 5.00/5 from 6 reviews (smoothed 4.75); Specializes in 'Social Media Marketing' (primary category); Has required skill 'YouTube Marketing'",
+      "weights": {
+        "cbf": 0.4,
+        "cf": 0.1,
+        "kg": 0.5
+      },
+      "worker_id": "W002435"
+    },
+    {
+      "cited_components": [
+        "kg",
+        "cbf",
+        "cf"
+      ],
+      "contributions": {
+        "cbf": 0.3146062953033463,
+        "cf": 0.1,
+        "kg": 0.3652603511198245
+      },
+      "dominant_component": "kg",
+      "kg_paths": [
+        {
+          "edges": [
+            {
+              "role": "primary",
+              "type": "SPECIALIZES_IN"
+            }
+          ],
+          "kg_internal_contribution": 0.06427550196442397,
+          "nodes": [
+            {
+              "id": "General Virtual Assistance",
+              "label": "ServiceCategory"
+            },
+            {
+              "id": "W001285",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "category",
+          "text": "Specializes in 'General Virtual Assistance' (primary category)"
+        },
+        {
+          "edges": [
+            {
+              "npmi": 0.1651163364721612,
+              "support": 19,
+              "type": "RELATED_TO"
+            },
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.009285131218163406,
+          "nodes": [
+            {
+              "id": "Instagram",
+              "label": "Skill"
+            },
+            {
+              "id": "Digital Marketing",
+              "label": "Skill"
+            },
+            {
+              "id": "W001285",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "related_skill",
+          "text": "Has 'Digital Marketing', related to required skill 'Instagram' (background-corpus NPMI 0.17)"
+        },
+        {
+          "edges": [
+            {
+              "npmi": 0.1617882412728629,
+              "support": 20,
+              "type": "RELATED_TO"
+            },
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.008916893517888493,
+          "nodes": [
+            {
+              "id": "Facebook",
+              "label": "Skill"
+            },
+            {
+              "id": "Digital Marketing",
+              "label": "Skill"
+            },
+            {
+              "id": "W001285",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "related_skill",
+          "text": "Has 'Digital Marketing', related to required skill 'Facebook' (background-corpus NPMI 0.16)"
+        }
+      ],
+      "kg_summary": "Average training-period rating 4.86/5 from 7 reviews (smoothed 4.69); Specializes in 'General Virtual Assistance' (primary category); Has 'Digital Marketing', related to required skill 'Instagram' (background-corpus NPMI 0.17)",
+      "link": "https://www.upwork.com/jobs/Share-Link-Facebook-Groups-and-other-social-media-groups_%7E0170e45664e8a8f58f?source=rss",
+      "normalized_scores": {
+        "cbf": 0.7865157382583656,
+        "cf": 1.0,
+        "kg": 0.730520702239649
+      },
+      "rank": 6,
+      "raw_scores": {
+        "cbf": 0.4336935166994106,
+        "cf": 2.8040897289477367,
+        "kg": 0.3890933315292491
+      },
+      "score": 0.7798666464231707,
+      "text": "Recommended because knowledge-graph evidence (KG) contributed 0.37, profile match (CBF) contributed 0.31, collaborative history (CF) contributed 0.10 (hybrid score 0.78). Strongest KG evidence: Average training-period rating 4.86/5 from 7 reviews (smoothed 4.69); Specializes in 'General Virtual Assistance' (primary category); Has 'Digital Marketing', related to required skill 'Instagram' (background-corpus NPMI 0.17)",
+      "weights": {
+        "cbf": 0.4,
+        "cf": 0.1,
+        "kg": 0.5
+      },
+      "worker_id": "W001285"
+    },
+    {
+      "cited_components": [
+        "kg",
+        "cbf",
+        "cf"
+      ],
+      "contributions": {
+        "cbf": 0.28086392218198925,
+        "cf": 0.034089089020439806,
+        "kg": 0.3527334543195435
+      },
+      "dominant_component": "kg",
+      "kg_paths": [
+        {
+          "edges": [
+            {
+              "links": [
+                "https://www.upwork.com/jobs/Create-WordPress-demonstration-website-for-organization-exploring-use-quot-MembershipWorks-quot-plugin_%7E019fdd40ec6602230e?source=rss"
+              ],
+              "n_hires": 1,
+              "split": "train",
+              "type": "HIRED"
+            }
+          ],
+          "kg_internal_contribution": 0.10829306883258297,
+          "nodes": [
+            {
+              "id": "C001332",
+              "label": "Client"
+            },
+            {
+              "id": "W002959",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "repeat_hire",
+          "text": "You hired this worker before (1 training-period hire)"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.033166513909921515,
+          "nodes": [
+            {
+              "id": "HTML",
+              "label": "Skill"
+            },
+            {
+              "id": "W002959",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'HTML'"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.032570750811703075,
+          "nodes": [
+            {
+              "id": "CSS",
+              "label": "Skill"
+            },
+            {
+              "id": "W002959",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'CSS'"
+        }
+      ],
+      "kg_summary": "Average training-period rating 5.00/5 from 15 reviews (smoothed 4.86); Has required skill 'HTML'; You hired this worker before (1 training-period hire)",
+      "link": "https://www.upwork.com/jobs/Snap-Scroll-Horizontal-Scroll-and-Dynamic-Background-Transitions-Needed-Duda-CMS_%7E0166f796610af84dba?source=rss",
+      "normalized_scores": {
+        "cbf": 0.702159805454973,
+        "cf": 0.34089089020439806,
+        "kg": 0.705466908639087
+      },
+      "rank": 4,
+      "raw_scores": {
+        "cbf": 0.5191423503417381,
+        "cf": 1.1263697617735864,
+        "kg": 0.6320778520165153
+      },
+      "score": 0.6676864655219725,
+      "text": "Recommended because knowledge-graph evidence (KG) contributed 0.35, profile match (CBF) contributed 0.28, collaborative history (CF) contributed 0.03 (hybrid score 0.67). Strongest KG evidence: Average training-period rating 5.00/5 from 15 reviews (smoothed 4.86); Has required skill 'HTML'; You hired this worker before (1 training-period hire)",
+      "weights": {
+        "cbf": 0.4,
+        "cf": 0.1,
+        "kg": 0.5
+      },
+      "worker_id": "W002959"
+    },
+    {
+      "cited_components": [
+        "kg",
+        "cbf"
+      ],
+      "contributions": {
+        "cbf": 0.3111111111111111,
+        "cf": 0.0,
+        "kg": 0.42570075741644486
+      },
+      "dominant_component": "kg",
+      "kg_paths": [
+        {
+          "edges": [
+            {
+              "role": "primary",
+              "type": "SPECIALIZES_IN"
+            }
+          ],
+          "kg_internal_contribution": 0.1,
+          "nodes": [
+            {
+              "id": "Social Media Marketing",
+              "label": "ServiceCategory"
+            },
+            {
+              "id": "W002405",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "category",
+          "text": "Specializes in 'Social Media Marketing' (primary category)"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.04897340274142797,
+          "nodes": [
+            {
+              "id": "Social Media Content",
+              "label": "Skill"
+            },
+            {
+              "id": "W002405",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'Social Media Content'"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.03636873755276795,
+          "nodes": [
+            {
+              "id": "Social Media Management",
+              "label": "Skill"
+            },
+            {
+              "id": "W002405",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'Social Media Management'"
+        }
+      ],
+      "kg_summary": "Average training-period rating 5.00/5 from 1 review (smoothed 4.54); Has required skill 'Social Media Content'; Specializes in 'Social Media Marketing' (primary category)",
+      "link": "https://www.upwork.com/jobs/Social-media-manager-Fixed-weekly-hours_%7E01537189540f1957e2?source=rss",
+      "normalized_scores": {
+        "cbf": 0.7777777777777777,
+        "cf": 0.0,
+        "kg": 0.8514015148328897
+      },
+      "rank": 6,
+      "raw_scores": {
+        "cbf": 0.575,
+        "cf": 0.0,
+        "kg": 0.6050475179221027
+      },
+      "score": 0.736811868527556,
+      "text": "Recommended because knowledge-graph evidence (KG) contributed 0.43, profile match (CBF) contributed 0.31 (hybrid score 0.74); no contribution from collaborative history (CF). Strongest KG evidence: Average training-period rating 5.00/5 from 1 review (smoothed 4.54); Has required skill 'Social Media Content'; Specializes in 'Social Media Marketing' (primary category)",
+      "weights": {
+        "cbf": 0.4,
+        "cf": 0.1,
+        "kg": 0.5
+      },
+      "worker_id": "W002405"
+    },
+    {
+      "cited_components": [
+        "kg",
+        "cbf"
+      ],
+      "contributions": {
+        "cbf": 0.1517528180060555,
+        "cf": 0.0,
+        "kg": 0.5
+      },
+      "dominant_component": "kg",
+      "kg_paths": [
+        {
+          "edges": [
+            {
+              "links": [
+                "https://www.upwork.com/jobs/Native-Icelandic-Speakers-assist-transcription-task_%7E01958efb62b96178e0?source=rss"
+              ],
+              "n_hires": 1,
+              "split": "train",
+              "type": "HIRED"
+            },
+            {
+              "type": "HAS_SKILL"
+            },
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.07942992498461998,
+          "nodes": [
+            {
+              "id": "C000277",
+              "label": "Client"
+            },
+            {
+              "id": "W002138",
+              "label": "Worker"
+            },
+            {
+              "id": "Writing",
+              "label": "Skill"
+            },
+            {
+              "id": "W002553",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "hired_similar_skill",
+          "text": "Shares skill 'Writing' with W002138, whom you hired before"
+        },
+        {
+          "edges": [
+            {
+              "role": "primary",
+              "type": "SPECIALIZES_IN"
+            }
+          ],
+          "kg_internal_contribution": 0.06427550196442398,
+          "nodes": [
+            {
+              "id": "Sourcing & Procurement",
+              "label": "ServiceCategory"
+            },
+            {
+              "id": "W002553",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "category",
+          "text": "Specializes in 'Sourcing & Procurement' (primary category)"
+        },
+        {
+          "edges": [
+            {
+              "links": [
+                "https://www.upwork.com/jobs/Native-Icelandic-Speakers-assist-transcription-task_%7E01958efb62b96178e0?source=rss"
+              ],
+              "n_hires": 1,
+              "split": "train",
+              "type": "HIRED"
+            },
+            {
+              "type": "HAS_SKILL"
+            },
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.053395457519619126,
+          "nodes": [
+            {
+              "id": "C000277",
+              "label": "Client"
+            },
+            {
+              "id": "W002138",
+              "label": "Worker"
+            },
+            {
+              "id": "English",
+              "label": "Skill"
+            },
+            {
+              "id": "W002553",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "hired_similar_skill",
+          "text": "Shares skill 'English' with W002138, whom you hired before"
+        }
+      ],
+      "kg_summary": "Average training-period rating 4.90/5 from 10 reviews (smoothed 4.75); Shares skill 'Writing' with W002138, whom you hired before; Specializes in 'Sourcing & Procurement' (primary category)",
+      "link": "https://www.upwork.com/jobs/Sourcing-Managers-Buyers-needed-for-training_%7E01d710b2c5f4c11c9c?source=rss",
+      "normalized_scores": {
+        "cbf": 0.3793820450151387,
+        "cf": 0.0,
+        "kg": 1.0
+      },
+      "rank": 7,
+      "raw_scores": {
+        "cbf": 0.39126344086021503,
+        "cf": 0.0,
+        "kg": 0.6367175496490654
+      },
+      "score": 0.6517528180060554,
+      "text": "Recommended because knowledge-graph evidence (KG) contributed 0.50, profile match (CBF) contributed 0.15 (hybrid score 0.65); no contribution from collaborative history (CF). Strongest KG evidence: Average training-period rating 4.90/5 from 10 reviews (smoothed 4.75); Shares skill 'Writing' with W002138, whom you hired before; Specializes in 'Sourcing & Procurement' (primary category)",
+      "weights": {
+        "cbf": 0.4,
+        "cf": 0.1,
+        "kg": 0.5
+      },
+      "worker_id": "W002553"
+    },
+    {
+      "cited_components": [
+        "cbf",
+        "kg"
+      ],
+      "contributions": {
+        "cbf": 0.4,
+        "cf": 0.0,
+        "kg": 0.2713515649992055
+      },
+      "dominant_component": "cbf",
+      "kg_paths": [
+        {
+          "edges": [
+            {
+              "role": "primary",
+              "type": "SPECIALIZES_IN"
+            }
+          ],
+          "kg_internal_contribution": 0.1,
+          "nodes": [
+            {
+              "id": "Marketing Strategy",
+              "label": "ServiceCategory"
+            },
+            {
+              "id": "W001884",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "category",
+          "text": "Specializes in 'Marketing Strategy' (primary category)"
+        }
+      ],
+      "kg_summary": "No training-period reviews yet; neutral prior rating 4.45 used; Specializes in 'Marketing Strategy' (primary category)",
+      "link": "https://www.upwork.com/jobs/Specialist-Wellness-Programs-and-commerce-Optimization_%7E011e4881e8ecd52478?source=rss",
+      "normalized_scores": {
+        "cbf": 1.0,
+        "cf": 0.0,
+        "kg": 0.542703129998411
+      },
+      "rank": 2,
+      "raw_scores": {
+        "cbf": 0.5,
+        "cf": 0.0,
+        "kg": 0.33984441462908815
+      },
+      "score": 0.6713515649992055,
+      "text": "Recommended because profile match (CBF) contributed 0.40, knowledge-graph evidence (KG) contributed 0.27 (hybrid score 0.67); no contribution from collaborative history (CF). Strongest KG evidence: No training-period reviews yet; neutral prior rating 4.45 used; Specializes in 'Marketing Strategy' (primary category)",
+      "weights": {
+        "cbf": 0.4,
+        "cf": 0.1,
+        "kg": 0.5
+      },
+      "worker_id": "W001884"
+    },
+    {
+      "cited_components": [
+        "kg",
+        "cbf"
+      ],
+      "contributions": {
+        "cbf": 0.268438590097208,
+        "cf": 0.0,
+        "kg": 0.4267159236045406
+      },
+      "dominant_component": "kg",
+      "kg_paths": [
+        {
+          "edges": [
+            {
+              "links": [
+                "https://www.upwork.com/jobs/Australian-comedy-copywriter_%7E018b6be0c7329cc341?source=rss"
+              ],
+              "n_hires": 1,
+              "split": "train",
+              "type": "HIRED"
+            },
+            {
+              "type": "HAS_SKILL"
+            },
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.08695516036191611,
+          "nodes": [
+            {
+              "id": "C000594",
+              "label": "Client"
+            },
+            {
+              "id": "W000557",
+              "label": "Worker"
+            },
+            {
+              "id": "Arabic to English Translation",
+              "label": "Skill"
+            },
+            {
+              "id": "W001240",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "hired_similar_skill",
+          "text": "Shares skill 'Arabic to English Translation' with W000557, whom you hired before"
+        },
+        {
+          "edges": [
+            {
+              "links": [
+                "https://www.upwork.com/jobs/Spanish-Speaking-UGC-Actor_%7E01c252ed5067321395?source=rss"
+              ],
+              "n_hires": 1,
+              "split": "train",
+              "type": "HIRED"
+            },
+            {
+              "type": "HAS_SKILL"
+            },
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.08493246299308589,
+          "nodes": [
+            {
+              "id": "C000594",
+              "label": "Client"
+            },
+            {
+              "id": "W000121",
+              "label": "Worker"
+            },
+            {
+              "id": "Subtitles",
+              "label": "Skill"
+            },
+            {
+              "id": "W001240",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "hired_similar_skill",
+          "text": "Shares skill 'Subtitles' with W000121, whom you hired before"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.08340880723362895,
+          "nodes": [
+            {
+              "id": "Documentation",
+              "label": "Skill"
+            },
+            {
+              "id": "W001240",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'Documentation'"
+        }
+      ],
+      "kg_summary": "No training-period reviews yet; neutral prior rating 4.45 used; Shares skill 'Arabic to English Translation' with W000557, whom you hired before; Has 'Arabic to English Translation', related to required skill 'Documentation' (background-corpus NPMI 0.41)",
+      "link": "https://www.upwork.com/jobs/Translator-for-Page-Translation_%7E019a37cdf6112af389?source=rss",
+      "normalized_scores": {
+        "cbf": 0.67109647524302,
+        "cf": 0.0,
+        "kg": 0.8534318472090812
+      },
+      "rank": 7,
+      "raw_scores": {
+        "cbf": 0.48646558391337974,
+        "cf": 0.0,
+        "kg": 0.6617847428618934
+      },
+      "score": 0.6951545137017485,
+      "text": "Recommended because knowledge-graph evidence (KG) contributed 0.43, profile match (CBF) contributed 0.27 (hybrid score 0.70); no contribution from collaborative history (CF). Strongest KG evidence: No training-period reviews yet; neutral prior rating 4.45 used; Shares skill 'Arabic to English Translation' with W000557, whom you hired before; Has 'Arabic to English Translation', related to required skill 'Documentation' (background-corpus NPMI 0.41)",
+      "weights": {
+        "cbf": 0.4,
+        "cf": 0.1,
+        "kg": 0.5
+      },
+      "worker_id": "W001240"
+    },
+    {
+      "cited_components": [
+        "kg",
+        "cbf"
+      ],
+      "contributions": {
+        "cbf": 0.29517232893988105,
+        "cf": 0.0,
+        "kg": 0.4462136644902781
+      },
+      "dominant_component": "kg",
+      "kg_paths": [
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.08023488991739024,
+          "nodes": [
+            {
+              "id": "Voice-Over",
+              "label": "Skill"
+            },
+            {
+              "id": "W002905",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'Voice-Over'"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.07670502822595743,
+          "nodes": [
+            {
+              "id": "Female",
+              "label": "Skill"
+            },
+            {
+              "id": "W002905",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'Female'"
+        },
+        {
+          "edges": [
+            {
+              "role": "primary",
+              "type": "SPECIALIZES_IN"
+            }
+          ],
+          "kg_internal_contribution": 0.047535494981341644,
+          "nodes": [
+            {
+              "id": "Voice Talent",
+              "label": "ServiceCategory"
+            },
+            {
+              "id": "W002905",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "category",
+          "text": "Specializes in 'Voice Talent' (primary category)"
+        }
+      ],
+      "kg_summary": "Average training-period rating 5.00/5 from 4 reviews (smoothed 4.70); Has required skill 'Voice-Over'; Has 'Energetic Tone', related to required skill 'Voice-Over' (background-corpus NPMI 0.61)",
+      "link": "https://www.upwork.com/jobs/Urdu-Voice-over-artist-for-YouTube-channel_%7E01b5621778960cd8f6?source=rss",
+      "normalized_scores": {
+        "cbf": 0.7379308223497025,
+        "cf": 0.0,
+        "kg": 0.8924273289805562
+      },
+      "rank": 6,
+      "raw_scores": {
+        "cbf": 0.5196032489846923,
+        "cf": 0.0,
+        "kg": 0.6339749560437801
+      },
+      "score": 0.7413859934301592,
+      "text": "Recommended because knowledge-graph evidence (KG) contributed 0.45, profile match (CBF) contributed 0.30 (hybrid score 0.74); no contribution from collaborative history (CF). Strongest KG evidence: Average training-period rating 5.00/5 from 4 reviews (smoothed 4.70); Has required skill 'Voice-Over'; Has 'Energetic Tone', related to required skill 'Voice-Over' (background-corpus NPMI 0.61)",
+      "weights": {
+        "cbf": 0.4,
+        "cf": 0.1,
+        "kg": 0.5
+      },
+      "worker_id": "W002905"
+    },
+    {
+      "cited_components": [
+        "cbf",
+        "kg"
+      ],
+      "contributions": {
+        "cbf": 0.38564593301435424,
+        "cf": 0.0,
+        "kg": 0.2687506197098265
+      },
+      "dominant_component": "cbf",
+      "kg_paths": [
+        {
+          "edges": [
+            {
+              "role": "primary",
+              "type": "SPECIALIZES_IN"
+            }
+          ],
+          "kg_internal_contribution": 0.1,
+          "nodes": [
+            {
+              "id": "Video Editing",
+              "label": "ServiceCategory"
+            },
+            {
+              "id": "W002726",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "category",
+          "text": "Specializes in 'Video Editing' (primary category)"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.09352835780739747,
+          "nodes": [
+            {
+              "id": "AI-Generated Video",
+              "label": "Skill"
+            },
+            {
+              "id": "W002726",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'AI-Generated Video'"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.032391886263267035,
+          "nodes": [
+            {
+              "id": "Video Post-Editing",
+              "label": "Skill"
+            },
+            {
+              "id": "W002726",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'Video Post-Editing'"
+        }
+      ],
+      "kg_summary": "Average training-period rating 4.78/5 from 9 reviews (smoothed 4.66); Has required skill 'AI-Generated Video'; Specializes in 'Video Editing' (primary category)",
+      "link": "https://www.upwork.com/jobs/Video-editor-for-Social-Media_%7E019886d56e7348d34a?source=rss",
+      "normalized_scores": {
+        "cbf": 0.9641148325358855,
+        "cf": 0.0,
+        "kg": 0.537501239419653
+      },
+      "rank": 3,
+      "raw_scores": {
+        "cbf": 0.5568181818181819,
+        "cf": 0.0,
+        "kg": 0.6066355085468051
+      },
+      "score": 0.6543965527241807,
+      "text": "Recommended because profile match (CBF) contributed 0.39, knowledge-graph evidence (KG) contributed 0.27 (hybrid score 0.65); no contribution from collaborative history (CF). Strongest KG evidence: Average training-period rating 4.78/5 from 9 reviews (smoothed 4.66); Has required skill 'AI-Generated Video'; Specializes in 'Video Editing' (primary category)",
+      "weights": {
+        "cbf": 0.4,
+        "cf": 0.1,
+        "kg": 0.5
+      },
+      "worker_id": "W002726"
+    },
+    {
+      "cited_components": [
+        "kg",
+        "cbf",
+        "cf"
+      ],
+      "contributions": {
+        "cbf": 0.3200172461199137,
+        "cf": 0.004379029049432611,
+        "kg": 0.3668732955097045
+      },
+      "dominant_component": "kg",
+      "kg_paths": [
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.06546027080597612,
+          "nodes": [
+            {
+              "id": "WooCommerce",
+              "label": "Skill"
+            },
+            {
+              "id": "W000858",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'WooCommerce'"
+        },
+        {
+          "edges": [
+            {
+              "role": "primary",
+              "type": "SPECIALIZES_IN"
+            }
+          ],
+          "kg_internal_contribution": 0.06427550196442398,
+          "nodes": [
+            {
+              "id": "Ecommerce Website Development",
+              "label": "ServiceCategory"
+            },
+            {
+              "id": "W000858",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "category",
+          "text": "Specializes in 'Ecommerce Website Development' (primary category)"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.03612719542137608,
+          "nodes": [
+            {
+              "id": "PHP",
+              "label": "Skill"
+            },
+            {
+              "id": "W000858",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'PHP'"
+        }
+      ],
+      "kg_summary": "Average training-period rating 4.00/5 from 2 reviews (smoothed 4.32); Has 'Bug Fix', related to required skill 'WooCommerce' (background-corpus NPMI 0.38); Has required skill 'WooCommerce'",
+      "link": "https://www.upwork.com/jobs/WooCommerce-product-filtering_%7E019b59db9ca3f17200?source=rss",
+      "normalized_scores": {
+        "cbf": 0.8000431152997842,
+        "cf": 0.04379029049432611,
+        "kg": 0.733746591019409
+      },
+      "rank": 9,
+      "raw_scores": {
+        "cbf": 0.5779310519864338,
+        "cf": 0.1186447494690624,
+        "kg": 0.5168378061828126
+      },
+      "score": 0.6912695706790508,
+      "text": "Recommended because knowledge-graph evidence (KG) contributed 0.37, profile match (CBF) contributed 0.32, collaborative history (CF) contributed 0.00 (hybrid score 0.69). Strongest KG evidence: Average training-period rating 4.00/5 from 2 reviews (smoothed 4.32); Has 'Bug Fix', related to required skill 'WooCommerce' (background-corpus NPMI 0.38); Has required skill 'WooCommerce'",
+      "weights": {
+        "cbf": 0.4,
+        "cf": 0.1,
+        "kg": 0.5
+      },
+      "worker_id": "W000858"
+    },
+    {
+      "cited_components": [
+        "cbf",
+        "kg",
+        "cf"
+      ],
+      "contributions": {
+        "cbf": 0.3246248320543552,
+        "cf": 0.016574776608227048,
+        "kg": 0.3083783247048616
+      },
+      "dominant_component": "cbf",
+      "kg_paths": [
+        {
+          "edges": [
+            {
+              "role": "primary",
+              "type": "SPECIALIZES_IN"
+            }
+          ],
+          "kg_internal_contribution": 0.04753549498134165,
+          "nodes": [
+            {
+              "id": "UX/UI Design",
+              "label": "ServiceCategory"
+            },
+            {
+              "id": "W002688",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "category",
+          "text": "Specializes in 'UX/UI Design' (primary category)"
+        },
+        {
+          "edges": [
+            {
+              "npmi": 0.6941459535831676,
+              "support": 5,
+              "type": "RELATED_TO"
+            },
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.03637727867351307,
+          "nodes": [
+            {
+              "id": "UI Graphics",
+              "label": "Skill"
+            },
+            {
+              "id": "UI Animation",
+              "label": "Skill"
+            },
+            {
+              "id": "W002688",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "related_skill",
+          "text": "Has 'UI Animation', related to required skill 'UI Graphics' (background-corpus NPMI 0.69)"
+        },
+        {
+          "edges": [
+            {
+              "type": "HAS_SKILL"
+            }
+          ],
+          "kg_internal_contribution": 0.03276836162682861,
+          "nodes": [
+            {
+              "id": "Interaction Design",
+              "label": "Skill"
+            },
+            {
+              "id": "W002688",
+              "label": "Worker"
+            }
+          ],
+          "path_type": "skill",
+          "text": "Has required skill 'Interaction Design'"
+        }
+      ],
+      "kg_summary": "Average training-period rating 4.67/5 from 3 reviews (smoothed 4.53); Has 'UI Animation', related to required skill 'UI Graphics' (background-corpus NPMI 0.69); Has required skill 'Interaction Design'",
+      "link": "https://www.upwork.com/jobs/graphic-designer-website-design-minimal-simple-deisgn_%7E01e2b6bd1a21e3ae6b?source=rss",
+      "normalized_scores": {
+        "cbf": 0.811562080135888,
+        "cf": 0.1657477660822705,
+        "kg": 0.6167566494097232
+      },
+      "rank": 8,
+      "raw_scores": {
+        "cbf": 0.5811218711888031,
+        "cf": 0.573251929691637,
+        "kg": 0.5164805012981464
+      },
+      "score": 0.6495779333674438,
+      "text": "Recommended because profile match (CBF) contributed 0.32, knowledge-graph evidence (KG) contributed 0.31, collaborative history (CF) contributed 0.02 (hybrid score 0.65). Strongest KG evidence: Average training-period rating 4.67/5 from 3 reviews (smoothed 4.53); Has 'UI Animation', related to required skill 'UI Graphics' (background-corpus NPMI 0.69); Has required skill 'Interaction Design'",
+      "weights": {
+        "cbf": 0.4,
+        "cf": 0.1,
+        "kg": 0.5
+      },
+      "worker_id": "W002688"
+    }
+  ],
+  "seed": 42,
+  "split": "test"
+}

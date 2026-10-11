@@ -1,0 +1,118 @@
+{
+  "files": [
+    {
+      "bytes": 1407,
+      "path": "results/day8/cold_start_metrics.csv",
+      "rows": 12,
+      "sha256": "ac1f88fd42ed8e2e132228eacf8ef4d1461476b4440193aa3c87ba7f65c004ef"
+    },
+    {
+      "bytes": 1099,
+      "path": "results/day8/cold_start_worker_diagnostics.csv",
+      "rows": 12,
+      "sha256": "42d05530d67a019542dfd5660d1af39647f4ad8051888dc3aa67acd5bd39990d"
+    },
+    {
+      "bytes": 1610,
+      "path": "results/day8/diversity_metrics.csv",
+      "rows": 12,
+      "sha256": "e882da5460382edb30c47ac85311a4f2417597b9244c3474d8adfe316c1f8911"
+    },
+    {
+      "bytes": 32035,
+      "path": "results/day8/figures/cold_start_comparison.png",
+      "sha256": "4d4471ea813b899b1742b56f07c17acd05a45ae1e839ab8c9cc941edbe9f4aef"
+    },
+    {
+      "bytes": 24165,
+      "path": "results/day8/figures/hybrid_contributions_test.png",
+      "sha256": "50dd603f37964b65f0295edfd6db0f2ef269ff4ae15c07e0e506316466fb1a67"
+    },
+    {
+      "bytes": 63732,
+      "path": "results/day8/figures/hybrid_validation_tuning.png",
+      "sha256": "307e250ad454b53d78e018689adab903bfcdb4c05bf3493c4b2a500a61407c1a"
+    },
+    {
+      "bytes": 32336,
+      "path": "results/day8/figures/model_comparison_test_k10.png",
+      "sha256": "6576ee9070b34648b352dc31e2b49a034aea8290ea0002991d9ad19bcca9dac4"
+    },
+    {
+      "bytes": 25167,
+      "path": "results/day8/figures/significance_ndcg_test.png",
+      "sha256": "83410af24d93448ec035c594b2c1e71f514423f48665d15628864437c0b9e541"
+    },
+    {
+      "bytes": 934,
+      "path": "results/day8/hybrid_ablation_validation.csv",
+      "rows": 4,
+      "sha256": "1bab0c4066814f3b0a7416b23cf3c19f12968b88e0049cb2919c8e20e197f087"
+    },
+    {
+      "bytes": 589,
+      "path": "results/day8/hybrid_contributions.csv",
+      "rows": 6,
+      "sha256": "6d77008f58042b8fc2efa9a05151d678aba233ce2b6fe9b9e600e49f3d7d21bc"
+    },
+    {
+      "bytes": 693,
+      "path": "results/day8/hybrid_explanation_fidelity.json",
+      "sha256": "2a9534e6cf7a82da88ac521565647ce1505e847541e5f7f355758d2026895b20"
+    },
+    {
+      "bytes": 94373,
+      "path": "results/day8/hybrid_explanation_samples.json",
+      "sha256": "d4129234d92233c96dca3d1af89a5023131893a0676e1082852055c807e44803"
+    },
+    {
+      "bytes": 2460,
+      "path": "results/day8/hybrid_tuning.csv",
+      "rows": 15,
+      "sha256": "97d0b664697a4d6929676cddb1a2dc548d878daa0ef110748aca491447314d73"
+    },
+    {
+      "bytes": 612,
+      "path": "results/day8/selected_hybrid_config.json",
+      "sha256": "3c78a6cd473fc17600223c8698d553c9433ba43b884cb4e25c4950194c8bd372"
+    },
+    {
+      "bytes": 1834,
+      "path": "results/day8/significance.csv",
+      "rows": 8,
+      "sha256": "79f9f71ce93ea8e3d655e5c20d181d06ae21c631f5680ee3f8ba4ce340b93895"
+    },
+    {
+      "bytes": 751,
+      "path": "results/day8/test_metrics.csv",
+      "rows": 6,
+      "sha256": "75d510b328e7dd0cf2998dd286c08af9f650445cfef75c48e542165a0e51d56c"
+    },
+    {
+      "bytes": 770,
+      "path": "results/day8/validation_metrics.csv",
+      "rows": 6,
+      "sha256": "837d1842de57c215e99af5b2098314c1b863b13ce3e42a94b243f0a89826c35d"
+    }
+  ],
+  "frozen_inputs_sha256": {
+    "config/cf_config.yaml": "5e51f4d758963b2e756bdeae8f1cf49a74874850566cfb443bf811cd7c62f1fb",
+    "config/evaluation_config.yaml": "c1d06b9bf5ee62f93e37cbc3d77ac2596382129226a64fc3a37ed26f5497a4f8",
+    "config/generator_v1.yaml": "e4e94d917f269a0b0100804bde0e0555171cc7527521a1a0990692bfeebfb5a1",
+    "config/kg_config.yaml": "1fdc6137d2479a23561c0f332dc0dd00ff963fe493fca71c66ca506cdc32ac66",
+    "data/processed/kg/kg_prepare_manifest.json": "5836539ca570518c6555679f3391d951af35745936dc200fc1ee273fbfd010d1",
+    "results/day4/selected_cbf_config.json": "9703172273d3626ab6fae194220b4e1f3ab02c36e5937b88c3c8104a9bbd01f2",
+    "results/day5/selected_cf_config.json": "52cdac818b2b936e00920137116486cabc52530773ebdecdd5033b8c6fcb9a15",
+    "results/day7/cold_start_metrics.csv": "4bc3752c9ce8f39f871e8b672b66bc4adcd73b0b7d791ccd17db6c1230da9a15",
+    "results/day7/cold_start_worker_diagnostics.csv": "b00339d38a42b21a10bd9ee2d73ced1e2771c95cc485ea00f960580e1e4c242d",
+    "results/day7/day7_manifest.json": "de3a1ae988ca6532404aee01d4fc9895b3905fd1c31662dc216e9d87d81289f9",
+    "results/day7/graph_snapshot.json": "135800f6e2440989c4851bbef97e25ec2998143b3cfea9e46a68a28b466b2bbf",
+    "results/day7/selected_kg_config.json": "7a3dbcf21aee737714cf4caa5414574a4d6a1b0906b17c2e60546d6229916f6a",
+    "results/day7/test_metrics.csv": "9dd7e4a2ee1de57f955c67f8fe92bd80c6bf00bb01678d4d07c1389c2aa0d4fe",
+    "results/day7/validation_metrics.csv": "1b80447b96a3ff6548d674d508bd6fb7d3bdf5e91d311285688733120c4e93ab"
+  },
+  "hybrid_config_sha256": "4d956748204f7f6f01eedac742399393bf753452f7c5b182a213326358533f95",
+  "k": 10,
+  "kg_graph_snapshot_source": "day6_csv_artifacts (fingerprint verified against results/day7/graph_snapshot.json)",
+  "seed": 42
+}
