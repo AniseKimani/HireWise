@@ -56,7 +56,7 @@ X_norm       = (X − min_pool X) / (max_pool X − min_pool X)
 
 ## 3. Predeclared grid and selection
 
-`config/hybrid_config.yaml` (SHA-256 `4d956748…5f95`) was committed in
+`config/hybrid_config.yaml` (SHA-256 `4d956748…3f95`) was committed in
 `f76ad34` before any hybrid metric existed. It contains 12 weight
 vectors, none with a single component: near-equal, pairwise, CBF-, CF-
 and KG-leaning, and minimal-CF.
