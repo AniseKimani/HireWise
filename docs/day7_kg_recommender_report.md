@@ -262,10 +262,21 @@ explanation-fidelity metric is measured against the hybrid score and
 belongs to Day 8.**
 
 **Human rubric.** A seeded (seed 42) sample of 30 test explanations is in
-`explanation_samples.json`, with a blank sheet in
-`explanation_rubric_template.csv`. The proposed criteria are
-understandable, grounded and useful, each rated 1–5 by the author. These
-criteria are pending review, and nothing has been rated.
+`explanation_samples.json`. The final rubric is defined in
+`docs/day7_explanation_rubric.md`, and ratings go in the blank sheet
+`docs/day7_explanation_rubric_sheet.csv`. There are four criteria:
+**Relevance**, **Clarity**, **Traceability** and **Usefulness**. Each is
+rated on a 1–5 scale (1 = Very poor, 2 = Poor, 3 = Acceptable, 4 = Good,
+5 = Excellent) by the author as the single rater.
+
+The later evaluation will report, for n = 30:
+- the mean score per criterion;
+- the overall mean across the four criteria;
+- optionally, standard deviations or score distributions.
+
+Nothing has been rated yet. The placeholder columns in the pipeline output
+`explanation_rubric_template.csv` (hash-verified, left unchanged) are
+superseded by this instrument.
 
 ## 9. Temporal safety and leakage controls
 
@@ -302,7 +313,7 @@ criteria are pending review, and nothing has been rated.
 1. **Reputation dominance.** The validation-selected weights make training reputation the main ranking and explanation driver. This lowers cold-start worker exposure (ratio 0.54). It is a legitimate predeclared grid choice, but it shapes how KG explanations read and how the hybrid should treat KG on Day 8.
 2. **`hired_similar_skill` reaches cold-start workers.** This is a genuine training-only path, kept as implemented. The alternative is to restrict `history` to paths through the worker's own hires; that would be a methodology change.
 3. **The related-skill ablation is slightly positive** (+0.0012 validation NDCG@10). Kept, to avoid post-hoc selection.
-4. **Rubric criteria** (understandable / grounded / useful, 1–5) are placeholders for your approval.
+4. **Rubric criteria.** Resolved: finalised as Relevance / Clarity / Traceability / Usefulness, each 1–5 (`docs/day7_explanation_rubric.md`). Human ratings are still pending.
 5. **`Neo4jClient.run_read`** was added to the Day 6 client module. This is an additive change; the loader and schema are unchanged.
 
 ## Reproducing this report
