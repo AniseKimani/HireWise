@@ -1,0 +1,219 @@
+{
+  "category_signal": {
+    "n_requests": 1126,
+    "share_candidates_primary_specialization": 0.5551803138035214,
+    "share_candidates_secondary_specialization": 0.4448196861964786,
+    "share_pools_where_category_component_varies": 1.0,
+    "split": "validation"
+  },
+  "explainability": {
+    "test": {
+      "all": {
+        "fidelity_sanity": {
+          "mean_displayed_contribution_share": 0.9277653935603742,
+          "n_with_positive_contribution": 22750,
+          "share_contributions_reconstruct_score": 1.0,
+          "share_first_cited_component_is_largest": 1.0
+        },
+        "max_observed_path_length": 3,
+        "max_path_length": 3,
+        "mean_path_length_per_recommendation": 1.93983019712959,
+        "mean_path_length_pooled": 1.9818233982654225,
+        "mean_paths_by_type": {
+          "category": 1.0,
+          "co_hire": 0.1803956043956044,
+          "hired_similar_skill": 2.5026813186813186,
+          "related_skill": 16.29476923076923,
+          "repeat_hire": 0.060307692307692305,
+          "skill": 2.0237802197802197
+        },
+        "mean_supporting_paths": 22.061934065934064,
+        "mean_supporting_paths_excluding_category": 21.061934065934064,
+        "median_supporting_paths": 20.0,
+        "n_recommendations": 22750,
+        "path_coverage": 1.0,
+        "path_coverage_excluding_category": 0.9957362637362638,
+        "share_recommendations_with_path_type": {
+          "category": 1.0,
+          "co_hire": 0.14114285714285715,
+          "hired_similar_skill": 0.544967032967033,
+          "related_skill": 0.9797802197802198,
+          "repeat_hire": 0.060307692307692305,
+          "skill": 0.8958241758241758
+        }
+      },
+      "cold_start_workers": {
+        "fidelity_sanity": {
+          "mean_displayed_contribution_share": 0.9217563388681227,
+          "n_with_positive_contribution": 1202,
+          "share_contributions_reconstruct_score": 1.0,
+          "share_first_cited_component_is_largest": 1.0
+        },
+        "max_observed_path_length": 3,
+        "max_path_length": 3,
+        "mean_path_length_per_recommendation": 1.9027684010914685,
+        "mean_path_length_pooled": 1.9540748162992652,
+        "mean_paths_by_type": {
+          "category": 1.0,
+          "co_hire": 0.0,
+          "hired_similar_skill": 2.189683860232945,
+          "related_skill": 14.632279534109816,
+          "repeat_hire": 0.0,
+          "skill": 2.1048252911813643
+        },
+        "mean_supporting_paths": 19.926788685524127,
+        "mean_supporting_paths_excluding_category": 18.926788685524127,
+        "median_supporting_paths": 18.0,
+        "n_recommendations": 1202,
+        "path_coverage": 1.0,
+        "path_coverage_excluding_category": 0.9983361064891847,
+        "share_recommendations_with_path_type": {
+          "category": 1.0,
+          "co_hire": 0.0,
+          "hired_similar_skill": 0.5266222961730449,
+          "related_skill": 0.9841930116472546,
+          "repeat_hire": 0.0,
+          "skill": 0.9317803660565723
+        }
+      },
+      "established_workers": {
+        "fidelity_sanity": {
+          "mean_displayed_contribution_share": 0.9281005932884272,
+          "n_with_positive_contribution": 21548,
+          "share_contributions_reconstruct_score": 1.0,
+          "share_first_cited_component_is_largest": 1.0
+        },
+        "max_observed_path_length": 3,
+        "max_path_length": 3,
+        "mean_path_length_per_recommendation": 1.9418975945139327,
+        "mean_path_length_pooled": 1.9832139711312942,
+        "mean_paths_by_type": {
+          "category": 1.0,
+          "co_hire": 0.19045851123074067,
+          "hired_similar_skill": 2.5201410803786892,
+          "related_skill": 16.387506961202895,
+          "repeat_hire": 0.06367180248746983,
+          "skill": 2.0192593280118802
+        },
+        "mean_supporting_paths": 22.181037683311676,
+        "mean_supporting_paths_excluding_category": 21.181037683311676,
+        "median_supporting_paths": 20.0,
+        "n_recommendations": 21548,
+        "path_coverage": 1.0,
+        "path_coverage_excluding_category": 0.9955912381659551,
+        "share_recommendations_with_path_type": {
+          "category": 1.0,
+          "co_hire": 0.14901614999071838,
+          "hired_similar_skill": 0.5459903471319844,
+          "related_skill": 0.9795340634861704,
+          "repeat_hire": 0.06367180248746983,
+          "skill": 0.893818451828476
+        }
+      }
+    },
+    "validation": {
+      "all": {
+        "fidelity_sanity": {
+          "mean_displayed_contribution_share": 0.9253127708106991,
+          "n_with_positive_contribution": 11260,
+          "share_contributions_reconstruct_score": 1.0,
+          "share_first_cited_component_is_largest": 1.0
+        },
+        "max_observed_path_length": 3,
+        "max_path_length": 3,
+        "mean_path_length_per_recommendation": 1.9407837228135925,
+        "mean_path_length_pooled": 1.9847333003425072,
+        "mean_paths_by_type": {
+          "category": 1.0,
+          "co_hire": 0.19706927175843694,
+          "hired_similar_skill": 2.5992895204262876,
+          "related_skill": 16.851243339253998,
+          "repeat_hire": 0.06714031971580817,
+          "skill": 2.077175843694494
+        },
+        "mean_supporting_paths": 22.791918294849022,
+        "mean_supporting_paths_excluding_category": 21.791918294849022,
+        "median_supporting_paths": 21.0,
+        "n_recommendations": 11260,
+        "path_coverage": 1.0,
+        "path_coverage_excluding_category": 0.9967140319715808,
+        "share_recommendations_with_path_type": {
+          "category": 1.0,
+          "co_hire": 0.15337477797513321,
+          "hired_similar_skill": 0.5768206039076377,
+          "related_skill": 0.9844582593250444,
+          "repeat_hire": 0.06714031971580817,
+          "skill": 0.908259325044405
+        }
+      },
+      "cold_start_workers": {
+        "fidelity_sanity": {
+          "mean_displayed_contribution_share": 0.9276857657888414,
+          "n_with_positive_contribution": 499,
+          "share_contributions_reconstruct_score": 1.0,
+          "share_first_cited_component_is_largest": 1.0
+        },
+        "max_observed_path_length": 3,
+        "max_path_length": 3,
+        "mean_path_length_per_recommendation": 1.890117774344507,
+        "mean_path_length_pooled": 1.9411889371622337,
+        "mean_paths_by_type": {
+          "category": 1.0,
+          "co_hire": 0.0,
+          "hired_similar_skill": 2.0420841683366735,
+          "related_skill": 13.715430861723448,
+          "repeat_hire": 0.0,
+          "skill": 2.1543086172344688
+        },
+        "mean_supporting_paths": 18.91182364729459,
+        "mean_supporting_paths_excluding_category": 17.91182364729459,
+        "median_supporting_paths": 17.0,
+        "n_recommendations": 499,
+        "path_coverage": 1.0,
+        "path_coverage_excluding_category": 1.0,
+        "share_recommendations_with_path_type": {
+          "category": 1.0,
+          "co_hire": 0.0,
+          "hired_similar_skill": 0.5390781563126252,
+          "related_skill": 0.9879759519038076,
+          "repeat_hire": 0.0,
+          "skill": 0.9418837675350702
+        }
+      },
+      "established_workers": {
+        "fidelity_sanity": {
+          "mean_displayed_contribution_share": 0.9252027322925229,
+          "n_with_positive_contribution": 10761,
+          "share_contributions_reconstruct_score": 1.0,
+          "share_first_cited_component_is_largest": 1.0
+        },
+        "max_observed_path_length": 3,
+        "max_path_length": 3,
+        "mean_path_length_per_recommendation": 1.9431331613681946,
+        "mean_path_length_pooled": 1.9863956310679611,
+        "mean_paths_by_type": {
+          "category": 1.0,
+          "co_hire": 0.20620760152402193,
+          "hired_similar_skill": 2.625127776228975,
+          "related_skill": 16.996654586005018,
+          "repeat_hire": 0.07025369389461945,
+          "skill": 2.0735991078896014
+        },
+        "mean_supporting_paths": 22.971842765542235,
+        "mean_supporting_paths_excluding_category": 21.971842765542235,
+        "median_supporting_paths": 21.0,
+        "n_recommendations": 10761,
+        "path_coverage": 1.0,
+        "path_coverage_excluding_category": 0.9965616578384908,
+        "share_recommendations_with_path_type": {
+          "category": 1.0,
+          "co_hire": 0.1604869435926029,
+          "hired_similar_skill": 0.5785707647988105,
+          "related_skill": 0.9842951398568907,
+          "repeat_hire": 0.07025369389461945,
+          "skill": 0.9067001208066164
+        }
+      }
+    }
+  }
+}

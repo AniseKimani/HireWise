@@ -1,0 +1,34 @@
+{
+  "fingerprint": "e7052c979dbcc36d759328a487ee77594ed2fbc9ece6323e4f2f001c226263f1",
+  "graph_derived_reputation_prior_mean": 4.451348001239541,
+  "stats": {
+    "max_train_hire_simulated_day": 323.0137015130411,
+    "mean_train_rating": 4.451348001239541,
+    "n_categories": 88,
+    "n_clients_with_train_hires": 1818,
+    "n_has_skill": 23131,
+    "n_interested_in": 1163,
+    "n_related_to": 12504,
+    "n_skills": 1187,
+    "n_specializes_in": 6031,
+    "n_specializes_in_primary": 3000,
+    "n_specializes_in_secondary": 3031,
+    "n_train_hire_distinct_pairs": 6956,
+    "n_train_hires": 7117,
+    "n_train_reviews": 6454,
+    "n_workers": 3000,
+    "n_workers_with_train_hires": 1989,
+    "n_workers_with_train_reviews": 1924
+  },
+  "table_fingerprints": {
+    "categories": "44385a6debb464d4811739d5934fa94e2f451b1692d7b19f09d390380f0bf088",
+    "has_skill": "114f99be3da77c45fa6d3735bf4003259d602442c4bdbba5cfb36bd643ff4719",
+    "interested_in": "490c2e81bf5254fb35f89574ff26b2a60c6cc0eebc3271e3beb08499d7238097",
+    "related_to": "fd1466fe63385d9869a4d2790a88e106724c374e399561573651e5044161e3b1",
+    "skills": "dd7194456e8da3ecaef5133d8250f70c96ee1d8f0d45daded3b29ab4cedce41b",
+    "specializes_in": "d4295d5a4f449f26712ed3b72f817cd230455890f8373de71aabf5ee9ddea8c1",
+    "train_hires": "8d402122f07bee9d383ea105449263ff584e4c5948131459a9fd6e421be82f50",
+    "train_reviews": "c126348af98be7c20f20a8861754a089f2f9d98b4d95cc501c10abeb7474aee4",
+    "workers": "a396f4a65d0ece85959c7847127190144946e113abcc628e87a59a09edc88aed"
+  }
+}

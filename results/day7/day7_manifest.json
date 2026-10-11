@@ -1,0 +1,134 @@
+{
+  "files": [
+    {
+      "bytes": 1196,
+      "path": "results/day7/cold_start_metrics.csv",
+      "rows": 10,
+      "sha256": "4bc3752c9ce8f39f871e8b672b66bc4adcd73b0b7d791ccd17db6c1230da9a15"
+    },
+    {
+      "bytes": 903,
+      "path": "results/day7/cold_start_worker_diagnostics.csv",
+      "rows": 10,
+      "sha256": "b00339d38a42b21a10bd9ee2d73ced1e2771c95cc485ea00f960580e1e4c242d"
+    },
+    {
+      "bytes": 8574,
+      "path": "results/day7/explainability_metrics.json",
+      "sha256": "4d53160c65a08df89972c1d9469b76c2af3251349c060767464cdf7bcd364e5d"
+    },
+    {
+      "bytes": 11414,
+      "path": "results/day7/explanation_rubric_template.csv",
+      "rows": 30,
+      "sha256": "631fedd0e0068f71dad84dc76fe9e78218363a5e9e9cb6518629982bea2c0e2a"
+    },
+    {
+      "bytes": 236192,
+      "path": "results/day7/explanation_samples.json",
+      "sha256": "7317dd51c612157e7526c6731a8d3e930ba59ae624239be4e8a8a399a88e1303"
+    },
+    {
+      "bytes": 35554,
+      "path": "results/day7/figures/cold_start_comparison.png",
+      "sha256": "a8370652ec65418726f09da409750a74436907c481a3952d0d89523084b5ef23"
+    },
+    {
+      "bytes": 43862,
+      "path": "results/day7/figures/kg_component_ablation.png",
+      "sha256": "576317c62579d3f67a6a4233f7ac549748ac5ff8d1711d4d7a9b875964f1d030"
+    },
+    {
+      "bytes": 46859,
+      "path": "results/day7/figures/kg_validation_tuning.png",
+      "sha256": "6809eb61f3cec954df73ec98a70d46b430ee18c2bdc5aa597b45d355f1eac2a9"
+    },
+    {
+      "bytes": 37995,
+      "path": "results/day7/figures/model_comparison_test_k10.png",
+      "sha256": "31ce4fedf9da532f98cfc3b54496f6711f9c3c2926e00ffb9fa9b1588df3a583"
+    },
+    {
+      "bytes": 1549,
+      "path": "results/day7/graph_snapshot.json",
+      "sha256": "135800f6e2440989c4851bbef97e25ec2998143b3cfea9e46a68a28b466b2bbf"
+    },
+    {
+      "bytes": 1548,
+      "path": "results/day7/kg_ablation_validation.csv",
+      "rows": 6,
+      "sha256": "fb26adabcc41678ebe14da609daab4a17c5838963b70d2f27595a9d0771fd286"
+    },
+    {
+      "bytes": 1033,
+      "path": "results/day7/kg_component_contributions.csv",
+      "rows": 10,
+      "sha256": "f9ada973a71d2534675c8ffdc7130af731db38588d126d4ee73d33dd04bf3bf0"
+    },
+    {
+      "bytes": 1730,
+      "path": "results/day7/kg_tuning.csv",
+      "rows": 12,
+      "sha256": "d2ada7f1b947a3c20ae478617c08f7fb615d635dcd7656b88d79e01e1d8221a8"
+    },
+    {
+      "bytes": 634,
+      "path": "results/day7/selected_kg_config.json",
+      "sha256": "7a3dbcf21aee737714cf4caa5414574a4d6a1b0906b17c2e60546d6229916f6a"
+    },
+    {
+      "bytes": 649,
+      "path": "results/day7/test_metrics.csv",
+      "rows": 5,
+      "sha256": "9dd7e4a2ee1de57f955c67f8fe92bd80c6bf00bb01678d4d07c1389c2aa0d4fe"
+    },
+    {
+      "bytes": 667,
+      "path": "results/day7/validation_metrics.csv",
+      "rows": 5,
+      "sha256": "1b80447b96a3ff6548d674d508bd6fb7d3bdf5e91d311285688733120c4e93ab"
+    }
+  ],
+  "frozen_inputs_sha256": {
+    "config/cf_config.yaml": "5e51f4d758963b2e756bdeae8f1cf49a74874850566cfb443bf811cd7c62f1fb",
+    "config/evaluation_config.yaml": "c1d06b9bf5ee62f93e37cbc3d77ac2596382129226a64fc3a37ed26f5497a4f8",
+    "config/generator_v1.yaml": "e4e94d917f269a0b0100804bde0e0555171cc7527521a1a0990692bfeebfb5a1",
+    "data/processed/kg/kg_prepare_manifest.json": "5836539ca570518c6555679f3391d951af35745936dc200fc1ee273fbfd010d1",
+    "results/day4/cold_start_metrics.csv": "6015b995c2772087042eb2c9c972d4e846a21da41cf5cf9d0f302f95e4ad39e5",
+    "results/day4/selected_cbf_config.json": "9703172273d3626ab6fae194220b4e1f3ab02c36e5937b88c3c8104a9bbd01f2",
+    "results/day4/test_metrics.csv": "ba44f03a1b27163d46072949ccba81275a948b6df628955ccee27eb916a93689",
+    "results/day4/validation_metrics.csv": "199eb5e4e68c1d8c6bf3cc9d0a44533ccfe1be2c8be40fb827171cfaafce8251",
+    "results/day5/cold_start_metrics.csv": "d00399a1dc80f9181366e3ec30f02ec505f4e295bc0be7bffeb042d6cc5ed0e8",
+    "results/day5/selected_cf_config.json": "52cdac818b2b936e00920137116486cabc52530773ebdecdd5033b8c6fcb9a15",
+    "results/day5/test_metrics.csv": "2786d48f4a65b6baaf679bd3d8046e47b73d660e2d2c65efa8184c57888b1f32",
+    "results/day5/validation_metrics.csv": "1f08821bae364784e418fd373931f4cadbaac8ea0464ba9013b8113bb476a3b5"
+  },
+  "graph_snapshot_fingerprint": "e7052c979dbcc36d759328a487ee77594ed2fbc9ece6323e4f2f001c226263f1",
+  "graph_snapshot_table_fingerprints": {
+    "categories": "44385a6debb464d4811739d5934fa94e2f451b1692d7b19f09d390380f0bf088",
+    "has_skill": "114f99be3da77c45fa6d3735bf4003259d602442c4bdbba5cfb36bd643ff4719",
+    "interested_in": "490c2e81bf5254fb35f89574ff26b2a60c6cc0eebc3271e3beb08499d7238097",
+    "related_to": "fd1466fe63385d9869a4d2790a88e106724c374e399561573651e5044161e3b1",
+    "skills": "dd7194456e8da3ecaef5133d8250f70c96ee1d8f0d45daded3b29ab4cedce41b",
+    "specializes_in": "d4295d5a4f449f26712ed3b72f817cd230455890f8373de71aabf5ee9ddea8c1",
+    "train_hires": "8d402122f07bee9d383ea105449263ff584e4c5948131459a9fd6e421be82f50",
+    "train_reviews": "c126348af98be7c20f20a8861754a089f2f9d98b4d95cc501c10abeb7474aee4",
+    "workers": "a396f4a65d0ece85959c7847127190144946e113abcc628e87a59a09edc88aed"
+  },
+  "graph_source": "neo4j",
+  "k": 10,
+  "kg_config_sha256": "1fdc6137d2479a23561c0f332dc0dd00ff963fe493fca71c66ca506cdc32ac66",
+  "neo4j_csv_parity": true,
+  "neo4j_csv_table_parity": {
+    "categories": true,
+    "has_skill": true,
+    "interested_in": true,
+    "related_to": true,
+    "skills": true,
+    "specializes_in": true,
+    "train_hires": true,
+    "train_reviews": true,
+    "workers": true
+  },
+  "seed": 42
+}

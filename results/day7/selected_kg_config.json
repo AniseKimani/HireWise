@@ -1,0 +1,25 @@
+{
+  "category_role_weights": {
+    "primary": 1.0,
+    "secondary": 0.5
+  },
+  "damping": 0.4,
+  "fallback": "none",
+  "normalization": "minmax_within_candidate_pool",
+  "primary_metric": "ndcg_at_10",
+  "primary_metric_value": 0.15359559629201974,
+  "reputation_prior_mean": 4.451348001239541,
+  "reputation_prior_strength": 5,
+  "tie_break": "worker_id_ascending",
+  "tiebreak_metric": "recall_at_10",
+  "tiebreak_metric_value": 0.19449378330373002,
+  "tuning_grid_size": 12,
+  "weight_grid_index": 5,
+  "weights": {
+    "category": 0.1,
+    "history": 0.2,
+    "related_skill": 0.15,
+    "reputation": 0.35,
+    "skill": 0.2
+  }
+}
