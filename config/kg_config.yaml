@@ -1,0 +1,64 @@
+# Day 7 Knowledge Graph-only recommender configuration.
+#
+# Everything below is PREDECLARED: it was written before any KG
+# validation or test metric existed, and the tuning grid is never edited
+# after seeing results (docs/day7_kg_recommender_report.md).
+#
+# The master seed lives in config/data_config.yaml; K=10, the candidate
+# universe, and relevance grades live in config/evaluation_config.yaml
+# and are reused unchanged. The training split used for every historical
+# graph edge is a fixed constant in src/kg/graph_view.py (not
+# configurable), so no configuration can widen the graph to
+# validation/test edges.
+
+k: 10   # reference only; the shared evaluation protocol's k is authoritative
+
+# --- Score components ---------------------------------------------------------
+# Fixed order; weight_grid entries must use exactly these keys.
+components: [skill, related_skill, category, history, reputation]
+
+# Primary vs secondary specialization, read from the SPECIALIZES_IN edge's
+# `role` property. Predeclared, not tuned. Deliberately a plain "secondary
+# counts half" rule rather than CBF's 0.6 (Day 4), so KG-only does not
+# silently reuse CBF's constant.
+category_role_weights:
+  primary: 1.0
+  secondary: 0.5
+
+# Bayesian smoothing for training-only REVIEWED evidence:
+#   reputation = (sum_ratings + m * mu) / (n_reviews + m)
+# where mu is the global mean training rating (derived from the graph, not
+# configured). A worker with no training review -- every cold-start
+# worker, by construction -- receives exactly mu (a neutral prior), never
+# a fabricated review.
+reputation_prior_strength: 5
+
+# --- Validation-only tuning grid ----------------------------------------------
+# DWPC damping exponent w (degree-weighted path count, Himmelstein &
+# Baranzini 2015). w = 0 is a plain path count; w = 0.4 is the value used
+# for Hetionet. Two values only, to avoid excessive search.
+dwpc_damping_grid: [0.0, 0.4]
+
+# Component weights, each entry summing to 1.0. Listed simplest-first:
+# exact-tie resolution prefers the earlier entry (and the smaller damping).
+weight_grid:
+  - {skill: 0.20, related_skill: 0.20, category: 0.20, history: 0.20, reputation: 0.20}
+  - {skill: 0.30, related_skill: 0.15, category: 0.15, history: 0.25, reputation: 0.15}
+  - {skill: 0.35, related_skill: 0.20, category: 0.15, history: 0.15, reputation: 0.15}
+  - {skill: 0.30, related_skill: 0.30, category: 0.10, history: 0.20, reputation: 0.10}
+  - {skill: 0.20, related_skill: 0.10, category: 0.10, history: 0.45, reputation: 0.15}
+  - {skill: 0.20, related_skill: 0.15, category: 0.10, history: 0.20, reputation: 0.35}
+
+tuning_primary_metric: ndcg_at_10
+tuning_tiebreak_metric: recall_at_10
+
+# --- Explanations -------------------------------------------------------------
+# Each explanation keeps the highest-contribution paths per component for
+# display; total path counts are always recorded untruncated.
+explanation_max_paths_per_component: 3
+
+# Deterministic sample (seeded from config/data_config.yaml's master seed)
+# of test-split top-K explanations, exported for later human rubric
+# assessment by the author. Not rated automatically.
+explanation_sample_size: 30
+explanation_sample_split: test
