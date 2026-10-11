@@ -1,0 +1,73 @@
+# Day 8 weighted hybrid recommender configuration.
+#
+# PREDECLARED: written before any hybrid validation or test metric
+# existed; the weight grid is never edited after seeing results
+# (docs/day8_hybrid_report.md). Its SHA-256 is recorded in the Day 8
+# manifest.
+#
+# The frozen standalone components are NOT configured here: CBF, CF and
+# KG are rebuilt from their own frozen selections
+# (results/day4/selected_cbf_config.json, results/day5/selected_cf_config.json,
+# results/day7/selected_kg_config.json). The master seed lives in
+# config/data_config.yaml; K, the candidate universe and relevance grades
+# live in config/evaluation_config.yaml and are reused unchanged.
+
+k: 10   # reference only; the shared evaluation protocol's k is authoritative
+
+components: [cbf, cf, kg]   # fixed order
+
+# --- Score normalisation ------------------------------------------------------
+# Each component's standalone score is min-max normalised across the
+# request's own candidate pool, independently per component, before the
+# weighted sum. A component whose score is identical for every candidate
+# of a request carries no ranking information for that request and
+# contributes exactly 0 for every candidate (constant_component_policy).
+normalization: minmax_within_candidate_pool
+constant_component_policy: zero
+
+# --- Predeclared validation-only weight grid -----------------------------------
+# Order: (cbf, cf, kg); each entry non-negative and summing to 1.0. No
+# single-component entry is a tuning candidate (single-component runs are
+# reported separately as plumbing sanity checks only). Exact-tie
+# resolution prefers the more balanced entry (smaller sum of |w - 1/3|),
+# then the earlier entry.
+weight_grid:
+  - {cbf: 0.34, cf: 0.33, kg: 0.33}   # near-equal
+  - {cbf: 0.40, cf: 0.20, kg: 0.40}   # CBF+KG, light CF
+  - {cbf: 0.40, cf: 0.40, kg: 0.20}   # CBF+CF
+  - {cbf: 0.20, cf: 0.40, kg: 0.40}   # CF+KG
+  - {cbf: 0.50, cf: 0.25, kg: 0.25}   # CBF-leaning
+  - {cbf: 0.25, cf: 0.50, kg: 0.25}   # CF-leaning
+  - {cbf: 0.25, cf: 0.25, kg: 0.50}   # KG-leaning
+  - {cbf: 0.60, cf: 0.20, kg: 0.20}   # strongly CBF-leaning
+  - {cbf: 0.20, cf: 0.60, kg: 0.20}   # strongly CF-leaning
+  - {cbf: 0.20, cf: 0.20, kg: 0.60}   # strongly KG-leaning
+  - {cbf: 0.40, cf: 0.10, kg: 0.50}   # KG-leaning, minimal CF
+  - {cbf: 0.50, cf: 0.10, kg: 0.40}   # CBF-leaning, minimal CF
+
+tuning_primary_metric: ndcg_at_10
+tuning_tiebreak_metric: recall_at_10
+
+# Single-component weight vectors evaluated on validation as sanity
+# checks of the normalisation/combination plumbing. Never selectable.
+sanity_single_component_checks: true
+
+# --- Paired bootstrap significance (docs/experimental_design.md Section 15) ---
+bootstrap:
+  n_resamples: 1000           # Section 15: "1,000 resamples over test requests"
+  confidence_level: 0.95
+  seed_offset: 8              # RNG = SeedSequence([master_seed, seed_offset])
+  baselines: [kg, cbf, cf, popularity]
+  metrics: [ndcg_at_k, recall_at_k]
+  multiple_comparison_adjustment: holm   # reported alongside unadjusted p-values
+
+# --- Diversity / catalogue coverage --------------------------------------------
+diversity:
+  intra_list_skill_source: declared_skills   # Section 15: 1 - mean pairwise Jaccard of declared skills
+  top_share_fraction: 0.01                    # share of top-K slots taken by the top 1% most-recommended workers
+
+# --- Hybrid explanations -------------------------------------------------------
+explanations:
+  sample_size: 30
+  sample_split: test
+  kg_paths_per_sample: 3   # strongest KG paths shown with each sampled hybrid explanation
