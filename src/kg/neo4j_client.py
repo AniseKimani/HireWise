@@ -12,7 +12,7 @@ import os
 from dataclasses import dataclass
 from typing import Any, Iterable
 
-from neo4j import GraphDatabase, Driver
+from neo4j import READ_ACCESS, GraphDatabase, Driver
 
 try:
     from dotenv import load_dotenv
@@ -83,6 +83,16 @@ class Neo4jClient:
         with self._driver.session(database=self.settings.database) as session:
             result = session.run(query, parameters or {})
             return [record.data() for record in result]
+
+    def run_read(self, query: str, parameters: dict[str, Any] | None = None) -> list[dict]:
+        """Run a single query in a READ-access managed transaction (Day 7
+        extraction): the server rejects any write the query might
+        attempt, so read-only use is enforced by Neo4j itself rather than
+        by convention."""
+        if self._driver is None:
+            raise RuntimeError("Neo4jClient must be used as a context manager: `with Neo4jClient() as client:`")
+        with self._driver.session(database=self.settings.database, default_access_mode=READ_ACCESS) as session:
+            return session.execute_read(lambda tx: [record.data() for record in tx.run(query, parameters or {})])
 
     def run_write(self, query: str, parameters: dict[str, Any] | None = None) -> None:
         """Run a single write query in a managed transaction."""
