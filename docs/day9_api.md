@@ -55,6 +55,35 @@ no credentials, URIs or file paths.
 `graph_matches_day6_counts` compares the live node and relationship
 totals with the Day 6 manifest (6,420 / 79,165) using read-only queries.
 
+### `GET /api/requests` (listing, added Day 10)
+
+When called **without** `link`, this returns one page of **recommendable** requests, i.e. all 3,600 validation and test requests. They are in fixed chronological order (simulated day, then link). It exists so the Day 10 frontend can let users browse requests.
+
+**Parameters** (all optional):
+
+| Parameter | Meaning | Default / limit |
+|---|---|---|
+| `page` | 1-based page number | 1; a page past the end returns `items: []` |
+| `per_page` | items per page | 20; 1–50 |
+| `q` | case-insensitive title substring | ≤ 100 chars |
+| `category` | exact category name | ≤ 100 chars |
+| `skill` | required skill, case-insensitive exact match | ≤ 100 chars |
+
+**Responses:** 200, 400 (`invalid_page`, `invalid_per_page`, `invalid_q`, `invalid_category`, `invalid_skill`).
+
+```json
+{
+  "items": [ { "...": "same fields as the single lookup below", "n_eligible_workers": 65 } ],
+  "page": 1, "per_page": 20, "total": 3600, "total_pages": 180,
+  "filters": {"q": null, "category": null, "skill": null},
+  "available_categories": ["2D Animation", "..."]
+}
+```
+
+- Items use the same allow-listed serializer as the single lookup. They never include outcomes, relevance or cohort data.
+- `n_eligible_workers` is the size of the request's candidate pool under the shared protocol.
+- `available_categories` lists the categories of recommendable requests, so the UI can build its filter control.
+
 ### `GET /api/requests?link=<url-encoded link>`
 
 Returns the model-visible description of one request. The example below is the request the demo script uses.
@@ -176,6 +205,14 @@ contains its outcome.
 - `explanation` is the frozen Day 8 hybrid explanation. It cites the components in order of their actual contribution and names any component that contributed nothing.
 - `kg_summary` and `kg_evidence` come from the frozen Day 7 KG explainer. They are the strongest real training-graph paths for that worker in that pool, up to 3. They are `null` / `[]` when not available.
 
+## Page route (Day 10)
+
+`GET /` serves the HTML frontend: a static shell from `src/app/templates/`, with assets under `/static/`. All of its data comes from the `/api` routes above; nothing is rendered server-side into the HTML. Every response carries the same security headers:
+- `Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; …`
+- `X-Content-Type-Options: nosniff`
+- `Referrer-Policy: no-referrer`
+- `X-Frame-Options: DENY`
+
 ## Errors
 
 Every error has the same body, and none contains a stack trace or internal detail:
@@ -186,7 +223,7 @@ Every error has the same body, and none contains a stack trace or internal detai
 
 | Status | Codes |
 |---|---|
-| 400 | `missing_link`, `invalid_link`, `invalid_k`, `invalid_worker_id`, `bad_request` |
+| 400 | `missing_link`, `invalid_link`, `invalid_k`, `invalid_worker_id`, `invalid_page`, `invalid_per_page`, `invalid_q`, `invalid_category`, `invalid_skill`, `bad_request` |
 | 404 | `unknown_request`, `unknown_worker`, `not_found` (unknown route) |
 | 405 | `method_not_allowed` (every endpoint is GET-only) |
 | 409 | `request_not_recommendable` |
