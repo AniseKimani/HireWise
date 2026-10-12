@@ -24,10 +24,16 @@ from flask.json.provider import DefaultJSONProvider
 
 from src.app.config import resolve_config
 from src.app.errors import register_error_handlers
+from src.app.pages import pages
 from src.app.routes import api
 from src.app.services import FrozenArtifactMismatch, RecommendationService, probe_neo4j, worker_graph_from_neo4j
 
 logger = logging.getLogger(__name__)
+
+CONTENT_SECURITY_POLICY = (
+    "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; "
+    "connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
+)
 
 
 class StrictJSONProvider(DefaultJSONProvider):
@@ -70,4 +76,15 @@ def create_app(config=None, service: RecommendationService | None = None, neo4j_
 
     register_error_handlers(app)
     app.register_blueprint(api)
+    app.register_blueprint(pages)
+
+    @app.after_request
+    def security_headers(response):
+        # No inline script/style anywhere, so a strict same-origin CSP holds.
+        response.headers.setdefault("Content-Security-Policy", CONTENT_SECURITY_POLICY)
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("Referrer-Policy", "no-referrer")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        return response
+
     return app

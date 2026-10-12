@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}HireWise{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+  <header class="site-header">
+    <div class="site-header__inner">
+      <div>
+        <p class="site-title">HireWise</p>
+        <p class="site-tagline">Knowledge graph-enhanced hybrid recommendations for digital worker services</p>
+      </div>
+      <p id="health-status" class="health health--pending" role="status" aria-live="polite">Checking system status…</p>
+    </div>
+  </header>
+  <main id="main" class="site-main">
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="site-footer">
+    <p>Academic prototype. Recommendations are computed on a synthetic experimental dataset derived from real Upwork job postings.</p>
+  </footer>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

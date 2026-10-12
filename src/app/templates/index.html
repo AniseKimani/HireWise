@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="visually-hidden">HireWise recommendation workspace</h1>
+<p class="intro">
+  Choose a service request, then ask HireWise for the workers best suited to it. Each recommendation shows how much
+  the worker's profile, collaborative hiring patterns, and knowledge-graph evidence contributed to its score.
+</p>
+
+<div class="layout">
+  <section id="request-browser" class="panel" aria-labelledby="request-browser-heading">
+    <h2 id="request-browser-heading">1. Choose a service request</h2>
+    <form id="request-filters" class="filters" role="search">
+      <div class="field">
+        <label for="filter-q">Title contains</label>
+        <input id="filter-q" name="q" type="search" maxlength="100" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="filter-category">Category</label>
+        <select id="filter-category" name="category">
+          <option value="">All categories</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="filter-skill">Required skill</label>
+        <input id="filter-skill" name="skill" type="text" maxlength="100" autocomplete="off" placeholder="e.g. Python">
+      </div>
+      <div class="filters__actions">
+        <button type="submit" class="button">Search</button>
+        <button type="button" id="filter-reset" class="button button--secondary">Reset</button>
+      </div>
+    </form>
+    <p id="request-list-status" class="status" role="status" aria-live="polite"></p>
+    <ul id="request-list" class="request-list" aria-label="Service requests"></ul>
+    <nav class="pagination" aria-label="Request list pages">
+      <button type="button" id="page-prev" class="button button--secondary" disabled>Previous</button>
+      <span id="page-info" class="pagination__info"></span>
+      <button type="button" id="page-next" class="button button--secondary" disabled>Next</button>
+    </nav>
+  </section>
+
+  <div class="workspace">
+    <section id="request-panel" class="panel" aria-labelledby="request-panel-heading">
+      <h2 id="request-panel-heading">2. Selected request</h2>
+      <div id="selected-request" class="selected-request">
+        <p class="empty-state">No request selected yet. Pick one from the list to see its details.</p>
+      </div>
+      <form id="recommend-form" class="recommend-form">
+        <label for="k-select">Number of workers</label>
+        <select id="k-select" name="k">
+          {% for k in k_choices %}
+          <option value="{{ k }}"{% if k == default_k %} selected{% endif %}>Top {{ k }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" id="recommend-button" class="button" disabled>Get recommendations</button>
+      </form>
+    </section>
+
+    <section id="results" class="panel" aria-labelledby="results-heading">
+      <h2 id="results-heading">3. Recommended workers</h2>
+      <p class="note">
+        Scores and contributions are relative ranking values within this request's eligible workers, not probabilities.
+        Profile/content, collaborative and knowledge-graph contributions add up to the hybrid score.
+      </p>
+      <p id="results-status" class="status" role="status" aria-live="polite"></p>
+      <ol id="recommendation-list" class="recommendation-list"></ol>
+    </section>
+  </div>
+</div>
+
+<dialog id="worker-dialog" class="worker-dialog" aria-labelledby="worker-dialog-title">
+  <div class="worker-dialog__header">
+    <h2 id="worker-dialog-title">Worker details</h2>
+    <button type="button" id="worker-dialog-close" class="button button--secondary">Close</button>
+  </div>
+  <p id="worker-status" class="status" role="status" aria-live="polite"></p>
+  <div id="worker-profile"></div>
+  <section class="graph-section" aria-labelledby="graph-heading">
+    <h3 id="graph-heading">Knowledge-graph view</h3>
+    <p class="note">Read live from the HireWise knowledge graph (Neo4j). Optional: recommendations do not depend on it.</p>
+    <button type="button" id="graph-load" class="button button--secondary">Show graph details</button>
+    <p id="graph-status" class="status" role="status" aria-live="polite"></p>
+    <div id="worker-graph"></div>
+  </section>
+</dialog>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% endblock %}
