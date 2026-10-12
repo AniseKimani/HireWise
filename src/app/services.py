@@ -128,6 +128,13 @@ class RecommendationService:
         self._workers = {row["worker_id"]: row for row in data.workers.to_dict(orient="records")}
         self._kg_index = models["kg"].index
 
+        # Browsable requests (Day 10): only the recommendable ones, in a
+        # fixed chronological order (simulated day, then link).
+        browsable = sorted((r for r in self._requests.values() if r["split"] in RECOMMENDABLE_SPLITS),
+                           key=lambda r: (r["simulated_day"], r["link"]))
+        self._browsable = [serialize_request(r) for r in browsable]
+        self._browsable_categories = sorted({r["category"] for r in self._browsable})
+
     @classmethod
     def build(cls) -> "RecommendationService":
         t0 = time.perf_counter()
@@ -152,6 +159,34 @@ class RecommendationService:
 
     def get_request(self, link: str) -> dict:
         return serialize_request(self._request_row(link))
+
+    def list_requests(self, page: int, per_page: int, q: str | None = None, category: str | None = None,
+                      skill: str | None = None) -> dict:
+        """One page of recommendable (validation/test) requests, optionally
+        filtered by a case-insensitive title substring, an exact category,
+        and/or a required skill (case-insensitive exact match). Items use
+        the same allow-listed request serializer as the single lookup, plus
+        the size of the eligible candidate pool."""
+        q_lower = q.lower() if q else None
+        skill_lower = skill.lower() if skill else None
+        matches = [
+            r for r in self._browsable
+            if (q_lower is None or q_lower in (r["title"] or "").lower())
+            and (category is None or r["category"] == category)
+            and (skill_lower is None or any(s.lower() == skill_lower for s in r["required_skills"]))
+        ]
+        total = len(matches)
+        start = (page - 1) * per_page
+        items = [
+            {**r, "n_eligible_workers": len(self.candidates_for(r["link"]))}
+            for r in matches[start:start + per_page]
+        ]
+        return {
+            "items": items, "page": page, "per_page": per_page, "total": total,
+            "total_pages": (total + per_page - 1) // per_page,
+            "filters": {"q": q, "category": category, "skill": skill},
+            "available_categories": list(self._browsable_categories),
+        }
 
     def worker_profile(self, worker_id: str) -> dict:
         row = self._workers.get(worker_id)

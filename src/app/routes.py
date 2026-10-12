@@ -67,13 +67,37 @@ def health():
     }), (200 if service is not None else 503)
 
 
+def _int_param(name: str, default: int, maximum: int) -> int:
+    raw = request.args.get(name)
+    if raw is None:
+        return default
+    if not K_PATTERN.match(raw) or not 1 <= int(raw) <= maximum:
+        raise APIError(400, f"invalid_{name}", f"Query parameter '{name}' must be an integer between 1 and {maximum}.")
+    return int(raw)
+
+
+def _filter_param(name: str) -> str | None:
+    raw = request.args.get(name)
+    if raw is None or not raw.strip():
+        return None
+    if len(raw) > current_app.config["MAX_FILTER_LENGTH"]:
+        raise APIError(400, f"invalid_{name}", f"Query parameter '{name}' is too long.")
+    return raw.strip()
+
+
 @api.get("/requests")
 def get_request():
-    link = _link_param()
-    try:
-        return jsonify(_service().get_request(link))
-    except UnknownRequest:
-        raise APIError(404, "unknown_request", "No request with that link.")
+    """With `link`: one request (Day 9). Without: a page of recommendable
+    requests for browsing (Day 10)."""
+    if "link" in request.args:
+        link = _link_param()
+        try:
+            return jsonify(_service().get_request(link))
+        except UnknownRequest:
+            raise APIError(404, "unknown_request", "No request with that link.")
+    page = _int_param("page", 1, 1_000_000)
+    per_page = _int_param("per_page", current_app.config["REQUESTS_PER_PAGE"], current_app.config["MAX_REQUESTS_PER_PAGE"])
+    return jsonify(_service().list_requests(page, per_page, _filter_param("q"), _filter_param("category"), _filter_param("skill")))
 
 
 @api.get("/workers/<worker_id>")

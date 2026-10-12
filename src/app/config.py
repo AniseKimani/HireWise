@@ -20,6 +20,10 @@ class BaseConfig:
     MAX_K = 50
     # Longest accepted request link (the Day 2 links are ~60-160 chars).
     MAX_LINK_LENGTH = 2048
+    # Request browsing (Day 10): page size and filter-text limits.
+    REQUESTS_PER_PAGE = 20
+    MAX_REQUESTS_PER_PAGE = 50
+    MAX_FILTER_LENGTH = 100
     # Build the frozen recommender stack once, at application start-up.
     LOAD_RECOMMENDER_ON_STARTUP = True
     # Probe Neo4j (read-only) from /api/health.
