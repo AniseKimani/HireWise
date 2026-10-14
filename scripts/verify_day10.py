@@ -99,12 +99,12 @@ def main() -> int:
     check("app starts in production mode with debug off", not production_app.debug and "hirewise_service" in production_app.extensions)
     client = production_app.test_client()
 
-    page = client.get("/")
+    page = client.get("/demo")  # Research Demo (moved from / in the Day 12 redesign)
     html = page.get_data(as_text=True)
-    check("/ renders the main sections",
+    check("Research Demo (/demo) renders the main sections",
           page.status_code == 200 and all(f'id="{i}"' in html for i in
               ("request-browser", "request-list", "recommend-form", "recommendation-list", "worker-dialog", "graph-load")))
-    check("/ references and serves its CSS/JS assets",
+    check("Research Demo references and serves its CSS/JS assets",
           all(a in html for a in ("/static/css/style.css", "/static/js/app.js"))
           and all(client.get(f"/static/{a}").status_code == 200 for a in ("css/style.css", "js/app.js", "js/api.js", "js/format.js", "js/dom.js")))
     csp = page.headers.get("Content-Security-Policy", "")

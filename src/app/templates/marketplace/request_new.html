@@ -2,8 +2,13 @@
 {% from "marketplace/macros.html" import field_error, csrf_field %}
 {% block title %}New request · HireWise{% endblock %}
 {% block content %}
-<section class="panel narrow" aria-labelledby="new-heading">
-  <h1 id="new-heading">Post a service request</h1>
+<div class="page-head">
+  <div>
+    <h1 id="new-heading">Post a service request</h1>
+    <p class="page-head__sub">Describe the work and HireWise will recommend the best-fitting workers.</p>
+  </div>
+</div>
+<section class="card narrow" aria-labelledby="new-heading">
   {% if errors %}<p class="field-error" role="alert">Please correct the highlighted fields.</p>{% endif %}
   <form method="post" action="{{ url_for('marketplace.new_request') }}" class="form-grid" novalidate>
     {{ csrf_field() }}
@@ -58,7 +63,7 @@
       </select>
       {{ field_error(errors, 'location_requirement') }}
     </div>
-    <button type="submit" class="button">Post request and see recommendations</button>
+    <button type="submit" class="button button--lg">Post request and see recommended workers</button>
   </form>
 </section>
 {% endblock %}

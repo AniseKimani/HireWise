@@ -1,89 +1,204 @@
 {% extends "base.html" %}
 {% from "marketplace/macros.html" import field_error, csrf_field %}
-{% block title %}Register · HireWise{% endblock %}
+{% from "_icons.html" import icon %}
+{% block title %}Create your account · HireWise{% endblock %}
+{% set role = form.get('role') %}
 {% block content %}
-<section class="panel narrow" aria-labelledby="register-heading">
-  <h1 id="register-heading">Create an account</h1>
-  <p class="note">Clients post requests and book workers. Worker fields are only needed for worker accounts.</p>
-  {% if errors %}<p class="field-error" role="alert">Please correct the highlighted fields.</p>{% endif %}
-  <form method="post" action="{{ url_for('marketplace.register') }}" class="form-grid" novalidate>
+<div class="auth">
+  {% if errors %}
+  <div class="card flash" role="alert">
+    <p><strong>Please correct the highlighted fields.</strong></p>
+    {% if errors.get('role') %}<p class="field-error">{{ errors['role'] }}</p>{% endif %}
+  </div>
+  {% endif %}
+
+  <form id="register-form" method="post" action="{{ url_for('marketplace.register') }}" class="form-grid" novalidate>
     {{ csrf_field() }}
-    <fieldset>
-      <legend>Account</legend>
-      <div class="field">
-        <span class="field-label" id="role-label">I am a</span>
-        <div role="radiogroup" aria-labelledby="role-label" class="radio-row">
-          <label><input type="radio" name="role" value="client" {% if form.get('role', 'client') == 'client' %}checked{% endif %}> Client</label>
-          <label><input type="radio" name="role" value="worker" {% if form.get('role') == 'worker' %}checked{% endif %}> Worker</label>
+
+    {# ---- Choose account type ------------------------------------------------ #}
+    <section class="reg-step" data-step="role" aria-labelledby="role-heading">
+      <div class="auth__head">
+        <h1 id="role-heading">Create your HireWise account</h1>
+        <p>Join a community that connects clients with skilled workers.</p>
+      </div>
+      <fieldset class="role-cards">
+        <legend class="visually-hidden">I want to</legend>
+        <label class="role-card" for="role-client">
+          <span class="role-card__icon">{{ icon("briefcase") }}</span>
+          <strong>I want to hire a worker</strong>
+          <span>Create a client account to post service requests and find the right people for your projects.</span>
+          <input type="radio" id="role-client" name="role" value="client" {% if role == 'client' %}checked{% endif %}>
+        </label>
+        <label class="role-card" for="role-worker">
+          <span class="role-card__icon">{{ icon("tools") }}</span>
+          <strong>I want to offer services</strong>
+          <span>Create a worker account to showcase your skills and receive booking requests.</span>
+          <input type="radio" id="role-worker" name="role" value="worker" {% if role == 'worker' %}checked{% endif %}>
+        </label>
+      </fieldset>
+      <p class="field-error js-only" id="role-missing" hidden>Choose the type of account you want to create.</p>
+      <div class="step-nav js-only">
+        <button type="button" class="button button--lg" data-next="account">Continue</button>
+        <p>Already have an account? <a href="{{ url_for('marketplace.login') }}">Log in</a></p>
+      </div>
+    </section>
+
+    <ol class="stepper js-only" aria-label="Registration progress">
+      <li data-stepper="account"><span class="stepper__dot">1</span>Account details</li>
+      <li data-stepper="details"><span class="stepper__dot">2</span><span><span data-role-text>Account</span> details</span></li>
+      <li data-stepper="complete"><span class="stepper__dot">3</span>Complete</li>
+    </ol>
+
+    {# ---- Step 1: account details (shared) -------------------------------------- #}
+    <section class="reg-step" data-step="account" aria-labelledby="account-heading">
+      <h2 id="account-heading">Create your <span data-role-label>HireWise</span> account</h2>
+      <p class="muted">Tell us a bit about yourself to get started.</p>
+      <div class="reg-step__grid">
+        <div class="card">
+          <h3>Account details</h3>
+          <div class="form-grid">
+            <div class="field">
+              <label for="email">Email address</label>
+              <input id="email" name="email" type="email" autocomplete="email" maxlength="254" required placeholder="you@example.com"
+                     value="{{ form.get('email', '') }}" {% if errors.get('email') %}aria-describedby="email-error" aria-invalid="true"{% endif %}>
+              {{ field_error(errors, 'email') }}
+            </div>
+            <div class="field">
+              <label for="password">Password</label>
+              <input id="password" name="password" type="password" autocomplete="new-password" minlength="10" maxlength="128" required data-secret-entry
+                     aria-describedby="password-hint{% if errors.get('password') %} password-error{% endif %}">
+              <p class="field-hint" id="password-hint">At least 10 characters.</p>
+              {{ field_error(errors, 'password') }}
+            </div>
+            <div class="field">
+              <label for="confirm_password">Confirm password</label>
+              <input id="confirm_password" name="confirm_password" type="password" autocomplete="new-password" maxlength="128" required data-secret-confirm>
+              {{ field_error(errors, 'confirm_password') }}
+            </div>
+          </div>
         </div>
-        {{ field_error(errors, 'role') }}
+        <aside class="side-panel" data-role="client" aria-label="Client benefits">
+          <h3>As a client you can:</h3>
+          <ul class="checklist">
+            <li>{{ icon("check") }} Post service requests</li>
+            <li>{{ icon("check") }} Get intelligent worker recommendations</li>
+            <li>{{ icon("check") }} Book and manage projects</li>
+            <li>{{ icon("check") }} Leave reviews</li>
+          </ul>
+        </aside>
+        <aside class="side-panel" data-role="worker" aria-label="Worker benefits">
+          <h3>As a worker you can:</h3>
+          <ul class="checklist">
+            <li>{{ icon("check") }} Showcase your skills and experience</li>
+            <li>{{ icon("check") }} Receive booking requests</li>
+            <li>{{ icon("check") }} Build your reputation with reviews</li>
+          </ul>
+        </aside>
       </div>
-      <div class="field">
-        <label for="email">Email</label>
-        <input id="email" name="email" type="email" autocomplete="email" maxlength="254" required value="{{ form.get('email', '') }}">
-        {{ field_error(errors, 'email') }}
+      <div class="step-nav js-only">
+        <button type="button" class="button button--lg" data-next="details">Continue</button>
+        <button type="button" class="button--link button back-link" data-back="role">{{ icon("arrow-left") }} Back to account type selection</button>
       </div>
-      <div class="field">
-        <label for="display_name">Display name</label>
-        <input id="display_name" name="display_name" type="text" maxlength="80" required value="{{ form.get('display_name', '') }}">
-        {{ field_error(errors, 'display_name') }}
+    </section>
+
+    {# ---- Step 2: role-specific details -------------------------------------------- #}
+    <section class="reg-step" data-step="details" aria-labelledby="details-heading">
+      <h2 id="details-heading">Tell us more about your <span data-role-label>HireWise</span> account</h2>
+      <p class="muted" data-role="client">This information helps us tailor your experience.</p>
+      <p class="muted" data-role="worker">This information is shown to clients and helps you get matched with relevant requests.</p>
+      <div class="reg-step__grid">
+        <div class="card">
+          <div class="form-grid">
+            <div class="field">
+              <label for="display_name">Your name</label>
+              <input id="display_name" name="display_name" type="text" maxlength="80" required value="{{ form.get('display_name', '') }}">
+              {{ field_error(errors, 'display_name') }}
+            </div>
+
+            <fieldset data-role="client">
+              <legend class="visually-hidden">Client details</legend>
+              <div class="field">
+                <label for="client_country">Your location (optional)</label>
+                <select id="client_country" name="client_country">
+                  <option value="">Prefer not to say</option>
+                  {% for c in countries %}<option value="{{ c }}" {% if form.get('client_country') == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+                </select>
+                {{ field_error(errors, 'client_country') }}
+              </div>
+            </fieldset>
+
+            <fieldset data-role="worker">
+              <legend class="visually-hidden">Worker details</legend>
+              <div class="field">
+                <label for="worker_country">Location</label>
+                <select id="worker_country" name="worker_country" data-required>
+                  <option value="">Select a country</option>
+                  {% for c in countries %}<option value="{{ c }}" {% if form.get('worker_country') == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+                </select>
+                {{ field_error(errors, 'worker_country') }}
+              </div>
+              <div class="field">
+                <label for="primary_category">Primary category</label>
+                <select id="primary_category" name="primary_category" data-required>
+                  <option value="">Select a category</option>
+                  {% for c in categories %}<option value="{{ c }}" {% if form.get('primary_category') == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+                </select>
+                {{ field_error(errors, 'primary_category') }}
+              </div>
+              <div class="field-pair">
+                <div class="field">
+                  <label for="experience_level">Experience level</label>
+                  <select id="experience_level" name="experience_level" data-required>
+                    <option value="">Select a level</option>
+                    {% for level in ('entry', 'intermediate', 'expert') %}<option value="{{ level }}" {% if form.get('experience_level') == level %}selected{% endif %}>{{ level|capitalize }}</option>{% endfor %}
+                  </select>
+                  {{ field_error(errors, 'experience_level') }}
+                </div>
+                <div class="field">
+                  <label for="experience_years">Years of experience</label>
+                  <input id="experience_years" name="experience_years" type="number" min="0" max="60" step="0.5" data-required
+                         value="{{ form.get('experience_years', '') }}">
+                  {{ field_error(errors, 'experience_years') }}
+                </div>
+              </div>
+              <div class="field">
+                <label for="rate">Rate</label>
+                <input id="rate" name="rate" type="number" min="0.01" step="0.01" placeholder="e.g. 25" data-required value="{{ form.get('rate', '') }}">
+                {{ field_error(errors, 'rate') }}
+              </div>
+              <div class="field">
+                <label for="skills">Skills (comma separated)</label>
+                <input id="skills" name="skills" type="text" list="skill-list" maxlength="2000" data-required
+                       aria-describedby="skills-hint" value="{{ form.get('skills', '') }}">
+                <p class="field-hint" id="skills-hint">Use names from the HireWise skill list, e.g. Python, Logo Design, Data Analysis.</p>
+                {{ field_error(errors, 'skills') }}
+              </div>
+            </fieldset>
+          </div>
+        </div>
+        <aside class="side-panel" data-role="client" aria-label="Almost there">
+          <h3>You're almost there!</h3>
+          <p>After creating your account you can post your first service request and see recommended workers straight away.</p>
+        </aside>
+        <aside class="side-panel" data-role="worker" aria-label="Profile tips">
+          <h3>Create a strong profile</h3>
+          <ul class="checklist">
+            <li>{{ icon("check") }} Choose your main category</li>
+            <li>{{ icon("check") }} List your key skills</li>
+            <li>{{ icon("check") }} Set a fair rate</li>
+          </ul>
+        </aside>
       </div>
-      <div class="field">
-        <label for="password">Password (at least 10 characters)</label>
-        <input id="password" name="password" type="password" autocomplete="new-password" minlength="10" maxlength="128" required>
-        {{ field_error(errors, 'password') }}
+      <div class="step-nav">
+        <button type="submit" class="button button--lg">Create account</button>
+        <button type="button" class="button--link button back-link js-only" data-back="account">{{ icon("arrow-left") }} Back to account details</button>
+        <p class="no-js-only">Already have an account? <a href="{{ url_for('marketplace.login') }}">Log in</a></p>
       </div>
-      <div class="field">
-        <label for="confirm_password">Confirm password</label>
-        <input id="confirm_password" name="confirm_password" type="password" autocomplete="new-password" maxlength="128" required>
-        {{ field_error(errors, 'confirm_password') }}
-      </div>
-      <div class="field">
-        <label for="country">Country (required for workers)</label>
-        <select id="country" name="country">
-          <option value="">—</option>
-          {% for c in countries %}<option value="{{ c }}" {% if form.get('country') == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
-        </select>
-        {{ field_error(errors, 'country') }}
-      </div>
-    </fieldset>
-    <fieldset>
-      <legend>Worker profile (workers only)</legend>
-      <div class="field">
-        <label for="primary_category">Primary category</label>
-        <select id="primary_category" name="primary_category">
-          <option value="">—</option>
-          {% for c in categories %}<option value="{{ c }}" {% if form.get('primary_category') == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
-        </select>
-        {{ field_error(errors, 'primary_category') }}
-      </div>
-      <div class="field">
-        <label for="experience_level">Experience level</label>
-        <select id="experience_level" name="experience_level">
-          <option value="">—</option>
-          {% for level in ('entry', 'intermediate', 'expert') %}<option value="{{ level }}" {% if form.get('experience_level') == level %}selected{% endif %}>{{ level|capitalize }}</option>{% endfor %}
-        </select>
-        {{ field_error(errors, 'experience_level') }}
-      </div>
-      <div class="field">
-        <label for="experience_years">Years of experience</label>
-        <input id="experience_years" name="experience_years" type="number" min="0" max="60" step="0.5" value="{{ form.get('experience_years', '') }}">
-        {{ field_error(errors, 'experience_years') }}
-      </div>
-      <div class="field">
-        <label for="rate">Rate</label>
-        <input id="rate" name="rate" type="number" min="0.01" step="0.01" value="{{ form.get('rate', '') }}">
-        {{ field_error(errors, 'rate') }}
-      </div>
-      <div class="field">
-        <label for="skills">Skills (comma-separated, from the skill list)</label>
-        <input id="skills" name="skills" type="text" list="skill-list" maxlength="2000" value="{{ form.get('skills', '') }}">
-        {{ field_error(errors, 'skills') }}
-      </div>
-    </fieldset>
+    </section>
     <datalist id="skill-list">{% for s in skills %}<option value="{{ s }}">{% endfor %}</datalist>
-    <button type="submit" class="button">Create account</button>
   </form>
-  <p>Already registered? <a href="{{ url_for('marketplace.login') }}">Log in</a>.</p>
-</section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/register.js') }}" defer></script>
 {% endblock %}

@@ -26,7 +26,7 @@ class TestPage(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.client = create_app("testing").test_client()
-        cls.response = cls.client.get("/")
+        cls.response = cls.client.get("/demo")  # Research Demo (moved from / in the Day 12 redesign)
         cls.html = cls.response.get_data(as_text=True)
 
     def test_root_renders_main_sections(self):

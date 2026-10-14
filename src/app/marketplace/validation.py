@@ -59,10 +59,23 @@ def validate_email(raw: str, errors: dict) -> str:
     return email
 
 
+CLIENT_ONLY_FIELDS = ("client_country",)
+WORKER_ONLY_FIELDS = ("worker_country", "primary_category", "experience_level", "experience_years", "rate", "skills")
+
+
 def validate_registration(form, categories: set[str], vocabulary: dict[str, str], countries: list[str]) -> tuple[dict, dict]:
+    """Role-specific fields have distinct names. The server enforces the
+    selected role: fields belonging to the OTHER role are rejected, so
+    correctness never depends on the browser hiding them."""
     errors: dict[str, str] = {}
-    data = {"email": validate_email(_text(form, "email"), errors), "role": _text(form, "role"),
-            "display_name": _text(form, "display_name"), "country": _text(form, "country") or None}
+    role = _text(form, "role")
+    other_role_fields = WORKER_ONLY_FIELDS if role == "client" else CLIENT_ONLY_FIELDS if role == "worker" else ()
+    if any(_text(form, f) for f in other_role_fields):
+        errors["role"] = ("Details for the other account type were submitted. Choose the account type again "
+                          "and fill in only its fields.")
+    country_field = "worker_country" if role == "worker" else "client_country"
+    data = {"email": validate_email(_text(form, "email"), errors), "role": role,
+            "display_name": _text(form, "display_name"), "country": _text(form, country_field) or None}
     password = form.get("password") or ""
     if not MIN_PASSWORD_LENGTH <= len(password) <= MAX_PASSWORD_LENGTH:
         errors["password"] = f"Password must be {MIN_PASSWORD_LENGTH}-{MAX_PASSWORD_LENGTH} characters."
@@ -74,7 +87,7 @@ def validate_registration(form, categories: set[str], vocabulary: dict[str, str]
     if not 1 <= len(data["display_name"]) <= 80:
         errors["display_name"] = "Enter a display name (up to 80 characters)."
     if data["country"] is not None and data["country"] not in countries:
-        errors["country"] = "Choose a country from the list."
+        errors[country_field] = "Choose a country from the list."
     if data["role"] == "worker":
         profile = {"primary_category": _text(form, "primary_category"), "experience_level": _text(form, "experience_level"),
                    "country": data["country"]}
@@ -83,7 +96,7 @@ def validate_registration(form, categories: set[str], vocabulary: dict[str, str]
         if profile["experience_level"] not in EXPERIENCE_LEVELS:
             errors["experience_level"] = "Choose an experience level."
         if profile["country"] is None:
-            errors["country"] = "Workers must choose a country."
+            errors["worker_country"] = "Workers must choose a country."
         profile["experience_years"] = _number(_text(form, "experience_years"), errors, "experience_years",
                                               "Years of experience", 0, 60, exclusive_min=False)
         if profile["experience_years"] is None and "experience_years" not in errors:

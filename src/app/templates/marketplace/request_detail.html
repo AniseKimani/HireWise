@@ -1,13 +1,20 @@
 {% extends "base.html" %}
-{% from "marketplace/macros.html" import csrf_field, booking_table %}
-{% block title %}{{ req.title }} · HireWise{% endblock %}
+{% from "marketplace/macros.html" import booking_table, worker_card %}
+{% from "_icons.html" import icon %}
+{% block title %}Recommended workers · {{ req.title }} · HireWise{% endblock %}
 {% block content %}
-<h1>{{ req.title }}</h1>
-<div class="workspace">
-  <section class="panel" aria-labelledby="details-heading">
+<div class="page-head">
+  <div>
+    <h1>Recommended Workers</h1>
+    <p class="page-head__sub">{{ req.title }} · {{ req.category }}</p>
+  </div>
+  <a class="button button--secondary back-link" href="{{ url_for('marketplace.dashboard') }}">{{ icon("arrow-left") }} Back to Dashboard</a>
+</div>
+
+<div class="grid-2">
+  <section class="card" aria-labelledby="details-heading">
     <h2 id="details-heading">Request details</h2>
     <dl class="facts">
-      <dt>Category</dt><dd>{{ req.category }}</dd>
       <dt>Required skills</dt><dd>{{ req.skills|join(', ') }}</dd>
       <dt>Pay</dt>
       <dd>{{ req.pay_type|capitalize }}{% if req.budget %}, budget {{ '%.2f'|format(req.budget) }}{% endif %}{% if req.hourly_low or req.hourly_high %}, {{ req.hourly_low or '…' }}–{{ req.hourly_high or '…' }} per hour{% endif %}</dd>
@@ -15,65 +22,25 @@
       <dt>Location</dt><dd>{{ req.location_requirement or 'Any' }}</dd>
     </dl>
   </section>
-
-  <section class="panel" aria-labelledby="bookings-heading">
+  <section class="card" aria-labelledby="bookings-heading">
     <h2 id="bookings-heading">Bookings for this request</h2>
+    {% if active_booking %}<p class="note">Active booking #{{ active_booking.booking_id }} ({{ active_booking.status }}). Cancel it to book someone else.</p>{% endif %}
     {{ booking_table(request_bookings, rules, 'client', url_for('marketplace.request_detail', request_id=req.request_id)) }}
   </section>
-
-  <section class="panel" aria-labelledby="recs-heading">
-    <h2 id="recs-heading">Recommended workers</h2>
-    <p class="note">
-      Top {{ result.n_returned }} of {{ result.n_candidates }} eligible workers, ranked by the frozen HireWise hybrid
-      (profile 0.40 · collaborative 0.10 · knowledge graph 0.50). Contributions are ranking values, not probabilities.
-      {% if not result.history.collaborative_history_available %}
-      This account has no hiring history, so the collaborative component contributes nothing and no history-based
-      graph paths are used.
-      {% endif %}
-    </p>
-    {% if active_booking %}
-    <p class="note">This request has an active booking (#{{ active_booking.booking_id }}, {{ active_booking.status }}). Cancel it to book someone else.</p>
-    {% endif %}
-    <ol class="recommendation-list">
-      {% for rec in result.recommendations %}
-      {% set w = rec.worker %}
-      <li class="recommendation">
-        <div class="recommendation__header">
-          <span class="recommendation__rank">#{{ rec.rank }}</span>
-          <h3 class="recommendation__worker">{{ w.worker_id }}</h3>
-          <span class="recommendation__score">Hybrid score {{ '%.3f'|format(rec.score) }}</span>
-        </div>
-        <p class="recommendation__meta">{{ w.primary_category }} · {{ w.country }} · {{ w.experience_level|capitalize }}, {{ '%.1f'|format(w.experience_years) }} years</p>
-        <ul class="chips" aria-label="Declared skills">
-          {% for s in w.declared_skills[:8] %}<li class="chip">{{ s }}</li>{% endfor %}
-          {% if w.declared_skills|length > 8 %}<li class="chip chip--more">+{{ w.declared_skills|length - 8 }} more</li>{% endif %}
-        </ul>
-        <table class="contribution-table">
-          <caption class="visually-hidden">Score contributions</caption>
-          {% for key, label in (('cbf', 'Profile/content'), ('cf', 'Collaborative'), ('kg', 'Knowledge graph')) %}
-          <tr>
-            <th scope="row">{{ label }}</th>
-            <td><meter class="contribution-meter contribution-meter--{{ key }}" min="0" max="1" value="{{ rec.contributions[key] }}">{{ rec.contributions[key] }}</meter></td>
-            <td class="numeric">{% if rec.contributions[key] == 0 %}0{% elif rec.contributions[key] < 0.001 %}&lt;0.001{% else %}{{ '%.3f'|format(rec.contributions[key]) }}{% endif %}</td>
-          </tr>
-          {% endfor %}
-        </table>
-        <p class="recommendation__explanation">{{ rec.explanation }}</p>
-        {% if rec.kg_evidence %}
-        <details class="evidence">
-          <summary>Why this recommendation?</summary>
-          {% if rec.kg_summary %}<p class="evidence__summary">{{ rec.kg_summary }}</p>{% endif %}
-          <ul class="evidence__list">{% for ev in rec.kg_evidence %}<li>{{ ev.text }}</li>{% endfor %}</ul>
-        </details>
-        {% endif %}
-        <form method="post" action="{{ url_for('marketplace.book_worker', request_id=req.request_id) }}">
-          {{ csrf_field() }}
-          <input type="hidden" name="worker_id" value="{{ w.worker_id }}">
-          <button type="submit" class="button" {% if active_booking %}disabled{% endif %}>Book {{ w.worker_id }}</button>
-        </form>
-      </li>
-      {% endfor %}
-    </ol>
-  </section>
 </div>
+
+<section aria-labelledby="recs-heading" class="landing-section">
+  <h2 id="recs-heading" class="visually-hidden">Recommended workers</h2>
+  <p class="note">
+    Top {{ result.n_returned }} of {{ result.n_candidates }} eligible workers, ranked by the HireWise hybrid recommender
+    (profile 0.40 · collaborative 0.10 · knowledge graph 0.50). Hybrid scores are ranking scores, not probabilities.
+    {% if not result.history.collaborative_history_available %}
+    This account has no hiring history yet, so the collaborative component contributes nothing and no history-based
+    graph paths are used.
+    {% endif %}
+  </p>
+  <ol class="worker-cards">
+    {% for rec in result.recommendations %}{{ worker_card(rec, req.request_id, active_booking) }}{% endfor %}
+  </ol>
+</section>
 {% endblock %}

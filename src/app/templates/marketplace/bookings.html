@@ -1,9 +1,14 @@
 {% extends "base.html" %}
 {% from "marketplace/macros.html" import booking_table %}
-{% block title %}Bookings · HireWise{% endblock %}
+{% block title %}Service history · HireWise{% endblock %}
 {% block content %}
-<section class="panel" aria-labelledby="bookings-heading">
-  <h1 id="bookings-heading">Bookings</h1>
+<div class="page-head">
+  <div>
+    <h1>Service History</h1>
+    <p class="page-head__sub">{% if current_user.role == 'client' %}Your bookings, their status and your reviews{% else %}Bookings assigned to you{% endif %}</p>
+  </div>
+</div>
+<section class="card" aria-label="Bookings">
   {% if current_user.role == 'worker' and not current_user.worker_id %}
   <p class="note">New worker profiles are not yet part of the recommender's catalogue, so they do not receive bookings.</p>
   {% endif %}

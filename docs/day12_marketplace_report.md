@@ -143,29 +143,82 @@ accepted --cancel-->   cancelled  (the owning client)
 
 ## 8. Frontend
 
-- **New pages:**
-  - `/register`, `/login`, POST `/logout`;
-  - `/dashboard` (client or worker variant);
-  - `/client/requests`, `/client/requests/new`, `/client/requests/<id>` (details, bookings, Top-10 recommendations with contribution meters, explanation, KG evidence and a "Book" button);
-  - `/bookings`;
-  - `/profile` (worker).
+- **Public pages:**
+  - `/`, the HireWise landing page;
+  - `/register`, `/login`;
+  - `/demo`, the **Research Demo**: the Day 10 browse-and-recommend page over the imported research requests, moved off the public landing page.
+- **Signed-in pages:**
+  - `/dashboard`, with a client or worker variant (signed-in users who open `/` are redirected here);
+  - `/client/requests`, `/client/requests/new`;
+  - `/client/requests/<id>` (**Recommended Workers**);
+  - `/workers/<id>` (worker profile);
+  - `/bookings` (**Service History**) and `/bookings/<id>/review` (profile + rating and review);
+  - `/profile` (worker);
+  - POST `/logout`.
 - **Navigation** follows the authentication state, with no dead links:
-  - logged out: Home / Login / Register;
-  - client: Dashboard / My Requests / Bookings / Logout;
-  - worker: Dashboard / Bookings / Profile / Logout.
-- **The Day 10 demo page `/` is unchanged** apart from the navigation and a note that it explores the imported research requests. The health badge moved into that page's header.
+  - logged out: How it works / For Clients / For Workers / About (anchors on the landing page), Log in, Sign up;
+  - client: Dashboard / My Requests / Service History, plus an account menu with Log out;
+  - worker: Dashboard / Service History / Profile, plus the account menu.
+
+  The footer links to the Research Demo on every page.
+
+### 8a. Wireframe alignment
+
+The redesign follows the project wireframes (provided as reference
+images), using plain CSS and Jinja with no framework.
+
+**Implemented:**
+
+| Wireframe | Implementation |
+|---|---|
+| Landing page | Header with logo, How it works / For Clients / For Workers / About, Log in / Sign up. Hero ("Skilled people. Meaningful work." / "Find the right people for your projects", Sign up + Log in) with the three floating labels; three feature cards (intelligent matching, transparent recommendations, secure bookings and reviews); "How HireWise works" in three steps |
+| Account type selection | Two role cards, "I want to hire a worker" and "I want to offer services", with a radio button in each |
+| Create client/worker account (step 1) | Stepper (Account details → Client/Worker details → Complete); email, password and confirm password; a side panel listing what the role can do |
+| Tell us more about your client/worker account (step 2) | Client: your name, location (optional). Worker: your name, location, primary category, experience level, years of experience, rate, skills (comma separated). Each has a side panel |
+| Recommended Workers | Title + request subtitle + "Back to Dashboard"; per worker: avatar, identity, rating summary, experience, location, skill chips, score pill, "Why this worker was recommended" panel, View profile, Book / Hire worker |
+| Freelancer profile / review | Back link; left: profile header (avatar, identity, location, rating, years of experience), associated skills, services offered, HireWise reviews; right: "Submit Rating & Review" with a 1–5 star control (native radios, keyboard-accessible) and a review comment |
+| Client and worker dashboards (described in the brief) | Welcome header, status summary tiles, active and recent requests, service history, top matches for the latest request (client); bookings, completed jobs, reviews received, profile and skills (worker) |
+
+**Intentional differences:**
+- **Scores are ranking scores, not percentages.** The wireframe shows "Matched Score: 94%". HireWise shows **"Hybrid score: 0.764"**: the frozen hybrid's min-max-normalised weighted sum within the request's eligible pool. That is not a probability, and the page says so.
+- **No photos or personal names exist** in the data, so cards show an icon avatar and the worker's catalogue ID ("Worker W001674").
+- **The explanation panel lists real knowledge-graph evidence** (the model's own path texts) rather than a composed prose sentence. The exact CBF/CF/KG contributions sit in a collapsible "Score breakdown".
+- **The rating summary** uses the worker's research-period reviews (the data the KG reputation component uses). HireWise reviews are listed separately and labelled.
+- **The review button reads "Submit review", not "Submit Review & Update Graph"**: reviews never write to the knowledge graph. The comment limit is the database's 2,000 characters (the wireframe shows 500).
+- **"Services offered"** lists the worker's real primary and secondary categories.
+- **Omitted rather than fabricated:**
+  - the worker **bio**;
+  - the client **default currency** and **preferred contact method**;
+  - the "GBP" unit on the rate (the stored rate has no currency).
+- **Registration steps.** The wireframe's "Complete" step is the welcome message on the new dashboard after the account is created. Experience level is collected alongside years, because the profile schema requires it.
+
+**Registration behaviour:**
+- **Choosing a role** shows only the shared fields (email, password, confirm, name) plus that role's fields.
+- **Field names are role-specific:** `client_country` versus `worker_country`, `primary_category`, `experience_level`, `experience_years`, `rate` and `skills`.
+- **With JavaScript** (`static/js/register.js`):
+  - one step is shown at a time;
+  - the other role's fieldset is *disabled*, so it is neither validated nor submitted;
+  - its values are cleared when the role changes;
+  - only the active role's fields become `required`.
+- **Without JavaScript,** all steps show stacked, and modern browsers hide the other role's fields via CSS `:has()`.
+- **The server enforces the selected role regardless.** A client submission carrying worker fields, or a worker submission carrying a client location, is rejected with a clear message and no account is created. `/register?role=client|worker` preselects the role (used by the landing page's "For clients" and "For workers" links).
+
+**Accessibility and security are unchanged:**
+- semantic headings, labelled fields, skip link and visible focus;
+- measured contrast: text 15.6:1, muted text 7.0:1, primary buttons 5.7:1, placeholders 5.2:1, star graphics at least 3.5:1;
+- the strict CSP still holds, with no inline script, style or event handlers. The new script is a same-origin file, and the icons are inline SVG with presentation attributes only.
 
 ## 9. Tests and verification
 
-- **Default suite: 526 tests pass** (26 skipped: opt-in PostgreSQL and Neo4j-write tests).
+- **Default suite: 546 tests pass** (27 skipped: opt-in PostgreSQL and Neo4j-write tests). This includes `tests/test_day12_ui.py` for the redesign: landing page, role selector markup, script and CSS, server-side cross-role rejection, role-based landing after login, Recommended Workers sections (ranking scores, never percentages), the profile/review view, dashboards and security headers.
 - **`tests/test_day12_marketplace.py`:**
   - pure tests for the state machine (every valid and invalid transition), actor checks and validation;
   - one behavioural suite covering registration and hashing, duplicates, invalid input, login/logout, generic errors, local-only `next`, rate limiting, session regeneration, role and ownership guards, request creation and price tier, runtime recommendations without fabricated history, the full booking → accept → complete → review flow, decline/cancel/rebook, ineligible and non-recommended workers, invalid and duplicate reviews, secret-key handling (production fails without a key; development and testing may use a temporary one), CSRF (missing, forged and foreign tokens), and Day 10/API regression.
 
     It runs on the **in-memory backend by default**, and on the **real `hirewise_test` PostgreSQL database** with `HIREWISE_RUN_POSTGRES_TESTS=1`: all 45 tests pass on each backend, plus direct database-constraint tests;
   - frozen-artifact and price-tier reproduction tests.
-- **Live opt-in run:** the Day 11 and Day 12 PostgreSQL suites, 51 tests, all pass on `hirewise_test`.
-- **`scripts/verify_day12.py`: 33 / 33 pass.**
+- **Live opt-in run:** the Day 11 and Day 12 PostgreSQL suites, plus the UI suite, 71 tests, all pass on `hirewise_test`.
+- **`scripts/verify_day12.py`: 36 / 36 pass.**
   - It runs the full workflow over HTTP on `hirewise_test` only, re-derives the price tier and runtime ranking independently, and checks database constraints and Day 10 browsing.
   - The main database's imported data and runtime tables, and the Neo4j counts, are unchanged by the run.
   - It ends with **`verify_day11` passing**, which runs `verify_postgres`, `verify_day10` and `verify_day9`.
@@ -182,13 +235,13 @@ python -m flask --app "src.app:create_app('development')" run
 ```
 
 Then, in the browser:
-1. Register as a client (or log in).
+1. On the landing page, choose **Sign up**, then **I want to hire a worker**, and complete the steps (or log in).
 2. Post a request: "Logo for a bakery"; Logo Design; skills "Logo Design, Adobe Illustrator"; fixed budget 150.
-3. The recommendations appear, with W001674 ranked first (deterministic for a new client).
-4. Press **Book W001674**.
+3. The Recommended Workers page appears, with W001674 ranked first (deterministic for a new client).
+4. Press **Book / Hire worker** on W001674.
 5. Log out, then log in as `worker@demo.local` and **Accept** the booking.
 6. Log out, then log in as the client and **Complete** the booking.
-7. Leave a rating and review. It appears on the worker's profile.
+7. Open **Service History** and choose **Rate & review**, then submit stars and a comment. The review appears on the worker's profile.
 
 ## 11. Performance (local, indicative)
 

@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}HireWise · Find the right people for your projects{% endblock %}
+{% block content %}
+<section class="hero" aria-labelledby="hero-heading">
+  <div>
+    <p class="hero__eyebrow">Skilled people. Meaningful work.</p>
+    <h1 id="hero-heading">Find the right people for your projects</h1>
+    <p class="hero__lead">HireWise uses intelligent matching and a knowledge graph to connect clients with skilled workers
+      for real-world projects, and shows you why each worker was recommended.</p>
+    <div class="hero__actions">
+      <a class="button button--lg" href="{{ url_for('marketplace.register') }}">Sign up</a>
+      <a class="button button--secondary button--lg" href="{{ url_for('marketplace.login') }}">Log in</a>
+    </div>
+  </div>
+  <div class="hero__visual">
+    <svg viewBox="0 0 320 240" aria-hidden="true" focusable="false">
+      <circle cx="160" cy="70" r="34" fill="#1549a8"/>
+      <path d="M96 196c0-40 28-70 64-70s64 30 64 70z" fill="#1d5fd6"/>
+      <rect x="70" y="168" width="180" height="58" rx="8" fill="#0f2440"/>
+      <rect x="82" y="178" width="156" height="38" rx="4" fill="#dbe3ef"/>
+      <rect x="50" y="224" width="220" height="10" rx="5" fill="#4a5a70"/>
+      <circle cx="160" cy="197" r="6" fill="#1d5fd6"/>
+    </svg>
+    <ul class="hero__badges">
+      <li>{{ icon("user") }} Find skilled workers</li>
+      <li>{{ icon("spark") }} Get intelligent recommendations</li>
+      <li>{{ icon("shield") }} Secure bookings and reviews</li>
+    </ul>
+  </div>
+</section>
+
+<section class="features landing-section" aria-label="Why HireWise">
+  <article class="card feature">
+    <div class="feature__icon">{{ icon("spark") }}</div>
+    <h3>Intelligent matching</h3>
+    <p>Combines skills, category, experience and knowledge-graph insights to rank the best-fitting workers for a request.</p>
+  </article>
+  <article class="card feature">
+    <div class="feature__icon">{{ icon("eye") }}</div>
+    <h3>Transparent recommendations</h3>
+    <p>Every recommendation explains itself with real knowledge-graph evidence such as matching and related skills.</p>
+  </article>
+  <article class="card feature">
+    <div class="feature__icon">{{ icon("shield") }}</div>
+    <h3>Secure bookings and reviews</h3>
+    <p>A structured way to book workers, track progress and leave a rating and review when the work is complete.</p>
+  </article>
+</section>
+
+<section id="how-it-works" class="landing-section" aria-labelledby="how-heading">
+  <h2 id="how-heading">How HireWise works</h2>
+  <ol class="steps">
+    <li><span class="steps__num" aria-hidden="true">1</span><div><h3>Create an account</h3><p>Sign up as a client or a worker in a few minutes.</p></div></li>
+    <li><span class="steps__num" aria-hidden="true">2</span><div><h3>Post a request</h3><p>Clients describe the work and get ranked worker recommendations with explanations.</p></div></li>
+    <li><span class="steps__num" aria-hidden="true">3</span><div><h3>Book, complete and review</h3><p>Book a recommended worker, mark the job complete and leave a review.</p></div></li>
+  </ol>
+</section>
+
+<section class="audience landing-section" aria-label="Who HireWise is for">
+  <article id="for-clients" class="card">
+    <h2>For clients</h2>
+    <ul class="checklist">
+      <li>{{ icon("check") }} Post service requests</li>
+      <li>{{ icon("check") }} Get intelligent worker recommendations</li>
+      <li>{{ icon("check") }} Book and manage projects</li>
+      <li>{{ icon("check") }} Leave reviews</li>
+    </ul>
+    <a class="button" href="{{ url_for('marketplace.register', role='client') }}">Hire a worker</a>
+  </article>
+  <article id="for-workers" class="card">
+    <h2>For workers</h2>
+    <ul class="checklist">
+      <li>{{ icon("check") }} Showcase your skills and experience</li>
+      <li>{{ icon("check") }} Receive and manage booking requests</li>
+      <li>{{ icon("check") }} Build your reputation with reviews</li>
+    </ul>
+    <a class="button" href="{{ url_for('marketplace.register', role='worker') }}">Offer your services</a>
+  </article>
+</section>
+
+<section id="about" class="card landing-section" aria-labelledby="about-heading">
+  <h2 id="about-heading">About HireWise</h2>
+  <p>HireWise is a final-year project: a knowledge graph-enhanced hybrid recommender for digital worker-service platforms.
+    Recommendations combine profile matching, collaborative hiring patterns and knowledge-graph evidence, and were evaluated on a
+    research dataset derived from real Upwork job postings.</p>
+  <p class="note">Want to see the evaluated research system itself? Open the <a href="{{ url_for('pages.demo') }}">Research Demo</a>.</p>
+</section>
+{% endblock %}

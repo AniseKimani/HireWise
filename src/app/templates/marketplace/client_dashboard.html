@@ -1,33 +1,80 @@
 {% extends "base.html" %}
-{% from "marketplace/macros.html" import booking_table %}
+{% from "marketplace/macros.html" import booking_table, rating_summary %}
+{% from "_icons.html" import icon %}
 {% block title %}Dashboard · HireWise{% endblock %}
 {% block content %}
-<h1>Client dashboard</h1>
-<div class="workspace">
-  <section class="panel" aria-labelledby="profile-heading">
-    <h2 id="profile-heading">Your profile</h2>
-    <dl class="facts">
-      <dt>Name</dt><dd>{{ current_user.display_name }}</dd>
-      <dt>Email</dt><dd>{{ current_user.email }}</dd>
-      <dt>Country</dt><dd>{{ current_user.country or 'not stated' }}</dd>
-      <dt>Account type</dt>
-      <dd>{% if current_user.client_id %}Demo account linked to research client {{ current_user.client_id }} (its research-period hiring history informs recommendations){% else %}New client (no hiring history yet){% endif %}</dd>
-    </dl>
-  </section>
-  <section class="panel" aria-labelledby="requests-heading">
-    <h2 id="requests-heading">Your service requests</h2>
-    <p><a class="button" href="{{ url_for('marketplace.new_request') }}">Post a new request</a></p>
-    {% if requests_list %}
-    <ul class="link-list">
-      {% for r in requests_list %}
-      <li><a href="{{ url_for('marketplace.request_detail', request_id=r.request_id) }}">{{ r.title }}</a> <span class="muted">· {{ r.category }}</span></li>
-      {% endfor %}
-    </ul>
-    {% else %}<p class="empty-state">You have not posted any requests yet.</p>{% endif %}
-  </section>
-  <section class="panel" aria-labelledby="bookings-heading">
-    <h2 id="bookings-heading">Bookings</h2>
-    {{ booking_table(bookings_list, rules, 'client', url_for('marketplace.dashboard')) }}
-  </section>
+<div class="page-head">
+  <div>
+    <h1>Welcome back, {{ current_user.display_name }}</h1>
+    <p class="page-head__sub">Client dashboard</p>
+  </div>
+  <a class="button button--lg" href="{{ url_for('marketplace.new_request') }}">{{ icon("plus") }} Post a new request</a>
+</div>
+
+<div class="stats" role="group" aria-label="Booking status summary">
+  <div class="stat"><span class="stat__value">{{ requests_list|length }}</span><span class="stat__label">Service requests</span></div>
+  <div class="stat"><span class="stat__value">{{ status_counts.pending }}</span><span class="stat__label">Awaiting worker</span></div>
+  <div class="stat"><span class="stat__value">{{ status_counts.accepted }}</span><span class="stat__label">In progress</span></div>
+  <div class="stat"><span class="stat__value">{{ status_counts.completed }}</span><span class="stat__label">Completed</span></div>
+</div>
+
+<div class="grid-main-side">
+  <div class="stack">
+    <section class="card" aria-labelledby="active-heading">
+      <h2 id="active-heading">Active service requests</h2>
+      {% set active = requests_list|selectattr('request_id', 'in', requests_in_progress)|list %}
+      {% if active %}
+      <ul class="item-list">
+        {% for r in active %}
+        <li class="item"><div><a class="item__title" href="{{ url_for('marketplace.request_detail', request_id=r.request_id) }}">{{ r.title }}</a><div class="item__meta">{{ r.category }}</div></div><span class="status-badge status-badge--accepted">booking in progress</span></li>
+        {% endfor %}
+      </ul>
+      {% else %}<p class="empty-state">No requests with a booking in progress.</p>{% endif %}
+    </section>
+
+    <section class="card" aria-labelledby="recent-heading">
+      <h2 id="recent-heading">Recent requests</h2>
+      {% if requests_list %}
+      <ul class="item-list">
+        {% for r in requests_list[:5] %}
+        <li class="item"><div><span class="item__title">{{ r.title }}</span><div class="item__meta">{{ r.category }} · {{ r.skills|join(', ') }}</div></div>
+          <a class="button button--secondary" href="{{ url_for('marketplace.request_detail', request_id=r.request_id) }}">View recommended workers</a></li>
+        {% endfor %}
+      </ul>
+      {% else %}<p class="empty-state">You have not posted any requests yet. <a href="{{ url_for('marketplace.new_request') }}">Post your first request</a> to see recommended workers.</p>{% endif %}
+    </section>
+
+    <section class="card" aria-labelledby="bookings-heading">
+      <h2 id="bookings-heading">Service history</h2>
+      {{ booking_table(bookings_list[:5], rules, 'client', url_for('marketplace.dashboard')) }}
+      {% if bookings_list|length > 5 %}<p><a href="{{ url_for('marketplace.bookings_page') }}">See all bookings</a></p>{% endif %}
+    </section>
+  </div>
+
+  <aside class="stack">
+    <section class="card" aria-labelledby="latest-recs-heading">
+      <h2 id="latest-recs-heading">Top matches for your latest request</h2>
+      {% if latest_request %}
+      <p class="muted">{{ latest_request.title }}</p>
+      <ul class="item-list">
+        {% for rec in latest_recs %}
+        <li class="item"><div><span class="item__title">Worker {{ rec.worker.worker_id }}</span>
+          <div class="item__meta">{{ rec.worker.primary_category }} · {{ rec.worker.country }}</div>
+          {{ rating_summary(rec.worker.training_review_count, rec.worker.training_mean_rating) }}</div>
+          <span class="score-pill" title="Ranking score, not a probability">Hybrid score: {{ '%.3f'|format(rec.score) }}</span></li>
+        {% endfor %}
+      </ul>
+      <p><a href="{{ url_for('marketplace.request_detail', request_id=latest_request.request_id) }}">See all recommended workers and why</a></p>
+      {% else %}<p class="empty-state">Post a request to see recommended workers here.</p>{% endif %}
+    </section>
+    <section class="card" aria-labelledby="account-heading">
+      <h2 id="account-heading">Your account</h2>
+      <dl class="facts">
+        <dt>Email</dt><dd>{{ current_user.email }}</dd>
+        <dt>Location</dt><dd>{{ current_user.country or 'not stated' }}</dd>
+        <dt>Hiring history</dt><dd>{% if current_user.client_id %}Linked demo profile ({{ current_user.client_id }}){% else %}None yet{% endif %}</dd>
+      </dl>
+    </section>
+  </aside>
 </div>
 {% endblock %}

@@ -1,21 +1,62 @@
 {% extends "base.html" %}
-{% from "marketplace/macros.html" import booking_table, worker_facts %}
+{% from "marketplace/macros.html" import booking_table, rating_summary, skills_chips %}
+{% from "_icons.html" import icon %}
 {% block title %}Dashboard · HireWise{% endblock %}
 {% block content %}
-<h1>Worker dashboard</h1>
-<div class="workspace">
-  <section class="panel" aria-labelledby="profile-heading">
-    <h2 id="profile-heading">Your profile</h2>
-    {% if profile %}{{ worker_facts(profile) }}{% endif %}
-    {% if profile_source == 'imported' %}
-    <p class="note">Demo account linked to research worker {{ profile.worker_id }}, which is part of the recommender's catalogue.</p>
-    {% else %}
-    <p class="note">New worker profile. The recommender uses a frozen research catalogue, so new profiles are not recommended to clients yet.</p>
-    {% endif %}
-  </section>
-  <section class="panel" aria-labelledby="bookings-heading">
-    <h2 id="bookings-heading">Bookings assigned to you</h2>
-    {{ booking_table(bookings_list, rules, 'worker', url_for('marketplace.dashboard')) }}
-  </section>
+<div class="page-head">
+  <div>
+    <h1>Welcome back, {{ current_user.display_name }}</h1>
+    <p class="page-head__sub">Worker dashboard</p>
+  </div>
+  <a class="button button--secondary" href="{{ url_for('marketplace.profile') }}">{{ icon("user") }} View profile</a>
+</div>
+
+<div class="stats" role="group" aria-label="Booking status summary">
+  <div class="stat"><span class="stat__value">{{ status_counts.pending }}</span><span class="stat__label">New booking requests</span></div>
+  <div class="stat"><span class="stat__value">{{ status_counts.accepted }}</span><span class="stat__label">In progress</span></div>
+  <div class="stat"><span class="stat__value">{{ status_counts.completed }}</span><span class="stat__label">Completed jobs</span></div>
+  <div class="stat"><span class="stat__value">{{ reviews|length }}</span><span class="stat__label">Reviews received</span></div>
+</div>
+
+<div class="grid-main-side">
+  <div class="stack">
+    <section class="card" aria-labelledby="bookings-heading">
+      <h2 id="bookings-heading">Bookings assigned to you</h2>
+      {% if profile_source == 'imported' %}
+      {{ booking_table(bookings_list, rules, 'worker', url_for('marketplace.dashboard')) }}
+      {% else %}
+      <p class="empty-state">New worker profiles are not yet part of the recommendation catalogue, so they do not receive bookings yet.</p>
+      {% endif %}
+    </section>
+    <section class="card" aria-labelledby="reviews-heading">
+      <h2 id="reviews-heading">Reviews received</h2>
+      {% if reviews %}
+      <ul class="review-list">
+        {% for b in reviews %}<li><span class="rating">{{ icon("star") }} <strong>{{ b.review_rating }}/5</strong></span> for “{{ b.request_title }}”{% if b.review_text %}<br>{{ b.review_text }}{% endif %}</li>{% endfor %}
+      </ul>
+      {% else %}<p class="empty-state">No reviews yet.</p>{% endif %}
+    </section>
+  </div>
+
+  <aside class="card" aria-labelledby="profile-heading">
+    {% if profile %}
+    <div class="profile-head card">
+      <div class="avatar avatar--sm" aria-hidden="true">{{ icon("user") }}</div>
+      <div>
+        <h2 id="profile-heading">{% if profile.worker_id %}Worker {{ profile.worker_id }}{% else %}{{ current_user.display_name }}{% endif %}</h2>
+        <p class="meta-row"><span>{{ icon("pin") }} {{ profile.country }}</span></p>
+        {% if profile.training_review_count is not none %}{{ rating_summary(profile.training_review_count, profile.training_mean_rating) }}{% endif %}
+      </div>
+    </div>
+    <dl class="facts">
+      <dt>Specialisation</dt><dd>{{ profile.primary_category }}{% if profile.secondary_categories %} · {{ profile.secondary_categories|join(', ') }}{% endif %}</dd>
+      <dt>Experience</dt><dd>{{ profile.experience_level|capitalize }}, {{ '%.1f'|format(profile.experience_years) }} years</dd>
+      <dt>Rate</dt><dd>{{ '%.2f'|format(profile.rate) }}</dd>
+    </dl>
+    <p class="field-label">Skills</p>
+    {{ skills_chips(profile.skills, "Your skills") }}
+    <p class="note">{% if profile_source == 'imported' %}Demo account linked to a catalogue profile, so clients can be recommended to book you.{% else %}New worker profile. The recommender uses a frozen research catalogue, so new profiles are not recommended to clients yet.{% endif %}</p>
+    {% else %}<h2 id="profile-heading">Profile</h2><p class="empty-state">No profile found.</p>{% endif %}
+  </aside>
 </div>
 {% endblock %}

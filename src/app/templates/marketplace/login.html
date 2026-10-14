@@ -2,22 +2,27 @@
 {% from "marketplace/macros.html" import csrf_field %}
 {% block title %}Log in · HireWise{% endblock %}
 {% block content %}
-<section class="panel narrow" aria-labelledby="login-heading">
-  <h1 id="login-heading">Log in</h1>
-  {% if error %}<p class="field-error" role="alert">{{ error }}</p>{% endif %}
-  <form method="post" action="{{ url_for('marketplace.login') }}" class="form-grid">
-    {{ csrf_field() }}
-    {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
-    <div class="field">
-      <label for="email">Email</label>
-      <input id="email" name="email" type="email" autocomplete="username" maxlength="254" required value="{{ email }}">
-    </div>
-    <div class="field">
-      <label for="password">Password</label>
-      <input id="password" name="password" type="password" autocomplete="current-password" maxlength="128" required>
-    </div>
-    <button type="submit" class="button">Log in</button>
-  </form>
-  <p>No account yet? <a href="{{ url_for('marketplace.register') }}">Register</a>.</p>
-</section>
+<div class="auth">
+  <div class="auth__head">
+    <h1 id="login-heading">Welcome back</h1>
+    <p>Log in to your HireWise account.</p>
+  </div>
+  <section class="card auth-card" aria-labelledby="login-heading">
+    {% if error %}<p class="field-error" role="alert">{{ error }}</p>{% endif %}
+    <form method="post" action="{{ url_for('marketplace.login') }}" class="form-grid">
+      {{ csrf_field() }}
+      {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+      <div class="field">
+        <label for="email">Email address</label>
+        <input id="email" name="email" type="email" autocomplete="username" maxlength="254" required placeholder="you@example.com" value="{{ email }}">
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" maxlength="128" required>
+      </div>
+      <button type="submit" class="button button--lg button--block">Log in</button>
+    </form>
+    <p>New to HireWise? <a href="{{ url_for('marketplace.register') }}">Create an account</a></p>
+  </section>
+</div>
 {% endblock %}

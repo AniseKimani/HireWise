@@ -8,6 +8,8 @@ autoescaping and use no inline script or style.
 """
 from __future__ import annotations
 
+import re
+
 from flask import Blueprint, abort, current_app, flash, g, redirect, render_template, request, url_for
 
 from src.app.marketplace import rules
@@ -47,17 +49,22 @@ def _form_context():
     return {"categories": sorted(categories), "skills": sorted(vocabulary.values()), "countries": countries}
 
 
+def _catalogue_profile(worker_id: str) -> dict:
+    """Display profile of an imported (catalogue) worker."""
+    p = _runtime().service.worker_profile(worker_id)
+    return {"worker_id": p["worker_id"], "primary_category": p["primary_category"],
+            "secondary_categories": p["secondary_categories"], "skills": p["declared_skills"],
+            "experience_level": p["experience_level"], "experience_years": p["experience_years"], "rate": p["rate"],
+            "country": p["country"], "training_review_count": p["training_review_count"],
+            "training_mean_rating": p["training_mean_rating"]}
+
+
 def _worker_profile(user: dict) -> tuple[dict | None, str]:
     """(display profile, source) for a worker account. "imported": linked to
     an experimental catalogue profile (recommendable). "runtime": newly
     registered, not part of the frozen recommender's catalogue."""
     if user.get("worker_id"):
-        p = _runtime().service.worker_profile(user["worker_id"])
-        return {"worker_id": p["worker_id"], "primary_category": p["primary_category"],
-                "secondary_categories": p["secondary_categories"], "skills": p["declared_skills"],
-                "experience_level": p["experience_level"], "experience_years": p["experience_years"], "rate": p["rate"],
-                "country": p["country"], "training_review_count": p["training_review_count"],
-                "training_mean_rating": p["training_mean_rating"]}, "imported"
+        return _catalogue_profile(user["worker_id"]), "imported"
     p = _repo().get_runtime_worker_profile(user["user_id"])
     if p is None:
         return None, "runtime"
@@ -88,7 +95,9 @@ def register():
         return redirect(url_for("marketplace.dashboard"))
     context = _form_context()
     if request.method == "GET":
-        return render_template("marketplace/register.html", form={}, errors={}, **context)
+        role = request.args.get("role")
+        return render_template("marketplace/register.html", form={"role": role} if role in ("client", "worker") else {},
+                               errors={}, **context)
     categories, vocabulary, countries = _reference()
     data, errors = validate_registration(request.form, categories, vocabulary, countries)
     if not errors:
@@ -133,7 +142,7 @@ def login():
 def logout():
     logout_user()
     flash("You have been logged out.")
-    return redirect(url_for("pages.index"))
+    return redirect(url_for("pages.landing"))
 
 
 # ---------------------------------------------------------------------------
@@ -146,21 +155,69 @@ def dashboard():
     if g.user["role"] == "client":
         requests_list = repo.list_requests_for_client(g.user["user_id"])
         bookings_list = repo.list_bookings(client_user_id=g.user["user_id"])
+        live = {b["request_id"] for b in bookings_list if b["status"] in ("pending", "accepted")}
+        latest = requests_list[0] if requests_list else None
+        latest_recs = (_runtime().recommend(_runtime_request(latest), 3)["recommendations"] if latest is not None else [])
         return render_template("marketplace/client_dashboard.html", requests_list=requests_list,
-                               bookings_list=bookings_list, rules=rules)
+                               bookings_list=bookings_list, status_counts=_status_counts(bookings_list),
+                               requests_in_progress=live, latest_request=latest, latest_recs=latest_recs, rules=rules)
     profile, source = _worker_profile(g.user)
     bookings_list = repo.list_bookings(worker_id=g.user["worker_id"]) if g.user.get("worker_id") else []
+    reviews = [b for b in bookings_list if b["review_rating"] is not None]
     return render_template("marketplace/worker_dashboard.html", profile=profile, profile_source=source,
-                           bookings_list=bookings_list, rules=rules)
+                           bookings_list=bookings_list, status_counts=_status_counts(bookings_list), reviews=reviews,
+                           rules=rules)
+
+
+def _status_counts(bookings_list: list[dict]) -> dict[str, int]:
+    counts = {status: 0 for status in ("pending", "accepted", "completed", "declined", "cancelled")}
+    for b in bookings_list:
+        counts[b["status"]] += 1
+    return counts
+
+
+def _app_reviews_for(worker_id: str | None) -> list[dict]:
+    if not worker_id:
+        return []
+    return [b for b in _repo().list_bookings(worker_id=worker_id) if b["review_rating"] is not None]
 
 
 @marketplace.get("/profile")
 @role_required("worker")
 def profile():
     worker_profile, source = _worker_profile(g.user)
-    reviews = [b for b in _repo().list_bookings(worker_id=g.user["worker_id"]) if b["review_rating"] is not None] \
-        if g.user.get("worker_id") else []
-    return render_template("marketplace/profile.html", profile=worker_profile, profile_source=source, reviews=reviews)
+    return render_template("marketplace/profile.html", profile=worker_profile, profile_source=source,
+                           reviews=_app_reviews_for(g.user.get("worker_id")))
+
+
+@marketplace.get("/workers/<worker_id>")
+@role_required("client")
+def worker_detail(worker_id: str):
+    """Client-facing profile of a catalogue worker ("View Profile")."""
+    if not re.fullmatch(r"[A-Za-z0-9_-]{1,32}", worker_id) or not _runtime().service.has_worker(worker_id):
+        abort(404)
+    back = None
+    request_id = request.args.get("request", "")
+    if request_id.isdigit():
+        req = _repo().get_request(int(request_id))
+        if req is not None and req["client_user_id"] == g.user["user_id"]:
+            back = url_for("marketplace.request_detail", request_id=req["request_id"])
+    return render_template("marketplace/worker_detail.html", profile=_catalogue_profile(worker_id),
+                           reviews=_app_reviews_for(worker_id), back_url=back, booking=None, review=None)
+
+
+@marketplace.get("/bookings/<int:booking_id>/review")
+@role_required("client")
+def review_page(booking_id: int):
+    """Worker profile + rating/review form for one of the client's completed bookings."""
+    repo = _repo()
+    booking = repo.get_booking(booking_id)
+    if booking is None or booking["client_user_id"] != g.user["user_id"]:
+        abort(404)
+    return render_template("marketplace/worker_detail.html", profile=_catalogue_profile(booking["worker_id"]),
+                           reviews=_app_reviews_for(booking["worker_id"]), back_url=url_for("marketplace.bookings_page"),
+                           booking=booking, review=repo.get_review(booking_id),
+                           can_review=rules.can_review(booking, g.user, repo.get_review(booking_id)))
 
 
 # ---------------------------------------------------------------------------
@@ -276,7 +333,7 @@ def review_booking(booking_id: int):
     data, errors = validate_review(request.form)
     if errors:
         flash(next(iter(errors.values())))
-        return redirect(url_for("marketplace.bookings_page"))
+        return redirect(url_for("marketplace.review_page", booking_id=booking_id))
     try:
         repo.create_review(booking_id, data["rating"], data["review_text"])
     except DuplicateReview:

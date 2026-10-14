@@ -208,7 +208,9 @@ contains its outcome.
 
 ## Page route (Day 10)
 
-`GET /` serves the HTML frontend: a static shell from `src/app/templates/`, with assets under `/static/`. All of its data comes from the `/api` routes above; nothing is rendered server-side into the HTML. Every response carries the same security headers:
+Since the Day 12 redesign, `GET /` is the public HireWise landing page, and this browse-and-recommend frontend (the **Research Demo**) is at `GET /demo`.
+
+`GET /demo` serves the HTML frontend: a static shell from `src/app/templates/`, with assets under `/static/`. All of its data comes from the `/api` routes above; nothing is rendered server-side into the HTML. Every response carries the same security headers:
 - `Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; …`
 - `X-Content-Type-Options: nosniff`
 - `Referrer-Policy: no-referrer`

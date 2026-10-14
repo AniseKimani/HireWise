@@ -169,7 +169,7 @@ def main() -> int:
     check("duplicate email (case-insensitive) rejected", r.status_code == 400)
     worker_reg = app.test_client()
     r = worker_reg.post("/register", data={"email": "new.worker@example.com", "role": "worker", "display_name": "New W",
-                                           "password": PASSWORD, "confirm_password": PASSWORD, "country": "India",
+                                           "password": PASSWORD, "confirm_password": PASSWORD, "worker_country": "India",
                                            "primary_category": "Logo Design", "experience_level": "entry",
                                            "experience_years": "1", "rate": "12", "skills": "logo design",
                                            "csrf_token": token(worker_reg, "/register")})
@@ -200,7 +200,7 @@ def main() -> int:
           and req["skills"] == ["Adobe Illustrator", "Logo Design"]
           and abs(req["price_tier"] - independent_tier("Logo Design", "fixed", 150.0)) < 1e-12)
     page = client.get(f"/client/requests/{request_id}").get_data(as_text=True)
-    check("request page lists 10 recommendations", page.count('class="recommendation"') == 10)
+    check("request page lists 10 recommendations", page.count('class="card worker-card"') == 10)
 
     result = runtime.recommend(RuntimeRequest(request_id, req["client_user_id"], req["category"], tuple(req["skills"]),
                                               req["price_tier"], None, None), 10)
@@ -276,7 +276,7 @@ def main() -> int:
 
     # ---- Day 10 browsing on the main application ----------------------------------------
     production = create_app("production").test_client()
-    home = production.get("/").get_data(as_text=True)
+    home = production.get("/demo").get_data(as_text=True)  # Research Demo
     check("Day 10 browsing still works (page, listing, recommendations)",
           'id="request-list"' in home and production.get("/api/requests?per_page=1").get_json()["total"] == 3600
           and production.get("/api/recommendations", query_string={

@@ -1,3 +1,5 @@
+{% from "_icons.html" import icon %}
+
 {% macro field_error(errors, name) -%}
 {% if errors.get(name) %}<p class="field-error" id="{{ name }}-error">{{ errors[name] }}</p>{% endif %}
 {%- endmacro %}
@@ -6,10 +8,83 @@
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 {%- endmacro %}
 
+{# Real review data only: research-period reviews from the imported dataset. #}
+{% macro rating_summary(count, mean) -%}
+<span class="rating">{{ icon("star") }}
+  {% if count %}<strong>{{ '%.1f'|format(mean) }}/5</strong> <span class="muted">({{ count }} review{{ 's' if count != 1 }})</span>
+  {% else %}<span class="muted">No reviews yet</span>{% endif %}
+</span>
+{%- endmacro %}
+
+{% macro score_value(v) -%}
+{% if v == 0 %}0{% elif v < 0.001 %}&lt;0.001{% else %}{{ '%.3f'|format(v) }}{% endif %}
+{%- endmacro %}
+
+{# One "Recommended Workers" card (wireframe layout, real values only). #}
+{% macro worker_card(rec, request_id, booking_locked) -%}
+{% set w = rec.worker %}
+<li class="card worker-card">
+  <div class="avatar" aria-hidden="true">{{ icon("user") }}</div>
+  <div class="worker-card__body">
+    <div class="worker-card__top">
+      <div>
+        <span class="worker-card__rank">#{{ rec.rank }}</span>
+        <h3 class="worker-card__name">Worker {{ w.worker_id }}</h3>
+      </div>
+      <span class="score-pill" title="Ranking score within this request's eligible workers, not a probability">
+        Hybrid score: {{ '%.3f'|format(rec.score) }}
+      </span>
+    </div>
+    {{ rating_summary(w.training_review_count, w.training_mean_rating) }}
+    <p class="meta-row">
+      <span>{{ icon("briefcase") }} {{ '%.0f'|format(w.experience_years) }} yrs experience ({{ w.experience_level }})</span>
+      <span>{{ icon("pin") }} {{ w.country }}</span>
+    </p>
+    <p class="field-label">Skills</p>
+    <ul class="chips" aria-label="Skills of worker {{ w.worker_id }}">
+      {% for s in w.declared_skills[:6] %}<li class="chip">{{ s }}</li>{% endfor %}
+      {% if w.declared_skills|length > 6 %}<li class="chip chip--more">+{{ w.declared_skills|length - 6 }} more</li>{% endif %}
+    </ul>
+  </div>
+  <div class="worker-card__side">
+    <section class="why" aria-label="Why worker {{ w.worker_id }} was recommended">
+      <h4>{{ icon("bulb") }} Why this worker was recommended</h4>
+      {% if rec.kg_evidence %}
+      <ul>{% for ev in rec.kg_evidence %}<li>{{ ev.text }}</li>{% endfor %}</ul>
+      {% else %}<p>{{ rec.explanation }}</p>{% endif %}
+    </section>
+    <details class="score-details">
+      <summary>Score breakdown</summary>
+      <table class="contribution-table">
+        <caption class="visually-hidden">Hybrid score contributions for worker {{ w.worker_id }}</caption>
+        {% for key, label in (('cbf', 'Profile/content'), ('cf', 'Collaborative'), ('kg', 'Knowledge graph')) %}
+        <tr>
+          <th scope="row">{{ label }}</th>
+          <td><meter class="contribution-meter" min="0" max="1" value="{{ rec.contributions[key] }}">{{ rec.contributions[key] }}</meter></td>
+          <td class="numeric">{{ score_value(rec.contributions[key]) }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+      <p class="note">{{ rec.explanation }}</p>
+      <p class="note">Scores rank workers within this request's eligible pool; they are not probabilities.</p>
+    </details>
+    <div class="worker-card__actions">
+      <a class="button button--secondary" href="{{ url_for('marketplace.worker_detail', worker_id=w.worker_id, request=request_id) }}">View profile</a>
+      <form method="post" action="{{ url_for('marketplace.book_worker', request_id=request_id) }}" class="inline-form">
+        {{ csrf_field() }}
+        <input type="hidden" name="worker_id" value="{{ w.worker_id }}">
+        <button type="submit" class="button" {% if booking_locked %}disabled{% endif %}>Book / Hire worker</button>
+      </form>
+    </div>
+  </div>
+</li>
+{%- endmacro %}
+
 {% macro booking_table(bookings_list, rules, role, return_to) -%}
 {% if not bookings_list %}
 <p class="empty-state">No bookings yet.</p>
 {% else %}
+<div class="table-scroll">
 <table class="data-table">
   <caption class="visually-hidden">Bookings</caption>
   <thead>
@@ -23,7 +98,7 @@
       <td>{{ b.worker_id }}</td>
       <td><span class="status-badge status-badge--{{ b.status }}">{{ b.status }}</span></td>
       <td>
-        {% if b.review_rating %}{{ b.review_rating }}/5{% if b.review_text %}: “{{ b.review_text }}”{% endif %}
+        {% if b.review_rating %}<span class="rating">{{ icon("star") }} {{ b.review_rating }}/5</span>{% if b.review_text %}<br><span class="muted">“{{ b.review_text }}”</span>{% endif %}
         {% else %}—{% endif %}
       </td>
       <td class="actions">
@@ -35,37 +110,17 @@
         </form>
         {% endfor %}
         {% if role == 'client' and b.status == 'completed' and not b.review_rating %}
-        <form method="post" action="{{ url_for('marketplace.review_booking', booking_id=b.booking_id) }}" class="review-form">
-          {{ csrf_field() }}
-          <label for="rating-{{ b.booking_id }}">Rating</label>
-          <select id="rating-{{ b.booking_id }}" name="rating" required>
-            <option value="">Choose…</option>
-            {% for r in range(5, 0, -1) %}<option value="{{ r }}">{{ r }}</option>{% endfor %}
-          </select>
-          <label for="review-{{ b.booking_id }}">Review (optional)</label>
-          <textarea id="review-{{ b.booking_id }}" name="review_text" maxlength="2000" rows="2"></textarea>
-          <button type="submit" class="button">Submit review</button>
-        </form>
+        <a class="button" href="{{ url_for('marketplace.review_page', booking_id=b.booking_id) }}">{{ icon("star") }} Rate &amp; review</a>
         {% endif %}
       </td>
     </tr>
   {% endfor %}
   </tbody>
 </table>
+</div>
 {% endif %}
 {%- endmacro %}
 
-{% macro worker_facts(profile) -%}
-<dl class="facts">
-  <dt>Primary category</dt><dd>{{ profile.primary_category }}</dd>
-  {% if profile.secondary_categories %}<dt>Secondary categories</dt><dd>{{ profile.secondary_categories|join(', ') }}</dd>{% endif %}
-  <dt>Location</dt><dd>{{ profile.country }}</dd>
-  <dt>Experience</dt><dd>{{ profile.experience_level|capitalize }}, {{ '%.1f'|format(profile.experience_years) }} years</dd>
-  <dt>Rate</dt><dd>{{ '%.2f'|format(profile.rate) }}</dd>
-  <dt>Skills</dt><dd>{{ profile.skills|join(', ') }}</dd>
-  {% if profile.training_review_count is not none %}
-  <dt>Research-period reviews</dt>
-  <dd>{% if profile.training_review_count %}{{ '%.2f'|format(profile.training_mean_rating) }}/5 from {{ profile.training_review_count }}{% else %}none{% endif %}</dd>
-  {% endif %}
-</dl>
+{% macro skills_chips(skills, label) -%}
+<ul class="chips" aria-label="{{ label }}">{% for s in skills %}<li class="chip">{{ s }}</li>{% endfor %}</ul>
 {%- endmacro %}

@@ -1,24 +1,24 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 {% block title %}My requests · HireWise{% endblock %}
 {% block content %}
-<section class="panel" aria-labelledby="requests-heading">
-  <h1 id="requests-heading">My requests</h1>
-  <p><a class="button" href="{{ url_for('marketplace.new_request') }}">Post a new request</a></p>
+<div class="page-head">
+  <div>
+    <h1>My Requests</h1>
+    <p class="page-head__sub">Your service requests and their recommended workers</p>
+  </div>
+  <a class="button" href="{{ url_for('marketplace.new_request') }}">{{ icon("plus") }} Post a new request</a>
+</div>
+<section class="card" aria-label="Your service requests">
   {% if requests_list %}
-  <table class="data-table">
-    <caption class="visually-hidden">Your service requests</caption>
-    <thead><tr><th scope="col">Title</th><th scope="col">Category</th><th scope="col">Skills</th><th scope="col">Pay</th></tr></thead>
-    <tbody>
+  <ul class="item-list">
     {% for r in requests_list %}
-      <tr>
-        <td><a href="{{ url_for('marketplace.request_detail', request_id=r.request_id) }}">{{ r.title }}</a></td>
-        <td>{{ r.category }}</td>
-        <td>{{ r.skills|join(', ') }}</td>
-        <td>{{ r.pay_type }}</td>
-      </tr>
+    <li class="item">
+      <div><span class="item__title">{{ r.title }}</span><div class="item__meta">{{ r.category }} · {{ r.skills|join(', ') }} · {{ r.pay_type }}</div></div>
+      <a class="button button--secondary" href="{{ url_for('marketplace.request_detail', request_id=r.request_id) }}">View recommended workers</a>
+    </li>
     {% endfor %}
-    </tbody>
-  </table>
+  </ul>
   {% else %}<p class="empty-state">You have not posted any requests yet.</p>{% endif %}
 </section>
 {% endblock %}

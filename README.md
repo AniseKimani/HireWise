@@ -99,8 +99,9 @@ features, without retraining or fabricated history (see the Day 12 report).
 python -m flask --app "src.app:create_app('development')" run
 ```
 
-Then open http://127.0.0.1:5000/. Register as a client to post a request, see
-recommendations, book a worker and leave a review. To demonstrate the worker
+Then open http://127.0.0.1:5000/ (the HireWise landing page). Sign up as a client
+to post a request, see recommended workers, book one and leave a review. The
+evaluated recommender on the research dataset is at `/demo` (Research Demo). To demonstrate the worker
 side, link a demo worker account to an imported catalogue profile (the
 password comes from `HIREWISE_DEMO_PASSWORD` or a hidden prompt):
 

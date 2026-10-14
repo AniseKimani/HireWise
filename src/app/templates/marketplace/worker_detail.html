@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% from "marketplace/macros.html" import csrf_field, rating_summary, skills_chips %}
+{% from "_icons.html" import icon %}
+{% block title %}Worker {{ profile.worker_id }} · HireWise{% endblock %}
+{% block content %}
+{% if back_url %}
+<p><a class="button button--secondary back-link" href="{{ back_url }}">{{ icon("arrow-left") }} {% if booking %}Back to Service History{% else %}Back to Results{% endif %}</a></p>
+{% endif %}
+
+<div class="grid-main-side">
+  <div class="stack">
+    <section class="card profile-head" aria-labelledby="worker-heading">
+      <div class="avatar" aria-hidden="true">{{ icon("user") }}</div>
+      <div>
+        <h1 id="worker-heading">Worker {{ profile.worker_id }}</h1>
+        <p class="meta-row">
+          <span>{{ icon("pin") }} {{ profile.country }}</span>
+          <span>{{ icon("briefcase") }} {{ '%.0f'|format(profile.experience_years) }} years experience ({{ profile.experience_level }})</span>
+        </p>
+        {{ rating_summary(profile.training_review_count, profile.training_mean_rating) }}
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="skills-heading">
+      <h2 id="skills-heading" class="section-title">{{ icon("tools") }} Associated skills</h2>
+      {{ skills_chips(profile.skills, "Skills") }}
+      <hr class="divider">
+      <h2 class="section-title">{{ icon("list") }} Services offered</h2>
+      <ul class="link-list">
+        <li>{{ profile.primary_category }} (primary category)</li>
+        {% for c in profile.secondary_categories %}<li>{{ c }}</li>{% endfor %}
+      </ul>
+      <hr class="divider">
+      <h2 class="section-title">{{ icon("star") }} Reviews on HireWise</h2>
+      {% if reviews %}
+      <ul class="review-list">
+        {% for b in reviews %}<li><span class="rating">{{ icon("star") }} <strong>{{ b.review_rating }}/5</strong></span> for “{{ b.request_title }}”{% if b.review_text %}<br>{{ b.review_text }}{% endif %}</li>{% endfor %}
+      </ul>
+      {% else %}<p class="empty-state">No HireWise reviews yet.</p>{% endif %}
+      <p class="note">The rating summary above comes from this worker's research-period reviews; HireWise reviews are listed separately.</p>
+    </section>
+  </div>
+
+  <aside class="card" aria-labelledby="review-heading">
+    {% if booking %}
+      <h2 id="review-heading" class="section-title">{{ icon("star") }} Submit Rating &amp; Review</h2>
+      {% if review %}
+        <p>You rated this booking <strong>{{ review.rating }}/5</strong>.</p>
+        {% if review.review_text %}<p>“{{ review.review_text }}”</p>{% endif %}
+        <p class="note">Each completed booking can be reviewed once.</p>
+      {% elif not can_review %}
+        <p>Reviews open once the booking is completed. This booking is <span class="status-badge status-badge--{{ booking.status }}">{{ booking.status }}</span>.</p>
+      {% else %}
+        <p class="muted">Share your experience with this worker for booking #{{ booking.booking_id }}.</p>
+        <form method="post" action="{{ url_for('marketplace.review_booking', booking_id=booking.booking_id) }}" class="form-grid">
+          {{ csrf_field() }}
+          <fieldset class="star-rating">
+            <legend>Rating <span class="muted">(1–5 stars)</span></legend>
+            <div class="star-rating__options">
+              {% for r in range(5, 0, -1) %}
+              <input type="radio" id="rating-{{ r }}" name="rating" value="{{ r }}" required>
+              <label for="rating-{{ r }}"><span aria-hidden="true">★</span><span class="visually-hidden">{{ r }} star{{ 's' if r != 1 }}</span></label>
+              {% endfor %}
+            </div>
+          </fieldset>
+          <div class="field">
+            <label for="review_text">Review comment (optional)</label>
+            <textarea id="review_text" name="review_text" rows="7" maxlength="2000" placeholder="Write your review here…" aria-describedby="review-hint"></textarea>
+            <p class="field-hint" id="review-hint">Up to 2,000 characters.</p>
+          </div>
+          <button type="submit" class="button button--lg button--block">{{ icon("send") }} Submit review</button>
+        </form>
+      {% endif %}
+    {% else %}
+      <h2 id="review-heading" class="section-title">{{ icon("user") }} About this profile</h2>
+      <p>This worker is part of the HireWise recommendation catalogue. Book them from your request's recommended workers;
+        after the job is completed you can rate and review them.</p>
+      {% if back_url %}<a class="button button--block" href="{{ back_url }}">Back to recommended workers</a>{% endif %}
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

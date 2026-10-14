@@ -1,22 +1,42 @@
 {% extends "base.html" %}
-{% from "marketplace/macros.html" import worker_facts %}
+{% from "marketplace/macros.html" import rating_summary, skills_chips %}
+{% from "_icons.html" import icon %}
 {% block title %}Profile · HireWise{% endblock %}
 {% block content %}
-<h1>Your worker profile</h1>
-<div class="workspace">
-  <section class="panel" aria-labelledby="facts-heading">
-    <h2 id="facts-heading">Profile</h2>
-    {% if profile %}{{ worker_facts(profile) }}{% else %}<p class="empty-state">No profile found.</p>{% endif %}
-  </section>
-  <section class="panel" aria-labelledby="reviews-heading">
-    <h2 id="reviews-heading">Reviews from HireWise clients</h2>
-    {% if reviews %}
+{% if profile %}
+<section class="card profile-head" aria-labelledby="profile-heading">
+  <div class="avatar" aria-hidden="true">{{ icon("user") }}</div>
+  <div>
+    <h1 id="profile-heading">{% if profile.worker_id %}Worker {{ profile.worker_id }}{% else %}{{ current_user.display_name }}{% endif %}</h1>
+    <p class="meta-row">
+      <span>{{ icon("pin") }} {{ profile.country }}</span>
+      <span>{{ icon("briefcase") }} {{ '%.0f'|format(profile.experience_years) }} years experience ({{ profile.experience_level }})</span>
+    </p>
+    {% if profile.training_review_count is not none %}{{ rating_summary(profile.training_review_count, profile.training_mean_rating) }}{% endif %}
+  </div>
+</section>
+<div class="grid-2 landing-section">
+  <section class="card" aria-labelledby="skills-heading">
+    <h2 id="skills-heading" class="section-title">{{ icon("tools") }} Associated skills</h2>
+    {{ skills_chips(profile.skills, "Skills") }}
+    <hr class="divider">
+    <h2 class="section-title">{{ icon("list") }} Services offered</h2>
     <ul class="link-list">
-      {% for b in reviews %}
-      <li><strong>{{ b.review_rating }}/5</strong> for “{{ b.request_title }}”{% if b.review_text %}: {{ b.review_text }}{% endif %}</li>
-      {% endfor %}
+      <li>{{ profile.primary_category }} (primary category)</li>
+      {% for c in profile.secondary_categories %}<li>{{ c }}</li>{% endfor %}
+    </ul>
+    <p class="note">Rate: {{ '%.2f'|format(profile.rate) }}</p>
+  </section>
+  <section class="card" aria-labelledby="reviews-heading">
+    <h2 id="reviews-heading" class="section-title">{{ icon("star") }} Reviews from HireWise clients</h2>
+    {% if reviews %}
+    <ul class="review-list">
+      {% for b in reviews %}<li><span class="rating">{{ icon("star") }} <strong>{{ b.review_rating }}/5</strong></span> for “{{ b.request_title }}”{% if b.review_text %}<br>{{ b.review_text }}{% endif %}</li>{% endfor %}
     </ul>
     {% else %}<p class="empty-state">No reviews yet.</p>{% endif %}
   </section>
 </div>
+{% else %}
+<section class="card"><h1>Your worker profile</h1><p class="empty-state">No profile found.</p></section>
+{% endif %}
 {% endblock %}

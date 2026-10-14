@@ -171,7 +171,7 @@ def main() -> int:
     check("no private, outcome, or internal database fields in responses", keys_ok)
 
     # ---- frontend contract --------------------------------------------------------------
-    page = live.get("/").get_data(as_text=True)
+    page = live.get("/demo").get_data(as_text=True)  # Research Demo
     check("frontend page renders with its assets", all(f'id="{i}"' in page for i in ("request-list", "recommendation-list", "worker-dialog"))
           and live.get("/static/js/app.js").status_code == 200)
     used = set(re.findall(r"(?<![\w.])health\.([a-z0-9_]+)", APP_JS))

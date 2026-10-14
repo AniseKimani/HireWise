@@ -87,12 +87,12 @@ class TestValidation(unittest.TestCase):
         self.assertEqual((data["email"], errors), ("a@example.com", {}))
         for change, field in [({"email": "nope"}, "email"), ({"password": "short", "confirm_password": "short"}, "password"),
                               ({"confirm_password": "y" * 10}, "confirm_password"), ({"role": "admin"}, "role"),
-                              ({"display_name": ""}, "display_name"), ({"country": "Atlantis"}, "country")]:
+                              ({"display_name": ""}, "display_name"), ({"client_country": "Atlantis"}, "client_country")]:
             self.assertIn(field, validate_registration({**base, **change}, {"Cat"}, self.VOCAB, ["Kenya"])[1])
 
     def test_worker_registration_requires_profile(self):
         form = {"email": "w@example.com", "role": "worker", "display_name": "W", "password": "x" * 10,
-                "confirm_password": "x" * 10, "country": "Kenya"}
+                "confirm_password": "x" * 10, "worker_country": "Kenya"}
         _, errors = validate_registration(form, {"Cat"}, self.VOCAB, ["Kenya"])
         self.assertTrue({"primary_category", "experience_level", "experience_years", "rate", "skills"} <= set(errors))
         ok = {**form, "primary_category": "Cat", "experience_level": "entry", "experience_years": "2", "rate": "15",
@@ -150,7 +150,7 @@ class MarketplaceBehaviour:
         return client.post("/register", data={**form, "csrf_token": self.token(client, "/register")})
 
     def register_worker_form(self):
-        return {"country": "India", "primary_category": "Logo Design", "experience_level": "intermediate",
+        return {"worker_country": "India", "primary_category": "Logo Design", "experience_level": "intermediate",
                 "experience_years": "4", "rate": "25", "skills": "logo design, Adobe Illustrator"}
 
     def login(self, client, email, password=PASSWORD):
@@ -297,7 +297,7 @@ class MarketplaceBehaviour:
         self.assertEqual(req["skills"], ["Adobe Illustrator", "Logo Design"])
         self.assertEqual(req["price_tier"], self.runtime.price_tiers.tier("Logo Design", "fixed", 150.0, None, None))
         page = c.get(f"/client/requests/{request_id}").get_data(as_text=True)
-        self.assertEqual(page.count('class="recommendation"'), 10)
+        self.assertEqual(page.count('class="card worker-card"'), 10)
         self.assertIn("collaborative component contributes nothing", page)
 
     def test_invalid_requests_rejected(self):
@@ -415,8 +415,8 @@ class MarketplaceBehaviour:
     # ---- regression ---------------------------------------------------------------------
     def test_day10_demo_and_api_still_work(self):
         c = self.new_client()
-        page = c.get("/").get_data(as_text=True)
-        for element in ('id="health-status"', 'id="request-list"', 'id="recommendation-list"', "/static/js/app.js", ">Login<"):
+        page = c.get("/demo").get_data(as_text=True)  # Research Demo
+        for element in ('id="health-status"', 'id="request-list"', 'id="recommendation-list"', "/static/js/app.js", "Research Demo"):
             self.assertIn(element, page)
         self.assertEqual(c.get("/api/requests?per_page=1").get_json()["total"], 3600)
         self.assertEqual(c.get("/api/nope").get_json()["error"]["code"], "not_found")

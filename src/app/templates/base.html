@@ -1,4 +1,4 @@
-<!doctype html>
+{% from "_icons.html" import icon %}<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -10,38 +10,52 @@
   <a class="skip-link" href="#main">Skip to main content</a>
   <header class="site-header">
     <div class="site-header__inner">
-      <div>
-        <p class="site-title">HireWise</p>
-        <p class="site-tagline">Knowledge graph-enhanced hybrid recommendations for digital worker services</p>
-      </div>
-      {% block header_status %}{% endblock %}
-    </div>
-    <nav class="site-nav" aria-label="Main">
-      <ul>
+      <a class="brand" href="{{ url_for('pages.landing') }}" aria-label="HireWise home">
+        {{ icon("logo", "brand__logo") }}<span class="brand__name">Hire<span>Wise</span></span>
+      </a>
+      {% set path = request.path %}
+      <nav class="site-nav" aria-label="Main">
+        <ul>
+          {% if current_user is none %}
+          <li><a href="{{ url_for('pages.landing') }}#how-it-works">How it works</a></li>
+          <li><a href="{{ url_for('pages.landing') }}#for-clients">For Clients</a></li>
+          <li><a href="{{ url_for('pages.landing') }}#for-workers">For Workers</a></li>
+          <li><a href="{{ url_for('pages.landing') }}#about">About</a></li>
+          {% elif current_user.role == 'client' %}
+          <li><a href="{{ url_for('marketplace.dashboard') }}" {% if path == '/dashboard' %}aria-current="page"{% endif %}>{{ icon("home") }} Dashboard</a></li>
+          <li><a href="{{ url_for('marketplace.my_requests') }}" {% if path.startswith('/client/requests') %}aria-current="page"{% endif %}>{{ icon("list") }} My Requests</a></li>
+          <li><a href="{{ url_for('marketplace.bookings_page') }}" {% if path.startswith('/bookings') %}aria-current="page"{% endif %}>{{ icon("clock") }} Service History</a></li>
+          {% else %}
+          <li><a href="{{ url_for('marketplace.dashboard') }}" {% if path == '/dashboard' %}aria-current="page"{% endif %}>{{ icon("home") }} Dashboard</a></li>
+          <li><a href="{{ url_for('marketplace.bookings_page') }}" {% if path.startswith('/bookings') %}aria-current="page"{% endif %}>{{ icon("clock") }} Service History</a></li>
+          <li><a href="{{ url_for('marketplace.profile') }}" {% if path == '/profile' %}aria-current="page"{% endif %}>{{ icon("user") }} Profile</a></li>
+          {% endif %}
+        </ul>
+      </nav>
+      <div class="header-actions">
+        {% block header_status %}{% endblock %}
         {% if current_user is none %}
-        <li><a href="{{ url_for('pages.index') }}">Home</a></li>
-        <li><a href="{{ url_for('marketplace.login') }}">Login</a></li>
-        <li><a href="{{ url_for('marketplace.register') }}">Register</a></li>
-        {% elif current_user.role == 'client' %}
-        <li><a href="{{ url_for('marketplace.dashboard') }}">Dashboard</a></li>
-        <li><a href="{{ url_for('marketplace.my_requests') }}">My Requests</a></li>
-        <li><a href="{{ url_for('marketplace.bookings_page') }}">Bookings</a></li>
+        <a class="button button--secondary" href="{{ url_for('marketplace.login') }}">Log in</a>
+        <a class="button" href="{{ url_for('marketplace.register') }}">Sign up</a>
         {% else %}
-        <li><a href="{{ url_for('marketplace.dashboard') }}">Dashboard</a></li>
-        <li><a href="{{ url_for('marketplace.bookings_page') }}">Bookings</a></li>
-        <li><a href="{{ url_for('marketplace.profile') }}">Profile</a></li>
+        <details class="account-menu">
+          <summary>
+            <span class="account-menu__avatar">{{ icon("user") }}</span>
+            <span>{{ current_user.display_name }}</span>
+            <span class="visually-hidden">account menu</span>{{ icon("chevron") }}
+          </summary>
+          <div class="account-menu__panel">
+            <p><strong>{{ current_user.display_name }}</strong></p>
+            <p class="muted">{{ current_user.email }} · {{ current_user.role|capitalize }} account</p>
+            <form method="post" action="{{ url_for('marketplace.logout') }}" class="inline-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="button button--secondary button--block">Log out</button>
+            </form>
+          </div>
+        </details>
         {% endif %}
-        {% if current_user is not none %}
-        <li class="site-nav__user">Signed in as {{ current_user.display_name }} ({{ current_user.role }})</li>
-        <li>
-          <form method="post" action="{{ url_for('marketplace.logout') }}" class="inline-form">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="button button--link">Logout</button>
-          </form>
-        </li>
-        {% endif %}
-      </ul>
-    </nav>
+      </div>
+    </div>
   </header>
   <main id="main" class="site-main">
     {% with messages = get_flashed_messages() %}
@@ -54,7 +68,10 @@
     {% block content %}{% endblock %}
   </main>
   <footer class="site-footer">
-    <p>Academic prototype. Recommendations are computed by the frozen research models on a synthetic experimental dataset derived from real Upwork job postings.</p>
+    <div class="site-footer__inner">
+      <p>HireWise · knowledge graph-enhanced hybrid recommendations for digital worker services. Academic prototype.</p>
+      <p><a href="{{ url_for('pages.demo') }}">Research Demo</a> (the evaluated recommender on the research dataset)</p>
+    </div>
   </footer>
   {% block scripts %}{% endblock %}
 </body>
