@@ -65,7 +65,7 @@ class TestFactoryAndConfig(unittest.TestCase):
         self.assertNotIn("hirewise_service", app.extensions)
 
     def test_dict_overrides_apply(self):
-        app = create_app({"MAX_K": 20, "LOAD_RECOMMENDER_ON_STARTUP": False, "NEO4J_HEALTHCHECK_ENABLED": False})
+        app = create_app({"MAX_K": 20, "LOAD_RECOMMENDER_ON_STARTUP": False, "NEO4J_HEALTHCHECK_ENABLED": False, "SECRET_KEY": "test-only"})
         self.assertEqual(app.config["MAX_K"], 20)
 
     def test_default_environment_is_production_without_debug(self):
@@ -77,7 +77,7 @@ class TestFactoryAndConfig(unittest.TestCase):
             resolve_config("staging")
 
     def test_override_of_max_k_is_enforced(self):
-        client = create_app({"MAX_K": 5, "LOAD_RECOMMENDER_ON_STARTUP": False, "NEO4J_HEALTHCHECK_ENABLED": False},
+        client = create_app({"MAX_K": 5, "LOAD_RECOMMENDER_ON_STARTUP": False, "NEO4J_HEALTHCHECK_ENABLED": False, "SECRET_KEY": "test-only"},
                             service=FakeService()).test_client()
         self.assertEqual(client.get("/api/recommendations?link=x&k=6").status_code, 400)
         self.assertEqual(client.get("/api/recommendations?link=x&k=5").status_code, 200)

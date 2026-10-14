@@ -79,7 +79,7 @@ features, without retraining or fabricated history (see the Day 12 report).
    pip install -r requirements.txt
    ```
 2. **Data.** Place the Upwork CSV at `data/raw/upwork-jobs.csv` (it is git-ignored and not redistributed). Then generate the processed data with the pipeline commands below.
-3. **Credentials.** Copy `.env.example` to `.env` and fill in your local Neo4j and PostgreSQL credentials, plus a session key: `FLASK_SECRET_KEY` (generate one with `python -c "import secrets; print(secrets.token_hex(32))"`). `.env` is git-ignored.
+3. **Credentials.** Copy `.env.example` to `.env` and fill in your local Neo4j and PostgreSQL credentials, plus a session key: `FLASK_SECRET_KEY` (generate one with `python -c "import secrets; print(secrets.token_hex(32))"`). The production configuration (the default) refuses to start without it; `HIREWISE_ENV=development` may use a temporary key. `.env` is git-ignored.
 4. **Neo4j.** Start Neo4j (5.x/2026.x), then load the graph:
    ```powershell
    python scripts/prepare_kg_data.py

@@ -377,6 +377,18 @@ class MarketplaceBehaviour:
         self.post(c, f"/bookings/{second}/cancel", token_path="/dashboard")
         self.assertEqual(self.repo.get_booking(second)["status"], "cancelled")
 
+    def test_only_currently_recommended_workers_can_be_booked(self):
+        c, request_id = self.client_with_request("recset@example.com")
+        req = self.repo.get_request(request_id)
+        rr = RuntimeRequest(request_id, req["client_user_id"], req["category"], tuple(req["skills"]), req["price_tier"], None, None)
+        recommended = [r["worker"]["worker_id"] for r in self.runtime.recommend(rr, 10)["recommendations"]]
+        pool_only = next(w for w in self.runtime.candidates(rr) if w not in recommended)  # eligible but not recommended
+        r = self.post(c, f"/client/requests/{request_id}/book", {"worker_id": pool_only}, token_path="/dashboard")
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(self.booking_for(request_id), [])
+        self.post(c, f"/client/requests/{request_id}/book", {"worker_id": recommended[-1]}, token_path="/dashboard")
+        self.assertEqual([b["worker_id"] for b in self.booking_for(request_id)], [recommended[-1]])  # rank 10 is bookable
+
     def test_ineligible_worker_cannot_be_booked(self):
         c, request_id = self.client_with_request("inelig@example.com")
         eligible = set(self.runtime.candidates(RuntimeRequest(request_id, 0, "Logo Design", (), None, None, None)))
@@ -485,6 +497,66 @@ class PostgresMarketplaceTests(MarketplaceBehaviour, unittest.TestCase):
         with self.assertRaises(IntegrityError):
             with self.engine.begin() as conn:
                 conn.execute(insert(app_reviews).values(booking_id=booking_id, rating=7))
+
+
+class TestSecretKeyHandling(unittest.TestCase):
+    """Production must refuse to start without FLASK_SECRET_KEY; development
+    and testing may fall back to a temporary key. The key is never echoed."""
+
+    MINIMAL = {"LOAD_RECOMMENDER_ON_STARTUP": False, "NEO4J_HEALTHCHECK_ENABLED": False,
+               "POSTGRES_HEALTHCHECK_ENABLED": False, "LOAD_MARKETPLACE": False}
+
+    def env_without_key(self, **extra):
+        from unittest import mock
+
+        env = {k: v for k, v in os.environ.items() if k not in ("FLASK_SECRET_KEY", "HIREWISE_ENV")}
+        return mock.patch.dict(os.environ, {**env, **extra}, clear=True)
+
+    def test_production_without_key_fails_fast_and_clearly(self):
+        from src.app.factory import MissingSecretKey
+
+        with self.env_without_key():
+            with self.assertRaises(MissingSecretKey) as ctx:
+                create_app(dict(self.MINIMAL))  # HIREWISE_ENV unset -> production
+            with self.assertRaises(MissingSecretKey):
+                create_app("production")  # fails before any model/data loading
+        self.assertIn("FLASK_SECRET_KEY is not set", str(ctx.exception))
+
+    def test_production_with_key_from_environment(self):
+        with self.env_without_key(FLASK_SECRET_KEY="k" * 64):
+            app = create_app(dict(self.MINIMAL))
+        self.assertEqual(app.config["SECRET_KEY"], "k" * 64)
+        self.assertNotIn("hirewise_ephemeral_secret_key", app.extensions)
+
+    def test_error_message_never_contains_a_secret(self):
+        from src.app.factory import MissingSecretKey
+
+        with self.env_without_key(NEO4J_PASSWORD="neo-secret", POSTGRES_PASSWORD="pg-secret"):
+            with self.assertRaises(MissingSecretKey) as ctx:
+                create_app(dict(self.MINIMAL))
+        for secret in ("neo-secret", "pg-secret"):
+            self.assertNotIn(secret, str(ctx.exception))
+
+    def test_development_and_testing_may_use_a_temporary_key(self):
+        with self.env_without_key():
+            for name in ("development", "testing"):
+                with self.assertLogs("src.app.factory", level="WARNING") if name == "development" else _null():
+                    app = create_app(name) if name == "testing" else create_app({**self.MINIMAL, "DEBUG": True,
+                                                                                 "REQUIRE_SECRET_KEY": False})
+                self.assertTrue(app.config["SECRET_KEY"])
+                self.assertTrue(app.extensions.get("hirewise_ephemeral_secret_key"))
+            with self.env_without_key(HIREWISE_ENV="development"):
+                self.assertFalse(create_app(dict(self.MINIMAL)).config["REQUIRE_SECRET_KEY"])
+            # temporary keys are random per app
+            self.assertNotEqual(create_app("testing").config["SECRET_KEY"], create_app("testing").config["SECRET_KEY"])
+
+
+class _null:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
 
 
 @unittest.skipUnless(HAVE_DATA, "processed data / Day 8 results absent")

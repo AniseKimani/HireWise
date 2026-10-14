@@ -45,8 +45,11 @@ class BaseConfig:
 
     # ---- Marketplace sessions (Day 12) --------------------------------------
     # The signing key comes ONLY from the environment (FLASK_SECRET_KEY in the
-    # git-ignored .env); see src/app/factory.py for the missing-key behaviour.
-    SECRET_KEY = os.environ.get("FLASK_SECRET_KEY") or None
+    # git-ignored .env), read when the app is created (src/app/factory.py).
+    # When REQUIRE_SECRET_KEY is true (production, the default), a missing key
+    # stops start-up; development/testing may fall back to a temporary key.
+    SECRET_KEY = None
+    REQUIRE_SECRET_KEY = True
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
     # Set HIREWISE_SECURE_COOKIES=1 when served over HTTPS.
@@ -60,6 +63,7 @@ class BaseConfig:
 
 class DevelopmentConfig(BaseConfig):
     DEBUG = True
+    REQUIRE_SECRET_KEY = False  # a temporary key is acceptable locally (logins end on restart)
 
 
 class TestingConfig(BaseConfig):
@@ -69,10 +73,12 @@ class TestingConfig(BaseConfig):
     NEO4J_HEALTHCHECK_ENABLED = False
     POSTGRES_HEALTHCHECK_ENABLED = False
     LOAD_MARKETPLACE = False
+    REQUIRE_SECRET_KEY = False
 
 
 class ProductionConfig(BaseConfig):
     DEBUG = False
+    REQUIRE_SECRET_KEY = True  # start-up fails without FLASK_SECRET_KEY
 
 
 CONFIGS = {"development": DevelopmentConfig, "testing": TestingConfig, "production": ProductionConfig}

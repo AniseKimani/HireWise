@@ -31,6 +31,15 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
+import os as _os
+import secrets as _secrets
+
+# Verification/demo runs are not deployments: when no FLASK_SECRET_KEY is
+# configured, use a process-local random key so the production configuration
+# can be exercised. Real production start-up still refuses to run without one
+# (src/app/factory.py).
+_os.environ.setdefault("FLASK_SECRET_KEY", _secrets.token_hex(32))
+
 from src.app import create_app
 from src.app import services
 from src.app.serializers import RECOMMENDATION_FIELDS, REQUEST_FIELDS, WORKER_FIELDS

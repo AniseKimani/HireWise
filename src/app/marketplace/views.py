@@ -206,8 +206,14 @@ def request_detail(request_id: int):
 def book_worker(request_id: int):
     req = _own_request(request_id)
     worker_id = (request.form.get("worker_id") or "").strip()
-    if worker_id not in _runtime().candidates(_runtime_request(req)):
-        abort(400, description="worker not eligible for this request")
+    # MVP rule, enforced here on the server: only workers in this request's
+    # CURRENT recommendation set (the deterministic Top-RUNTIME_K shown on the
+    # request page, recomputed now) can be booked -- not any worker in the
+    # wider eligible pool. A future search/browse feature could offer booking
+    # non-recommended workers through a separate, explicit workflow.
+    recommended = {r["worker"]["worker_id"] for r in _runtime().recommend(_runtime_request(req), RUNTIME_K)["recommendations"]}
+    if worker_id not in recommended:
+        abort(400, description="worker not in this request's recommendations")
     try:
         _repo().create_booking(request_id, g.user["user_id"], worker_id)
     except ActiveBookingExists:

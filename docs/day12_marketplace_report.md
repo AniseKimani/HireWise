@@ -15,7 +15,7 @@ data, Neo4j graph and the imported PostgreSQL tables are unchanged.
 | Passwords | Werkzeug `generate_password_hash` (scrypt) and `check_password_hash`. Only the salted hash is stored. Hashes are never logged, never returned (profile reads exclude them, so only the login path sees them), and never echoed into forms |
 | Unknown-email timing | Login for an unknown email still checks the password against a dummy hash, and the error is the same generic "Invalid email or password." |
 | Sessions | Flask's signed-cookie session holds only `user_id` and the CSRF token. It is cleared on login (prevents session fixation) and on logout. 8-hour lifetime, `HttpOnly`, `SameSite=Lax`, and `Secure` when `HIREWISE_SECURE_COOKIES=1` |
-| Secret key | Comes only from `FLASK_SECRET_KEY` in `.env`, never hard-coded. If it is unset, a random per-process key is used and a warning is logged, so logins simply end on restart |
+| Secret key | Comes only from `FLASK_SECRET_KEY` in `.env`, read when the app is created; never hard-coded or logged. **The production configuration (the default) refuses to start without it**: `create_app` raises `MissingSecretKey` with a clear message before any model or data loading. Development and testing may fall back to a temporary random key, logging a warning, so logins end on restart. Verifier and demo scripts are not deployments: they set a process-local random key only if none is configured |
 | CSRF | A per-session random token (`secrets`) in every form, checked with `hmac.compare_digest` on every POST/PUT/PATCH/DELETE outside `/api` (all `/api` routes are read-only GETs). No extra dependency, since Flask-WTF was not needed |
 | Login throttling | An in-process limiter: 5 failures per (address, email) in 15 minutes returns 429. It is per process and needs no infrastructure |
 | Guards | `login_required` redirects to `/login?next=…`, and only local paths are followed after login. `role_required` returns 403 |
@@ -129,7 +129,8 @@ accepted --cancel-->   cancelled  (the owning client)
 - `declined`, `cancelled` and `completed` are terminal.
 - The transition table and actor checks are pure functions (`src/app/marketplace/rules.py`).
 - The database update applies only from the expected prior status, so concurrent changes are caught.
-- A client may book only a worker in the request's eligible pool, on their own request. A second live booking is refused, and rebooking becomes possible after a decline or cancellation.
+- **A client may book only a worker in the request's current recommendation set**, enforced on the server: the deterministic Top-10 shown on the request page is recomputed when the booking is made. A worker who is eligible but not recommended is refused with 400. Bookings are only for the client's own request. A second live booking is refused, and rebooking becomes possible after a decline or cancellation.
+- **Future work:** a separate marketplace search/browse workflow could let clients book workers who weren't recommended, as an explicit, distinct path, so the recommendation-driven flow stays unchanged.
 - Acting on someone else's request or booking returns **404** (existence is not revealed). The wrong role gets 403, or an "action not available" message for wrong-state transitions.
 - **No payment state.**
 
@@ -159,7 +160,7 @@ accepted --cancel-->   cancelled  (the owning client)
 - **Default suite: 526 tests pass** (26 skipped: opt-in PostgreSQL and Neo4j-write tests).
 - **`tests/test_day12_marketplace.py`:**
   - pure tests for the state machine (every valid and invalid transition), actor checks and validation;
-  - one behavioural suite covering registration and hashing, duplicates, invalid input, login/logout, generic errors, local-only `next`, rate limiting, session regeneration, role and ownership guards, request creation and price tier, runtime recommendations without fabricated history, the full booking → accept → complete → review flow, decline/cancel/rebook, ineligible workers, invalid and duplicate reviews, CSRF (missing, forged and foreign tokens), and Day 10/API regression.
+  - one behavioural suite covering registration and hashing, duplicates, invalid input, login/logout, generic errors, local-only `next`, rate limiting, session regeneration, role and ownership guards, request creation and price tier, runtime recommendations without fabricated history, the full booking → accept → complete → review flow, decline/cancel/rebook, ineligible and non-recommended workers, invalid and duplicate reviews, secret-key handling (production fails without a key; development and testing may use a temporary one), CSRF (missing, forged and foreign tokens), and Day 10/API regression.
 
     It runs on the **in-memory backend by default**, and on the **real `hirewise_test` PostgreSQL database** with `HIREWISE_RUN_POSTGRES_TESTS=1`: all 45 tests pass on each backend, plus direct database-constraint tests;
   - frozen-artifact and price-tier reproduction tests.
@@ -214,4 +215,4 @@ password hash. Building the runtime recommender takes 0.4 s at start-up.
 - There is no email verification or password reset.
 - No CSRF protection is needed for `/api`, because it is read-only.
 
-**Future commercial features** (documented, not implemented): payments and escrow, messaging, notifications, disputes, worker availability calendars, portfolios, marketplace search, admin and moderation, cloud deployment, fraud prevention, email verification and password reset, and synchronising runtime data into the knowledge graph under a versioned retraining protocol.
+**Future commercial features** (documented, not implemented): marketplace search/browse with a separate booking path for workers who weren't recommended, payments and escrow, messaging, notifications, disputes, worker availability calendars, portfolios, marketplace search, admin and moderation, cloud deployment, fraud prevention, email verification and password reset, and synchronising runtime data into the knowledge graph under a versioned retraining protocol.

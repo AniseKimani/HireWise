@@ -22,7 +22,7 @@ Start-up behaviour:
 from __future__ import annotations
 
 import logging
-
+import os
 import secrets
 
 from flask import Flask, g
@@ -45,6 +45,31 @@ CONTENT_SECURITY_POLICY = (
 )
 
 
+class MissingSecretKey(RuntimeError):
+    """Production configuration started without FLASK_SECRET_KEY."""
+
+
+def _configure_secret_key(app: Flask) -> None:
+    """Session signing key from FLASK_SECRET_KEY (or an explicit SECRET_KEY
+    config override). Never hard-coded, never logged. Production refuses to
+    start without one; development/testing may use a temporary random key,
+    in which case sessions simply end on restart."""
+    key = app.config.get("SECRET_KEY") or os.environ.get("FLASK_SECRET_KEY")
+    if key:
+        app.config["SECRET_KEY"] = key
+        return
+    if app.config["REQUIRE_SECRET_KEY"]:
+        raise MissingSecretKey(
+            "FLASK_SECRET_KEY is not set. The production configuration requires a session signing key: add "
+            "FLASK_SECRET_KEY to your environment or .env (see .env.example), or run with HIREWISE_ENV=development."
+        )
+    app.config["SECRET_KEY"] = secrets.token_hex(32)
+    app.extensions["hirewise_ephemeral_secret_key"] = True
+    if not app.testing:
+        logger.warning("FLASK_SECRET_KEY is not set; using a temporary key for this %s run (logins end on restart)",
+                       "development" if app.debug else "non-production")
+
+
 class StrictJSONProvider(DefaultJSONProvider):
     """Refuses NaN/Infinity instead of emitting invalid JSON."""
 
@@ -65,6 +90,7 @@ def create_app(config=None, service: RecommendationService | None = None, neo4j_
     else:
         app.config.from_object(resolve_config(config))
     app.json.sort_keys = app.config["JSON_SORT_KEYS"]
+    _configure_secret_key(app)  # before any expensive loading: fail fast in production
 
     if service is None and app.config["LOAD_RECOMMENDER_ON_STARTUP"]:
         try:
@@ -91,13 +117,6 @@ def create_app(config=None, service: RecommendationService | None = None, neo4j_
     app.extensions["hirewise_worker_graph_reader"] = worker_graph_reader or worker_graph_from_neo4j
 
     # ---- Marketplace (Day 12) -------------------------------------------------
-    if not app.config.get("SECRET_KEY"):
-        # Never hard-coded: without FLASK_SECRET_KEY a random per-process key is
-        # used, so sessions simply do not survive a restart.
-        app.config["SECRET_KEY"] = secrets.token_hex(32)
-        app.extensions["hirewise_ephemeral_secret_key"] = True
-        if not app.testing:
-            logger.warning("FLASK_SECRET_KEY is not set; using a temporary key (logins end on restart)")
     if service is not None and app.config["LOAD_MARKETPLACE"]:
         if runtime_recommender is None:
             try:

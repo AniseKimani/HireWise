@@ -29,6 +29,15 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
+import os as _os
+import secrets as _secrets
+
+# Verification/demo runs are not deployments: when no FLASK_SECRET_KEY is
+# configured, use a process-local random key so the production configuration
+# can be exercised. Real production start-up still refuses to run without one
+# (src/app/factory.py).
+_os.environ.setdefault("FLASK_SECRET_KEY", _secrets.token_hex(32))
+
 import numpy as np
 import pandas as pd
 from sqlalchemy import insert, text
@@ -123,6 +132,26 @@ def main() -> int:
     def post(c, path, data=None, token_path="/login"):
         return c.post(path, data={**(data or {}), "csrf_token": token(c, token_path)})
 
+    # ---- secret key: production requires FLASK_SECRET_KEY --------------------------------
+    from unittest import mock
+
+    from src.app.factory import MissingSecretKey
+
+    without_key = {k: v for k, v in _os.environ.items() if k not in ("FLASK_SECRET_KEY", "HIREWISE_ENV")}
+    try:
+        with mock.patch.dict(_os.environ, without_key, clear=True):
+            create_app("production")
+        refused, message = False, ""
+    except MissingSecretKey as exc:
+        refused, message = True, str(exc)
+    check("production start-up fails clearly without FLASK_SECRET_KEY (no secret in the message)",
+          refused and "FLASK_SECRET_KEY is not set" in message
+          and not any(v and v in message for k, v in _os.environ.items() if "PASSWORD" in k or k == "FLASK_SECRET_KEY"))
+    with mock.patch.dict(_os.environ, without_key, clear=True):
+        dev = create_app({"LOAD_RECOMMENDER_ON_STARTUP": False, "NEO4J_HEALTHCHECK_ENABLED": False, "DEBUG": True,
+                          "REQUIRE_SECRET_KEY": False, "LOAD_MARKETPLACE": False})
+    check("development may run with a temporary key", bool(dev.extensions.get("hirewise_ephemeral_secret_key")))
+
     # ---- registration / hashing --------------------------------------------------------
     client = app.test_client()
     r = client.post("/register", data={"email": "Verify.Client@Example.com", "role": "client", "display_name": "Verifier",
@@ -200,6 +229,11 @@ def main() -> int:
     outsider = next(w for w in service.data.workers["worker_id"] if w not in set(candidates))
     check("ineligible worker cannot be booked",
           post(client, f"/client/requests/{request_id}/book", {"worker_id": outsider}, "/dashboard").status_code == 400)
+    recommended_ids = [x["worker"]["worker_id"] for x in result["recommendations"]]
+    pool_only = next(w for w in candidates if w not in recommended_ids)
+    check("eligible-pool worker outside the current recommendation set cannot be booked",
+          post(client, f"/client/requests/{request_id}/book", {"worker_id": pool_only}, "/dashboard").status_code == 400
+          and repo.list_bookings(request_id=request_id) == [])
     post(client, f"/client/requests/{request_id}/book", {"worker_id": top}, "/dashboard")
     post(client, f"/client/requests/{request_id}/book", {"worker_id": top}, "/dashboard")
     bookings_list = repo.list_bookings(request_id=request_id)
