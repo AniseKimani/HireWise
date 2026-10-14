@@ -14,15 +14,24 @@ request `link`, skill and category names) -- no surrogate IDs are
 invented. Identifier columns use the "C" collation so ordering and
 uniqueness are codepoint-based and independent of the server locale,
 matching the ordering the Day 9/10 API already used.
+
+Schema version 2 (Day 12) ADDS runtime marketplace tables -- users,
+runtime worker profiles, client-created requests, bookings and
+application reviews -- without altering any imported table. Imported
+experimental rows and runtime transactions (registrations, new requests,
+bookings, reviews) never share a table. Runtime tables use surrogate
+identity keys because they describe new entities; they reference
+imported entities only through existing identifiers (client_id,
+worker_id, category and skill names).
 """
 from __future__ import annotations
 
 from sqlalchemy import (
-    Boolean, CheckConstraint, Column, Double, ForeignKey, Index, MetaData, PrimaryKeyConstraint, SmallInteger,
-    Table, Text, func,
+    BigInteger, Boolean, CheckConstraint, Column, DateTime, Double, ForeignKey, ForeignKeyConstraint, Identity, Index,
+    MetaData, PrimaryKeyConstraint, SmallInteger, Table, Text, UniqueConstraint, func,
 )
 
-SCHEMA_VERSION = "1"
+SCHEMA_VERSION = "2"
 metadata = MetaData()
 
 
@@ -143,6 +152,131 @@ Index("ix_service_requests_client_id", service_requests.c.client_id)  # FK looku
 Index("ix_request_skills_skill_lower", func.lower(request_skills.c.skill))  # listing skill filter (case-insensitive)
 Index("ix_worker_skills_skill", worker_skills.c.skill)          # FK / skill lookups
 Index("ix_ratings_worker_id", ratings.c.worker_id)              # per-worker review aggregates
+
+# ---------------------------------------------------------------------------
+# Runtime marketplace tables (schema version 2, Day 12)
+# ---------------------------------------------------------------------------
+BOOKING_STATUSES = ("pending", "accepted", "declined", "cancelled", "completed")
+ACTIVE_BOOKING_STATUSES = ("pending", "accepted", "completed")
+
+
+def _timestamp(name: str, **kwargs) -> Column:
+    return Column(name, DateTime(timezone=True), **kwargs)
+
+
+users = Table(
+    "users", metadata,
+    Column("user_id", BigInteger, Identity(), primary_key=True),
+    Column("email", Text, nullable=False, unique=True),
+    Column("password_hash", Text, nullable=False),
+    Column("role", Text, nullable=False),
+    Column("display_name", Text, nullable=False),
+    Column("country", Text),
+    # Optional links to IMPORTED experimental profiles -- demo accounts only,
+    # created by scripts/create_demo_account.py; never set by public registration.
+    _id("client_id", ForeignKey("clients.client_id"), unique=True),
+    _id("worker_id", ForeignKey("workers.worker_id"), unique=True),
+    _timestamp("created_at", nullable=False, server_default=func.now()),
+    CheckConstraint("role IN ('client', 'worker')", name="ck_users_role"),
+    CheckConstraint("email = lower(email) AND position('@' in email) > 1", name="ck_users_email"),
+    CheckConstraint("role = 'client' OR client_id IS NULL", name="ck_users_client_link_role"),
+    CheckConstraint("role = 'worker' OR worker_id IS NULL", name="ck_users_worker_link_role"),
+)
+
+runtime_worker_profiles = Table(
+    "runtime_worker_profiles", metadata,
+    # Profiles of NEWLY registered workers (no experimental history); not part
+    # of the frozen recommender's catalogue.
+    Column("user_id", BigInteger, ForeignKey("users.user_id"), primary_key=True),
+    _id("primary_category", ForeignKey("categories.name"), nullable=False),
+    Column("experience_level", Text, nullable=False),
+    Column("experience_years", Double, nullable=False),
+    Column("rate", Double, nullable=False),
+    Column("country", Text, nullable=False),
+    CheckConstraint("experience_level IN ('entry', 'intermediate', 'expert')", name="ck_runtime_worker_experience_level"),
+    CheckConstraint("experience_years >= 0 AND experience_years <= 60", name="ck_runtime_worker_experience_years"),
+    CheckConstraint("rate > 0", name="ck_runtime_worker_rate"),
+)
+
+runtime_worker_skills = Table(
+    "runtime_worker_skills", metadata,
+    Column("user_id", BigInteger, ForeignKey("runtime_worker_profiles.user_id"), nullable=False),
+    _id("skill", ForeignKey("skills.name"), nullable=False),
+    PrimaryKeyConstraint("user_id", "skill", name="pk_runtime_worker_skills"),
+)
+
+runtime_requests = Table(
+    "runtime_requests", metadata,
+    Column("request_id", BigInteger, Identity(), primary_key=True),
+    Column("client_user_id", BigInteger, ForeignKey("users.user_id"), nullable=False),
+    Column("title", Text, nullable=False),
+    _id("category", ForeignKey("categories.name"), nullable=False),
+    Column("pay_type", Text, nullable=False),
+    Column("budget", Double),
+    Column("hourly_low", Double),
+    Column("hourly_high", Double),
+    # Day 2 definition, computed at creation against the frozen reference population.
+    Column("price_tier", Double),
+    Column("location_requirement", Text),
+    _timestamp("created_at", nullable=False, server_default=func.now()),
+    UniqueConstraint("request_id", "client_user_id", name="uq_runtime_requests_owner"),
+    CheckConstraint("pay_type IN ('fixed', 'hourly', 'unspecified')", name="ck_runtime_requests_pay_type"),
+    CheckConstraint("pay_type = 'fixed' OR budget IS NULL", name="ck_runtime_requests_budget_fixed_only"),
+    CheckConstraint("pay_type = 'hourly' OR (hourly_low IS NULL AND hourly_high IS NULL)", name="ck_runtime_requests_hourly_only"),
+    CheckConstraint("hourly_low IS NULL OR hourly_high IS NULL OR hourly_low <= hourly_high", name="ck_runtime_requests_hourly_order"),
+    CheckConstraint("(budget IS NULL OR budget > 0) AND (hourly_low IS NULL OR hourly_low > 0) "
+                    "AND (hourly_high IS NULL OR hourly_high > 0)", name="ck_runtime_requests_positive_pay"),
+    CheckConstraint("char_length(title) BETWEEN 3 AND 200", name="ck_runtime_requests_title_length"),
+    _fraction_check("runtime_requests", "price_tier"),
+)
+
+runtime_request_skills = Table(
+    "runtime_request_skills", metadata,
+    Column("request_id", BigInteger, ForeignKey("runtime_requests.request_id"), nullable=False),
+    _id("skill", ForeignKey("skills.name"), nullable=False),
+    PrimaryKeyConstraint("request_id", "skill", name="pk_runtime_request_skills"),
+)
+
+bookings = Table(
+    "bookings", metadata,
+    Column("booking_id", BigInteger, Identity(), primary_key=True),
+    Column("request_id", BigInteger, nullable=False),
+    Column("client_user_id", BigInteger, nullable=False),
+    # Bookable workers are the frozen recommender's (imported) catalogue.
+    _id("worker_id", ForeignKey("workers.worker_id"), nullable=False),
+    Column("status", Text, nullable=False),
+    _timestamp("created_at", nullable=False, server_default=func.now()),
+    _timestamp("updated_at", nullable=False, server_default=func.now()),
+    _timestamp("completed_at"),
+    # The booking's client must be the request's owner -- enforced by the database.
+    ForeignKeyConstraint(["request_id", "client_user_id"],
+                         ["runtime_requests.request_id", "runtime_requests.client_user_id"],
+                         name="fk_bookings_request_owner"),
+    CheckConstraint("status IN ('pending', 'accepted', 'declined', 'cancelled', 'completed')", name="ck_bookings_status"),
+    CheckConstraint("(status = 'completed') = (completed_at IS NOT NULL)", name="ck_bookings_completed_at"),
+)
+
+app_reviews = Table(
+    "app_reviews", metadata,
+    # NEW application reviews (optional text), kept apart from the imported
+    # experimental `ratings` table, which has no text.
+    Column("booking_id", BigInteger, ForeignKey("bookings.booking_id"), primary_key=True),
+    Column("rating", SmallInteger, nullable=False),
+    Column("review_text", Text),
+    _timestamp("created_at", nullable=False, server_default=func.now()),
+    CheckConstraint("rating BETWEEN 1 AND 5", name="ck_app_reviews_rating"),
+    CheckConstraint("review_text IS NULL OR char_length(review_text) <= 2000", name="ck_app_reviews_text_length"),
+)
+
+# At most one live booking per request (pending, accepted or completed).
+Index("uq_bookings_one_active_per_request", bookings.c.request_id, unique=True,
+      postgresql_where=bookings.c.status.in_(ACTIVE_BOOKING_STATUSES))
+Index("ix_bookings_worker_id", bookings.c.worker_id)                            # worker dashboard
+Index("ix_bookings_client_user_id", bookings.c.client_user_id)                  # client dashboard
+Index("ix_runtime_requests_client_user_id", runtime_requests.c.client_user_id)  # "my requests"
+
+RUNTIME_TABLES = ("users", "runtime_worker_profiles", "runtime_worker_skills", "runtime_requests",
+                  "runtime_request_skills", "bookings", "app_reviews")
 
 # Load order respects foreign keys.
 TABLE_LOAD_ORDER = (

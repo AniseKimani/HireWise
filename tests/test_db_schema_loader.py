@@ -31,13 +31,31 @@ EXPECTED_COLUMNS = {
     "ratings": {"link", "worker_id", "rating", "has_review"},
     "load_metadata": {"key", "value"},
 }
+# Schema v2 (Day 12): runtime marketplace tables, added without altering any table above.
+RUNTIME_COLUMNS = {
+    "users": {"user_id", "email", "password_hash", "role", "display_name", "country", "client_id", "worker_id", "created_at"},
+    "runtime_worker_profiles": {"user_id", "primary_category", "experience_level", "experience_years", "rate", "country"},
+    "runtime_worker_skills": {"user_id", "skill"},
+    "runtime_requests": {"request_id", "client_user_id", "title", "category", "pay_type", "budget", "hourly_low",
+                         "hourly_high", "price_tier", "location_requirement", "created_at"},
+    "runtime_request_skills": {"request_id", "skill"},
+    "bookings": {"booking_id", "request_id", "client_user_id", "worker_id", "status", "created_at", "updated_at", "completed_at"},
+    "app_reviews": {"booking_id", "rating", "review_text", "created_at"},
+}
 PRIVATE_MARKERS = ("quality", "true_skill", "proficiency", "taste", "utility", "noise", "oracle", "cold_start",
                    "activity_quota", "activity_start", "n_requests_assigned", "relevance", "event", "shortlist")
 
 
 class TestSchema(unittest.TestCase):
     def test_exact_tables_and_columns(self):
-        self.assertEqual({t: set(table.c.keys()) for t, table in schema.metadata.tables.items()}, EXPECTED_COLUMNS)
+        self.assertEqual({t: set(table.c.keys()) for t, table in schema.metadata.tables.items()},
+                         {**EXPECTED_COLUMNS, **RUNTIME_COLUMNS})
+
+    def test_imported_tables_unchanged_and_runtime_tables_separate(self):
+        self.assertEqual(set(schema.TABLE_LOAD_ORDER) | {"load_metadata"}, set(EXPECTED_COLUMNS))
+        self.assertEqual(set(schema.RUNTIME_TABLES), set(RUNTIME_COLUMNS))
+        self.assertFalse(set(schema.RUNTIME_TABLES) & set(schema.TABLE_LOAD_ORDER))
+        self.assertEqual(schema.SCHEMA_VERSION, "2")
 
     def test_no_private_or_outcome_columns(self):
         for table in schema.metadata.tables.values():
@@ -78,7 +96,10 @@ class TestSchema(unittest.TestCase):
         names = {i.name for table in schema.metadata.tables.values() for i in table.indexes}
         self.assertEqual(names, {"ix_service_requests_split_day_link", "ix_service_requests_category",
                                  "ix_service_requests_client_id", "ix_request_skills_skill_lower",
-                                 "ix_worker_skills_skill", "ix_ratings_worker_id"})
+                                 "ix_worker_skills_skill", "ix_ratings_worker_id",
+                                 # schema v2 (Day 12)
+                                 "uq_bookings_one_active_per_request", "ix_bookings_worker_id",
+                                 "ix_bookings_client_user_id", "ix_runtime_requests_client_user_id"})
         dialect = postgresql.dialect()
         for table in schema.metadata.sorted_tables:
             ddl = str(CreateTable(table).compile(dialect=dialect))

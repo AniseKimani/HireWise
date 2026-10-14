@@ -4,7 +4,7 @@ Usage (from repository root):
 
     python scripts/load_postgres.py                    # main database
     python scripts/load_postgres.py --test-db          # isolated test database
-    python scripts/load_postgres.py --reset            # EXPLICIT: truncate data tables, then reload
+    python scripts/load_postgres.py --reset            # EXPLICIT: delete imported data rows, then reload
 
 Source: the frozen, model-visible Day 2/3 artifacts (never
 synthetic_private/), transformed by src/db/loader.py. One transaction:
@@ -31,7 +31,7 @@ from src.db.loader import LoadRefused, load
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--test-db", action="store_true", help="target POSTGRES_TEST_DB instead of POSTGRES_DB")
-    parser.add_argument("--reset", action="store_true", help="truncate the HireWise data tables before loading (destructive)")
+    parser.add_argument("--reset", action="store_true", help="delete the imported HireWise data rows before loading (destructive; refused while runtime data references them)")
     args = parser.parse_args()
     t0 = time.perf_counter()
     try:

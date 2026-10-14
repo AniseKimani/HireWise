@@ -32,8 +32,13 @@ from src.db.database import make_engine
 FAILURES: list[str] = []
 P = REPO_ROOT / "data" / "processed"
 S = P / "synthetic"
-EXPECTED_TABLES = {"categories", "skills", "clients", "workers", "worker_secondary_categories", "worker_skills",
+IMPORTED_TABLES = {"categories", "skills", "clients", "workers", "worker_secondary_categories", "worker_skills",
                    "service_requests", "request_skills", "ratings", "load_metadata"}
+# Schema v2 (Day 12): runtime marketplace tables. Checked for presence only; their
+# rows are live application data, not derived from the source artifacts.
+RUNTIME_TABLES = {"users", "runtime_worker_profiles", "runtime_worker_skills", "runtime_requests",
+                  "runtime_request_skills", "bookings", "app_reviews"}
+EXPECTED_TABLES = IMPORTED_TABLES | RUNTIME_TABLES
 FORBIDDEN_COLUMN_MARKERS = ("quality", "true_skill", "proficiency", "taste", "utility", "noise", "oracle", "cold_start",
                             "activity_quota", "activity_start", "n_requests_assigned", "relevance", "event", "shortlist", "hired")
 # (child table, child column, parent table, parent column)
@@ -107,11 +112,15 @@ def main() -> int:
                 f"SELECT count(*) FROM {child} c LEFT JOIN {parent} p ON c.{col} = p.{pcol} WHERE p.{pcol} IS NULL")).scalar()
             check(f"no orphan {child}.{col} -> {parent}.{pcol}", orphans == 0, f"{orphans} orphans")
         fk_count = conn.execute(text(
-            "SELECT count(*) FROM information_schema.table_constraints WHERE table_schema = 'public' AND constraint_type = 'FOREIGN KEY'")).scalar()
-        check(f"{len(FOREIGN_KEYS)} foreign-key constraints declared", fk_count == len(FOREIGN_KEYS), f"found {fk_count}")
+            "SELECT count(*) FROM information_schema.table_constraints WHERE table_schema = 'public' AND constraint_type = 'FOREIGN KEY' "
+            "AND table_name IN ('categories', 'skills', 'clients', 'workers', 'worker_secondary_categories', 'worker_skills', "
+            "'service_requests', 'request_skills', 'ratings')")).scalar()
+        check(f"{len(FOREIGN_KEYS)} foreign-key constraints declared on imported tables", fk_count == len(FOREIGN_KEYS), f"found {fk_count}")
         pk_tables = {r[0] for r in conn.execute(text(
             "SELECT table_name FROM information_schema.table_constraints WHERE table_schema = 'public' AND constraint_type = 'PRIMARY KEY'"))}
         check("every table has a primary key", pk_tables == EXPECTED_TABLES)
+        check("schema version recorded as 2", conn.execute(text(
+            "SELECT value FROM load_metadata WHERE key = 'schema_version'")).scalar() == "2")
         columns = [(t, c) for t, c in conn.execute(text(
             "SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = 'public'"))]
         leaked = [f"{t}.{c}" for t, c in columns if any(m in c for m in FORBIDDEN_COLUMN_MARKERS)]

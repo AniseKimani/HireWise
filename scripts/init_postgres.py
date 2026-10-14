@@ -1,4 +1,4 @@
-"""Create the HireWise relational schema in PostgreSQL (Day 11).
+"""Create the HireWise relational schema in PostgreSQL (Day 11; schema v2 since Day 12).
 
 Usage (from repository root):
 
@@ -7,7 +7,8 @@ Usage (from repository root):
 
 Creates any missing tables, constraints and indexes from src/db/schema.py
 (CREATE ... IF NOT EXISTS semantics via SQLAlchemy `checkfirst`). It never
-drops, truncates or alters existing tables. Connection settings come from
+drops, truncates or alters existing tables; it records the schema version
+in load_metadata. Connection settings come from
 POSTGRES_* in the local .env; no credential is printed.
 """
 from __future__ import annotations
@@ -20,9 +21,10 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
 from sqlalchemy import inspect
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from src.db.database import MAIN_DATABASE_ENV, TEST_DATABASE_ENV, PostgresConfigError, make_engine
-from src.db.schema import metadata
+from src.db.schema import SCHEMA_VERSION, load_metadata, metadata
 
 
 def main() -> int:
@@ -33,6 +35,9 @@ def main() -> int:
         engine = make_engine(database_env=TEST_DATABASE_ENV if args.test_db else MAIN_DATABASE_ENV)
         before = set(inspect(engine).get_table_names())
         metadata.create_all(engine, checkfirst=True)
+        with engine.begin() as conn:  # record the schema version (upsert; never drops or alters)
+            conn.execute(pg_insert(load_metadata).values(key="schema_version", value=SCHEMA_VERSION)
+                         .on_conflict_do_update(index_elements=["key"], set_={"value": SCHEMA_VERSION}))
         after = set(inspect(engine).get_table_names())
     except PostgresConfigError as exc:
         print(f"Configuration error: {exc}")

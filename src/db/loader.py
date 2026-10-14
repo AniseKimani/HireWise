@@ -12,7 +12,7 @@ one string comparison -- used by the loader, the verifier and the tests.
 - empty tables                 -> insert all rows;
 - same fingerprint already     -> no-op (idempotent re-run);
 - different contents           -> refuse, unless reset=True, which
-                                  explicitly TRUNCATEs the data tables
+                                  explicitly deletes the imported data rows
                                   first (never DROP).
 """
 from __future__ import annotations
@@ -23,7 +23,7 @@ import math
 from pathlib import Path
 
 import pandas as pd
-from sqlalchemy import func, select, text
+from sqlalchemy import func, select
 from sqlalchemy.engine import Connection, Engine
 
 from src.db.schema import DATA_TABLES, SCHEMA_VERSION, TABLE_LOAD_ORDER, load_metadata
@@ -157,8 +157,13 @@ def load(engine: Engine, reset: bool = False, repo_root: Path = REPO_ROOT) -> di
                 return {"action": "unchanged", "fingerprint": target, "row_counts": existing}
             if not reset:
                 raise LoadRefused("database already holds different HireWise data; rerun with --reset to replace it")
-            names = ", ".join(list(reversed(TABLE_LOAD_ORDER)) + ["load_metadata"])
-            conn.execute(text(f"TRUNCATE TABLE {names}"))  # fixed identifiers from the schema, no user input
+            # Row-wise DELETE in reverse FK order. Since schema v2, runtime tables
+            # (users, bookings) reference imported rows: if any do, PostgreSQL
+            # rejects the delete and the whole transaction rolls back, so a reset
+            # can never orphan runtime marketplace data.
+            for name in reversed(TABLE_LOAD_ORDER):
+                conn.execute(DATA_TABLES[name].delete())
+            conn.execute(load_metadata.delete())
         for name in TABLE_LOAD_ORDER:
             if tables[name]:
                 conn.execute(DATA_TABLES[name].insert(), tables[name])
