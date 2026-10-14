@@ -14,6 +14,8 @@ import logging
 from flask import Flask, jsonify
 from werkzeug.exceptions import HTTPException
 
+from src.db.repositories import DatabaseUnavailable
+
 logger = logging.getLogger(__name__)
 
 
@@ -38,6 +40,11 @@ def register_error_handlers(app: Flask) -> None:
     @app.errorhandler(APIError)
     def handle_api_error(exc: APIError):
         return error_response(exc.status, exc.code, exc.message)
+
+    @app.errorhandler(DatabaseUnavailable)
+    def handle_database_unavailable(exc: DatabaseUnavailable):
+        logger.warning("application database unavailable: %s", type(exc.__cause__).__name__ if exc.__cause__ else "unknown")
+        return error_response(503, "database_unavailable", "Application data is temporarily unavailable.")
 
     @app.errorhandler(HTTPException)
     def handle_http_error(exc: HTTPException):

@@ -103,7 +103,7 @@ class TestJavaScriptSafety(unittest.TestCase):
             "result": LIST_KEYS | {"n_returned", "n_candidates", "model", "recommendations"},
             "graph": {"skills", "categories", "location", "worker_id", "source"},
             "evidence": {"path_type", "text"},
-            "health": {"status", "recommender", "neo4j", "recommendations_require_neo4j"},
+            "health": {"status", "recommender", "postgresql", "neo4j", "recommendations_require_neo4j"},
         }
         for variable, allowed in contract.items():
             used = set(re.findall(rf"(?<![\w.]){variable}\.([a-z0-9_]+)", source))  # skips e.g. ui.graph.append
@@ -111,7 +111,7 @@ class TestJavaScriptSafety(unittest.TestCase):
             self.assertTrue(used <= allowed, f"app.js reads {variable}.{used - allowed} not in the API contract")
 
     def test_every_api_error_code_has_a_friendly_message(self):
-        for code in ("network_error", "unknown_request", "request_not_recommendable", "recommender_unavailable",
+        for code in ("network_error", "unknown_request", "request_not_recommendable", "recommender_unavailable", "database_unavailable",
                      "neo4j_unavailable", "unknown_worker", "invalid_k", "invalid_page", "invalid_per_page", "invalid_q"):
             self.assertIn(f"{code}:", JS["format.js"], code)
 
@@ -121,10 +121,11 @@ class TestRequestListingAndEndToEnd(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         from src.app.services import RecommendationService
+        from src.db.repositories import InMemoryRepository
         from src.evaluation.config import load_evaluation_config
         from src.evaluation.protocol import EligibilityIndex, build_eval_requests
 
-        cls.service = RecommendationService.build()
+        cls.service = RecommendationService.build(repository=InMemoryRepository.from_artifacts())
 
         def unavailable_graph(worker_id):
             raise Neo4jUnavailable("down")

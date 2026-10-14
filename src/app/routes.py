@@ -53,18 +53,30 @@ def health():
     probe = current_app.extensions.get("hirewise_neo4j_probe")
     neo4j = probe() if probe is not None else {"available": None, "graph_matches_day6_counts": None, "checked": False}
     neo4j.setdefault("checked", probe is not None)
+    pg_probe = current_app.extensions.get("hirewise_postgres_probe")
+    postgresql = pg_probe() if pg_probe is not None else {"available": None, "data_loaded": None}
+    postgresql = {**postgresql, "checked": pg_probe is not None}
     recommender = {"ready": service is not None}
     if service is not None:
         recommender["model"] = service.model_version.to_dict()
     else:
         recommender["reason"] = current_app.extensions.get("hirewise_service_error", "not_loaded")
-    status = "ok" if service is not None and neo4j.get("available") is not False else ("degraded" if service is not None else "unavailable")
+    # The core workflow needs the recommender AND the application database;
+    # Neo4j only powers the optional graph view.
+    database_down = postgresql["available"] is False or postgresql["data_loaded"] is False
+    if service is None or database_down:
+        status = "unavailable"
+    elif neo4j.get("available") is False:
+        status = "degraded"
+    else:
+        status = "ok"
     return jsonify({
         "status": status,
         "recommender": recommender,
+        "postgresql": postgresql,
         "neo4j": neo4j,
         "recommendations_require_neo4j": False,
-    }), (200 if service is not None else 503)
+    }), (503 if status == "unavailable" else 200)
 
 
 def _int_param(name: str, default: int, maximum: int) -> int:

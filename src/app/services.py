@@ -8,6 +8,7 @@ hybrid with the weights recorded in results/day8/selected_hybrid_config.json.
 
 For a recommendation the service:
 1. looks up the request by its `link` (the repository's request id);
+   (from the relational repository -- PostgreSQL since Day 11);
 2. rebuilds the eligible candidate universe with the SAME function the
    evaluation protocol uses (EligibilityIndex.eligible_worker_ids);
    relevance labels are never computed or read here;
@@ -29,8 +30,6 @@ import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
-
-import pandas as pd
 
 from src.app.serializers import serialize_recommendation, serialize_request, serialize_worker
 from src.data.config import load_config
@@ -112,31 +111,29 @@ def expected_graph_counts() -> dict[str, int]:
 
 
 class RecommendationService:
+    """Application data (request lookup/listing, worker profiles) comes from
+    the relational repository (PostgreSQL in the application). The frozen
+    recommender keeps its own deterministic artifact rows, used ONLY to
+    build candidate pools and score: PostgreSQL never feeds the models."""
+
     def __init__(self, data, eligibility: EligibilityIndex, models: dict, hybrid: HybridRecommender,
-                 model_version: ModelVersion, titles: dict[str, str], startup_seconds: float):
+                 model_version: ModelVersion, repository, startup_seconds: float):
         self.data = data
         self.eligibility = eligibility
         self.models = models
         self.hybrid = hybrid
         self.model_version = model_version
+        self.repository = repository
         self.startup_seconds = startup_seconds
         self._lock = threading.Lock()  # component caches are plain dicts
-
-        requests = data.requests.copy()
-        requests["title"] = requests["link"].map(titles)
-        self._requests = {row["link"]: row for row in requests.to_dict(orient="records")}
-        self._workers = {row["worker_id"]: row for row in data.workers.to_dict(orient="records")}
-        self._kg_index = models["kg"].index
-
-        # Browsable requests (Day 10): only the recommendable ones, in a
-        # fixed chronological order (simulated day, then link).
-        browsable = sorted((r for r in self._requests.values() if r["split"] in RECOMMENDABLE_SPLITS),
-                           key=lambda r: (r["simulated_day"], r["link"]))
-        self._browsable = [serialize_request(r) for r in browsable]
-        self._browsable_categories = sorted({r["category"] for r in self._browsable})
+        # Frozen experimental request rows, for eligibility/scoring only.
+        self._frozen_requests = {row["link"]: row for row in data.requests.to_dict(orient="records")}
 
     @classmethod
-    def build(cls) -> "RecommendationService":
+    def build(cls, repository=None) -> "RecommendationService":
+        """`repository` defaults to PostgreSQL (lazy engine: no connection is
+        made until the first query, so the recommender loads even if the
+        database is down). Tests inject an InMemoryRepository instead."""
         t0 = time.perf_counter()
         _, version = load_selected_hybrid()
         data = load_protocol_data()
@@ -146,13 +143,16 @@ class RecommendationService:
             {"cbf": cbf_score_fn(models["cbf"]), "cf": cf_score_fn(models["cf"]), "kg": kg_score_fn(models["kg"])},
             version.weights,
         )
-        titles = pd.read_csv(DAY2_PROCESSED / "sampled_requests.csv", usecols=["link", "title"])
-        return cls(data, eligibility, models, hybrid, version, dict(zip(titles["link"], titles["title"])),
-                   time.perf_counter() - t0)
+        if repository is None:
+            from src.db.database import make_engine
+            from src.db.repositories import PostgresRepository
+
+            repository = PostgresRepository(make_engine())
+        return cls(data, eligibility, models, hybrid, version, repository, time.perf_counter() - t0)
 
     # ------------------------------------------------------------------
     def _request_row(self, link: str) -> dict:
-        row = self._requests.get(link)
+        row = self.repository.get_request(link)
         if row is None:
             raise UnknownRequest(link)
         return row
@@ -167,38 +167,28 @@ class RecommendationService:
         and/or a required skill (case-insensitive exact match). Items use
         the same allow-listed request serializer as the single lookup, plus
         the size of the eligible candidate pool."""
-        q_lower = q.lower() if q else None
-        skill_lower = skill.lower() if skill else None
-        matches = [
-            r for r in self._browsable
-            if (q_lower is None or q_lower in (r["title"] or "").lower())
-            and (category is None or r["category"] == category)
-            and (skill_lower is None or any(s.lower() == skill_lower for s in r["required_skills"]))
-        ]
-        total = len(matches)
-        start = (page - 1) * per_page
-        items = [
-            {**r, "n_eligible_workers": len(self.candidates_for(r["link"]))}
-            for r in matches[start:start + per_page]
-        ]
+        rows, total = self.repository.list_browsable(page, per_page, q, category, skill)
+        items = [{**serialize_request(r), "n_eligible_workers": len(self.candidates_for(r["link"]))} for r in rows]
         return {
             "items": items, "page": page, "per_page": per_page, "total": total,
             "total_pages": (total + per_page - 1) // per_page,
             "filters": {"q": q, "category": category, "skill": skill},
-            "available_categories": list(self._browsable_categories),
+            "available_categories": self.repository.browsable_categories(),
         }
 
     def worker_profile(self, worker_id: str) -> dict:
-        row = self._workers.get(worker_id)
+        row = self.repository.get_worker(worker_id)
         if row is None:
             raise UnknownWorker(worker_id)
-        return serialize_worker(row, self._kg_index.review_count.get(worker_id, 0), self._kg_index.review_sum.get(worker_id, 0))
+        return serialize_worker(row, row["review_count"], row["review_sum"])
 
     def has_worker(self, worker_id: str) -> bool:
-        return worker_id in self._workers
+        return self.repository.get_worker(worker_id) is not None
 
     def candidates_for(self, link: str) -> list[str]:
-        row = self._request_row(link)
+        row = self._frozen_requests.get(link)
+        if row is None:
+            raise FrozenArtifactMismatch("request present in the application database but not in the frozen artifacts")
         return self.eligibility.eligible_worker_ids(row["category"], row["simulated_day"], row["location_requirement"])
 
     def recommend(self, link: str, k: int, kg_evidence_paths: int = 3) -> dict:
@@ -214,6 +204,7 @@ class RecommendationService:
                                                    kg_paths=kg_evidence_paths)
             except TemporalLeakageError as exc:
                 raise RequestNotRecommendable(str(exc)) from exc
+        profiles = self.repository.get_workers([e.worker_id for e in explanations])
         return {
             "request": serialize_request(row),
             "model": self.model_version.to_dict(),
@@ -222,7 +213,9 @@ class RecommendationService:
             "n_returned": len(explanations),
             "components": list(COMPONENTS),
             "recommendations": [
-                serialize_recommendation(e, self.worker_profile(e.worker_id), kg_evidence_paths) for e in explanations
+                serialize_recommendation(e, serialize_worker(profiles[e.worker_id], profiles[e.worker_id]["review_count"],
+                                                             profiles[e.worker_id]["review_sum"]), kg_evidence_paths)
+                for e in explanations
             ],
         }
 

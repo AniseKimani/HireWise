@@ -28,6 +28,8 @@ class BaseConfig:
     LOAD_RECOMMENDER_ON_STARTUP = True
     # Probe Neo4j (read-only) from /api/health.
     NEO4J_HEALTHCHECK_ENABLED = True
+    # Probe the application database (PostgreSQL) from /api/health.
+    POSTGRES_HEALTHCHECK_ENABLED = True
     # Strongest KG paths attached to each recommendation.
     KG_EVIDENCE_PATHS = 3
     JSON_SORT_KEYS = True
@@ -42,6 +44,7 @@ class TestingConfig(BaseConfig):
     # Tests inject their own service and Neo4j probe explicitly.
     LOAD_RECOMMENDER_ON_STARTUP = False
     NEO4J_HEALTHCHECK_ENABLED = False
+    POSTGRES_HEALTHCHECK_ENABLED = False
 
 
 class ProductionConfig(BaseConfig):

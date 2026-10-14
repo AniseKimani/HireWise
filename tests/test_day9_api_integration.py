@@ -11,6 +11,7 @@ import pandas as pd
 from src.app import create_app
 from src.app.serializers import RECOMMENDATION_FIELDS, REQUEST_FIELDS, WORKER_FIELDS
 from src.app.services import RecommendationService, expected_graph_counts, probe_neo4j, worker_graph_from_neo4j
+from src.db.repositories import InMemoryRepository
 from src.data.config import load_config
 from src.evaluation.config import load_evaluation_config
 from src.evaluation.protocol import EligibilityIndex, build_eval_requests
@@ -50,7 +51,7 @@ def _neo4j_available() -> bool:
 class TestDay9Api(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.service = RecommendationService.build()
+        cls.service = RecommendationService.build(repository=InMemoryRepository.from_artifacts())
         cls.client = create_app("testing", service=cls.service,
                                 neo4j_probe=lambda: {"available": True, "graph_matches_day6_counts": True}).test_client()
         eval_cfg = load_evaluation_config()
@@ -132,7 +133,7 @@ class TestDay9Api(unittest.TestCase):
     def test_repeated_and_fresh_service_responses_identical(self):
         first = self.get("/api/recommendations", link=self.link).get_data()
         self.assertEqual(first, self.get("/api/recommendations", link=self.link).get_data())
-        fresh = create_app("testing", service=RecommendationService.build()).test_client()
+        fresh = create_app("testing", service=RecommendationService.build(repository=InMemoryRepository.from_artifacts())).test_client()
         self.assertEqual(first, fresh.get("/api/recommendations", query_string={"link": self.link}).get_data())
 
     # ---- leakage ------------------------------------------------------------------

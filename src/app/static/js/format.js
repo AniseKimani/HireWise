@@ -64,6 +64,7 @@ const FRIENDLY_ERRORS = {
   unknown_request: "That request could not be found. It may have been removed; please choose another.",
   request_not_recommendable: "Recommendations are only available for requests from the evaluation period.",
   recommender_unavailable: "The recommender is not available right now. Please try again later.",
+  database_unavailable: "Application data is temporarily unavailable. Please try again shortly.",
   neo4j_unavailable: "Graph details are temporarily unavailable (the knowledge-graph database is not reachable). Recommendations still work.",
   unknown_worker: "That worker could not be found.",
   invalid_k: "Please choose a valid number of workers.",

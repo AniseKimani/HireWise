@@ -2,7 +2,7 @@
 
     create_app()                                  # config from HIREWISE_ENV (default: production)
     create_app("development")
-    create_app("testing", service=svc, neo4j_probe=fake_probe)
+    create_app("testing", service=svc, neo4j_probe=fake_probe, postgres_probe=fake_pg_probe)
     create_app({"MAX_K": 20})                     # overrides on top of HIREWISE_ENV's config
 
 Start-up behaviour:
@@ -10,6 +10,10 @@ Start-up behaviour:
   LOAD_RECOMMENDER_ON_STARTUP is False). If it cannot be built, the app
   still starts; /api/health reports `recommender.ready: false` with a
   reason code and recommendation routes answer 503.
+- PostgreSQL (Day 11) holds the application data: request lookup and
+  listing and worker profiles. It is not required to START (the engine is
+  lazy); while it is down /api/health reports "unavailable" and data
+  routes answer 503 `database_unavailable`. There is no CSV fallback.
 - Neo4j is NOT required to start or to recommend (recommendations use the
   CSV-derived training snapshot whose fingerprint Day 7 verified against
   Neo4j). /api/health probes it read-only; /api/workers/<id>/graph needs
@@ -44,7 +48,8 @@ class StrictJSONProvider(DefaultJSONProvider):
         return super().dumps(obj, **kwargs)
 
 
-def create_app(config=None, service: RecommendationService | None = None, neo4j_probe=None, worker_graph_reader=None) -> Flask:
+def create_app(config=None, service: RecommendationService | None = None, neo4j_probe=None, worker_graph_reader=None,
+               postgres_probe=None) -> Flask:
     app = Flask(__name__)
     app.json_provider_class = StrictJSONProvider
     app.json = StrictJSONProvider(app)
@@ -67,6 +72,12 @@ def create_app(config=None, service: RecommendationService | None = None, neo4j_
             app.extensions["hirewise_service_error"] = "load_failed"
     if service is not None:
         app.extensions["hirewise_service"] = service
+
+    repository = getattr(service, "repository", None)
+    if postgres_probe is None and repository is not None and app.config["POSTGRES_HEALTHCHECK_ENABLED"]:
+        postgres_probe = repository.health
+    if postgres_probe is not None:
+        app.extensions["hirewise_postgres_probe"] = postgres_probe
 
     if neo4j_probe is None and app.config["NEO4J_HEALTHCHECK_ENABLED"]:
         neo4j_probe = probe_neo4j

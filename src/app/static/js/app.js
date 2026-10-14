@@ -53,6 +53,9 @@ async function loadHealth() {
     if (!health.recommender || !health.recommender.ready) {
       ui.health.textContent = "Recommendations are currently unavailable.";
       ui.health.className = "health health--down";
+    } else if (health.postgresql && (health.postgresql.available === false || health.postgresql.data_loaded === false)) {
+      ui.health.textContent = "Application data is temporarily unavailable.";
+      ui.health.className = "health health--down";
     } else if (health.status === "degraded") {
       ui.health.textContent = "Recommender ready. Graph details temporarily unavailable.";
       ui.health.className = "health health--degraded";
