@@ -9,6 +9,15 @@ src/kg/neo4j_client.py.
 from __future__ import annotations
 
 import os
+from datetime import timedelta
+from pathlib import Path
+
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+except ImportError:
+    pass  # python-dotenv is optional; variables may already be exported
 
 
 class BaseConfig:
@@ -34,6 +43,20 @@ class BaseConfig:
     KG_EVIDENCE_PATHS = 3
     JSON_SORT_KEYS = True
 
+    # ---- Marketplace sessions (Day 12) --------------------------------------
+    # The signing key comes ONLY from the environment (FLASK_SECRET_KEY in the
+    # git-ignored .env); see src/app/factory.py for the missing-key behaviour.
+    SECRET_KEY = os.environ.get("FLASK_SECRET_KEY") or None
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = "Lax"
+    # Set HIREWISE_SECURE_COOKIES=1 when served over HTTPS.
+    SESSION_COOKIE_SECURE = os.environ.get("HIREWISE_SECURE_COOKIES") == "1"
+    PERMANENT_SESSION_LIFETIME = timedelta(hours=8)
+    LOGIN_MAX_FAILURES = 5
+    LOGIN_FAILURE_WINDOW_SECONDS = 15 * 60
+    # Build the marketplace (PostgreSQL repository + runtime recommender) with the service.
+    LOAD_MARKETPLACE = True
+
 
 class DevelopmentConfig(BaseConfig):
     DEBUG = True
@@ -45,6 +68,7 @@ class TestingConfig(BaseConfig):
     LOAD_RECOMMENDER_ON_STARTUP = False
     NEO4J_HEALTHCHECK_ENABLED = False
     POSTGRES_HEALTHCHECK_ENABLED = False
+    LOAD_MARKETPLACE = False
 
 
 class ProductionConfig(BaseConfig):

@@ -151,3 +151,48 @@ input, select {
 .worker-dialog__header h2 { margin: 0; }
 .graph-section { border-top: 1px solid var(--border); margin-top: 1rem; padding-top: 0.75rem; }
 .graph-section h3 { margin: 0 0 0.25rem; font-size: 1rem; }
+
+/* ---- Day 12 marketplace -------------------------------------------------- */
+.site-nav { border-top: 1px solid var(--border); }
+.site-nav ul {
+  max-width: 1280px; margin: 0 auto; padding: 0.4rem 1.5rem; list-style: none;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 1.25rem;
+}
+.site-nav a { color: var(--accent); font-weight: 600; text-decoration: none; }
+.site-nav a:hover { text-decoration: underline; }
+.site-nav__user { margin-left: auto; color: var(--muted); font-size: 0.9rem; }
+.inline-form { display: inline; margin: 0; }
+
+.flash { list-style: none; margin: 0 0 1rem; padding: 0.6rem 1rem; border: 1px solid var(--accent);
+  border-radius: var(--radius); background: #eef3f9; }
+h1 { font-size: 1.4rem; margin: 0 0 1rem; }
+.narrow { max-width: 640px; }
+.muted { color: var(--muted); }
+.form-grid { display: grid; gap: 0.75rem; }
+.form-grid fieldset { border: 1px solid var(--border); border-radius: var(--radius); padding: 0.75rem 1rem; display: grid; gap: 0.6rem; }
+.form-grid legend { font-weight: 600; padding: 0 0.25rem; }
+.field-label { font-weight: 600; font-size: 0.9rem; }
+.radio-row { display: flex; gap: 1.25rem; }
+.radio-row label { font-weight: normal; }
+.field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+.field-error { color: var(--error); margin: 0.15rem 0 0; font-size: 0.9rem; }
+textarea { font: inherit; padding: 0.4rem 0.5rem; border: 1px solid var(--border); border-radius: var(--radius); }
+.link-list { padding-left: 1.25rem; margin: 0; }
+
+.data-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+.data-table th, .data-table td { text-align: left; padding: 0.45rem 0.5rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+.data-table th { color: var(--muted); }
+.data-table .actions { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.review-form { display: grid; gap: 0.3rem; min-width: 14rem; }
+
+.status-badge { display: inline-block; padding: 0.05rem 0.55rem; border-radius: 999px; border: 1px solid var(--border); font-size: 0.85rem; }
+.status-badge--pending { color: var(--warn); border-color: var(--warn); }
+.status-badge--accepted { color: var(--accent); border-color: var(--accent); }
+.status-badge--completed { color: var(--ok); border-color: var(--ok); }
+.status-badge--declined, .status-badge--cancelled { color: var(--muted); }
+
+.contribution-table { border-collapse: collapse; margin: 0.4rem 0; font-size: 0.9rem; }
+.contribution-table th { text-align: left; font-weight: 600; padding-right: 0.75rem; color: var(--muted); }
+.contribution-table .numeric { font-variant-numeric: tabular-nums; padding-left: 0.5rem; }
+.contribution-meter { width: 12rem; height: 0.8rem; }
+@media (max-width: 700px) { .field-pair { grid-template-columns: 1fr; } .contribution-meter { width: 7rem; } }

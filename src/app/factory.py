@@ -23,11 +23,16 @@ from __future__ import annotations
 
 import logging
 
-from flask import Flask
+import secrets
+
+from flask import Flask, g
 from flask.json.provider import DefaultJSONProvider
 
 from src.app.config import resolve_config
 from src.app.errors import register_error_handlers
+from src.app.marketplace.runtime import RuntimeRecommender
+from src.app.marketplace.security import LoginRateLimiter, csrf_token, load_current_user, protect_against_csrf
+from src.app.marketplace.views import marketplace
 from src.app.pages import pages
 from src.app.routes import api
 from src.app.services import FrozenArtifactMismatch, RecommendationService, probe_neo4j, worker_graph_from_neo4j
@@ -49,7 +54,7 @@ class StrictJSONProvider(DefaultJSONProvider):
 
 
 def create_app(config=None, service: RecommendationService | None = None, neo4j_probe=None, worker_graph_reader=None,
-               postgres_probe=None) -> Flask:
+               postgres_probe=None, marketplace_repository=None, runtime_recommender=None) -> Flask:
     app = Flask(__name__)
     app.json_provider_class = StrictJSONProvider
     app.json = StrictJSONProvider(app)
@@ -85,9 +90,43 @@ def create_app(config=None, service: RecommendationService | None = None, neo4j_
         app.extensions["hirewise_neo4j_probe"] = neo4j_probe
     app.extensions["hirewise_worker_graph_reader"] = worker_graph_reader or worker_graph_from_neo4j
 
+    # ---- Marketplace (Day 12) -------------------------------------------------
+    if not app.config.get("SECRET_KEY"):
+        # Never hard-coded: without FLASK_SECRET_KEY a random per-process key is
+        # used, so sessions simply do not survive a restart.
+        app.config["SECRET_KEY"] = secrets.token_hex(32)
+        app.extensions["hirewise_ephemeral_secret_key"] = True
+        if not app.testing:
+            logger.warning("FLASK_SECRET_KEY is not set; using a temporary key (logins end on restart)")
+    if service is not None and app.config["LOAD_MARKETPLACE"]:
+        if runtime_recommender is None:
+            try:
+                runtime_recommender = RuntimeRecommender.build(service)
+            except Exception:
+                logger.exception("runtime recommender failed to load")
+        if marketplace_repository is None and getattr(repository, "engine", None) is not None:
+            from src.db.marketplace import PostgresMarketplaceRepository
+
+            marketplace_repository = PostgresMarketplaceRepository(repository.engine)
+    if marketplace_repository is not None:
+        app.extensions["hirewise_marketplace"] = marketplace_repository
+    if runtime_recommender is not None:
+        app.extensions["hirewise_runtime_recommender"] = runtime_recommender
+    app.extensions["hirewise_login_limiter"] = LoginRateLimiter(app.config["LOGIN_MAX_FAILURES"],
+                                                                app.config["LOGIN_FAILURE_WINDOW_SECONDS"])
+    app.before_request(protect_against_csrf)
+    app.before_request(load_current_user)
+
+    app.jinja_env.globals["csrf_token"] = csrf_token  # a global, so imported macros can use it too
+
+    @app.context_processor
+    def template_context():
+        return {"current_user": g.get("user")}
+
     register_error_handlers(app)
     app.register_blueprint(api)
     app.register_blueprint(pages)
+    app.register_blueprint(marketplace)
 
     @app.after_request
     def security_headers(response):

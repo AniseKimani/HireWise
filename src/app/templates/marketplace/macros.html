@@ -1,0 +1,71 @@
+{% macro field_error(errors, name) -%}
+{% if errors.get(name) %}<p class="field-error" id="{{ name }}-error">{{ errors[name] }}</p>{% endif %}
+{%- endmacro %}
+
+{% macro csrf_field() -%}
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+{%- endmacro %}
+
+{% macro booking_table(bookings_list, rules, role, return_to) -%}
+{% if not bookings_list %}
+<p class="empty-state">No bookings yet.</p>
+{% else %}
+<table class="data-table">
+  <caption class="visually-hidden">Bookings</caption>
+  <thead>
+    <tr><th scope="col">Booking</th><th scope="col">Request</th><th scope="col">Worker</th><th scope="col">Status</th><th scope="col">Review</th><th scope="col">Actions</th></tr>
+  </thead>
+  <tbody>
+  {% for b in bookings_list %}
+    <tr>
+      <td>#{{ b.booking_id }}</td>
+      <td>{{ b.request_title }}</td>
+      <td>{{ b.worker_id }}</td>
+      <td><span class="status-badge status-badge--{{ b.status }}">{{ b.status }}</span></td>
+      <td>
+        {% if b.review_rating %}{{ b.review_rating }}/5{% if b.review_text %}: “{{ b.review_text }}”{% endif %}
+        {% else %}—{% endif %}
+      </td>
+      <td class="actions">
+        {% for action in rules.allowed_actions(b.status, role) %}
+        <form method="post" action="{{ url_for('marketplace.booking_action', booking_id=b.booking_id, action=action) }}" class="inline-form">
+          {{ csrf_field() }}
+          <input type="hidden" name="return_to" value="{{ return_to }}">
+          <button type="submit" class="button{% if action in ('decline', 'cancel') %} button--secondary{% endif %}">{{ action|capitalize }}</button>
+        </form>
+        {% endfor %}
+        {% if role == 'client' and b.status == 'completed' and not b.review_rating %}
+        <form method="post" action="{{ url_for('marketplace.review_booking', booking_id=b.booking_id) }}" class="review-form">
+          {{ csrf_field() }}
+          <label for="rating-{{ b.booking_id }}">Rating</label>
+          <select id="rating-{{ b.booking_id }}" name="rating" required>
+            <option value="">Choose…</option>
+            {% for r in range(5, 0, -1) %}<option value="{{ r }}">{{ r }}</option>{% endfor %}
+          </select>
+          <label for="review-{{ b.booking_id }}">Review (optional)</label>
+          <textarea id="review-{{ b.booking_id }}" name="review_text" maxlength="2000" rows="2"></textarea>
+          <button type="submit" class="button">Submit review</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{%- endmacro %}
+
+{% macro worker_facts(profile) -%}
+<dl class="facts">
+  <dt>Primary category</dt><dd>{{ profile.primary_category }}</dd>
+  {% if profile.secondary_categories %}<dt>Secondary categories</dt><dd>{{ profile.secondary_categories|join(', ') }}</dd>{% endif %}
+  <dt>Location</dt><dd>{{ profile.country }}</dd>
+  <dt>Experience</dt><dd>{{ profile.experience_level|capitalize }}, {{ '%.1f'|format(profile.experience_years) }} years</dd>
+  <dt>Rate</dt><dd>{{ '%.2f'|format(profile.rate) }}</dd>
+  <dt>Skills</dt><dd>{{ profile.skills|join(', ') }}</dd>
+  {% if profile.training_review_count is not none %}
+  <dt>Research-period reviews</dt>
+  <dd>{% if profile.training_review_count %}{{ '%.2f'|format(profile.training_mean_rating) }}/5 from {{ profile.training_review_count }}{% else %}none{% endif %}</dd>
+  {% endif %}
+</dl>
+{%- endmacro %}

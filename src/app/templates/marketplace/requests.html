@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}My requests · HireWise{% endblock %}
+{% block content %}
+<section class="panel" aria-labelledby="requests-heading">
+  <h1 id="requests-heading">My requests</h1>
+  <p><a class="button" href="{{ url_for('marketplace.new_request') }}">Post a new request</a></p>
+  {% if requests_list %}
+  <table class="data-table">
+    <caption class="visually-hidden">Your service requests</caption>
+    <thead><tr><th scope="col">Title</th><th scope="col">Category</th><th scope="col">Skills</th><th scope="col">Pay</th></tr></thead>
+    <tbody>
+    {% for r in requests_list %}
+      <tr>
+        <td><a href="{{ url_for('marketplace.request_detail', request_id=r.request_id) }}">{{ r.title }}</a></td>
+        <td>{{ r.category }}</td>
+        <td>{{ r.skills|join(', ') }}</td>
+        <td>{{ r.pay_type }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<p class="empty-state">You have not posted any requests yet.</p>{% endif %}
+</section>
+{% endblock %}

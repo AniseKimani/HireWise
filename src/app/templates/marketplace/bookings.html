@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% from "marketplace/macros.html" import booking_table %}
+{% block title %}Bookings · HireWise{% endblock %}
+{% block content %}
+<section class="panel" aria-labelledby="bookings-heading">
+  <h1 id="bookings-heading">Bookings</h1>
+  {% if current_user.role == 'worker' and not current_user.worker_id %}
+  <p class="note">New worker profiles are not yet part of the recommender's catalogue, so they do not receive bookings.</p>
+  {% endif %}
+  {{ booking_table(bookings_list, rules, current_user.role, url_for('marketplace.bookings_page')) }}
+</section>
+{% endblock %}

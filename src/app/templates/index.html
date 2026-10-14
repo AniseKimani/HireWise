@@ -1,9 +1,16 @@
 {% extends "base.html" %}
+{% block header_status %}
+<p id="health-status" class="health health--pending" role="status" aria-live="polite">Checking system status…</p>
+{% endblock %}
 {% block content %}
 <h1 class="visually-hidden">HireWise recommendation workspace</h1>
 <p class="intro">
   Choose a service request, then ask HireWise for the workers best suited to it. Each recommendation shows how much
   the worker's profile, collaborative hiring patterns, and knowledge-graph evidence contributed to its score.
+</p>
+<p class="note">
+  This page explores the imported research dataset (demo requests). To post your own request and book a worker,
+  <a href="{{ url_for('marketplace.register') }}">create a client account</a> or <a href="{{ url_for('marketplace.login') }}">log in</a>.
 </p>
 
 <div class="layout">

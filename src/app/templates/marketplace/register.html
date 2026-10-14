@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% from "marketplace/macros.html" import field_error, csrf_field %}
+{% block title %}Register · HireWise{% endblock %}
+{% block content %}
+<section class="panel narrow" aria-labelledby="register-heading">
+  <h1 id="register-heading">Create an account</h1>
+  <p class="note">Clients post requests and book workers. Worker fields are only needed for worker accounts.</p>
+  {% if errors %}<p class="field-error" role="alert">Please correct the highlighted fields.</p>{% endif %}
+  <form method="post" action="{{ url_for('marketplace.register') }}" class="form-grid" novalidate>
+    {{ csrf_field() }}
+    <fieldset>
+      <legend>Account</legend>
+      <div class="field">
+        <span class="field-label" id="role-label">I am a</span>
+        <div role="radiogroup" aria-labelledby="role-label" class="radio-row">
+          <label><input type="radio" name="role" value="client" {% if form.get('role', 'client') == 'client' %}checked{% endif %}> Client</label>
+          <label><input type="radio" name="role" value="worker" {% if form.get('role') == 'worker' %}checked{% endif %}> Worker</label>
+        </div>
+        {{ field_error(errors, 'role') }}
+      </div>
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" autocomplete="email" maxlength="254" required value="{{ form.get('email', '') }}">
+        {{ field_error(errors, 'email') }}
+      </div>
+      <div class="field">
+        <label for="display_name">Display name</label>
+        <input id="display_name" name="display_name" type="text" maxlength="80" required value="{{ form.get('display_name', '') }}">
+        {{ field_error(errors, 'display_name') }}
+      </div>
+      <div class="field">
+        <label for="password">Password (at least 10 characters)</label>
+        <input id="password" name="password" type="password" autocomplete="new-password" minlength="10" maxlength="128" required>
+        {{ field_error(errors, 'password') }}
+      </div>
+      <div class="field">
+        <label for="confirm_password">Confirm password</label>
+        <input id="confirm_password" name="confirm_password" type="password" autocomplete="new-password" maxlength="128" required>
+        {{ field_error(errors, 'confirm_password') }}
+      </div>
+      <div class="field">
+        <label for="country">Country (required for workers)</label>
+        <select id="country" name="country">
+          <option value="">—</option>
+          {% for c in countries %}<option value="{{ c }}" {% if form.get('country') == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+        </select>
+        {{ field_error(errors, 'country') }}
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Worker profile (workers only)</legend>
+      <div class="field">
+        <label for="primary_category">Primary category</label>
+        <select id="primary_category" name="primary_category">
+          <option value="">—</option>
+          {% for c in categories %}<option value="{{ c }}" {% if form.get('primary_category') == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+        </select>
+        {{ field_error(errors, 'primary_category') }}
+      </div>
+      <div class="field">
+        <label for="experience_level">Experience level</label>
+        <select id="experience_level" name="experience_level">
+          <option value="">—</option>
+          {% for level in ('entry', 'intermediate', 'expert') %}<option value="{{ level }}" {% if form.get('experience_level') == level %}selected{% endif %}>{{ level|capitalize }}</option>{% endfor %}
+        </select>
+        {{ field_error(errors, 'experience_level') }}
+      </div>
+      <div class="field">
+        <label for="experience_years">Years of experience</label>
+        <input id="experience_years" name="experience_years" type="number" min="0" max="60" step="0.5" value="{{ form.get('experience_years', '') }}">
+        {{ field_error(errors, 'experience_years') }}
+      </div>
+      <div class="field">
+        <label for="rate">Rate</label>
+        <input id="rate" name="rate" type="number" min="0.01" step="0.01" value="{{ form.get('rate', '') }}">
+        {{ field_error(errors, 'rate') }}
+      </div>
+      <div class="field">
+        <label for="skills">Skills (comma-separated, from the skill list)</label>
+        <input id="skills" name="skills" type="text" list="skill-list" maxlength="2000" value="{{ form.get('skills', '') }}">
+        {{ field_error(errors, 'skills') }}
+      </div>
+    </fieldset>
+    <datalist id="skill-list">{% for s in skills %}<option value="{{ s }}">{% endfor %}</datalist>
+    <button type="submit" class="button">Create account</button>
+  </form>
+  <p>Already registered? <a href="{{ url_for('marketplace.login') }}">Log in</a>.</p>
+</section>
+{% endblock %}

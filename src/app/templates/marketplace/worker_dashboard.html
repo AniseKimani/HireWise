@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% from "marketplace/macros.html" import booking_table, worker_facts %}
+{% block title %}Dashboard · HireWise{% endblock %}
+{% block content %}
+<h1>Worker dashboard</h1>
+<div class="workspace">
+  <section class="panel" aria-labelledby="profile-heading">
+    <h2 id="profile-heading">Your profile</h2>
+    {% if profile %}{{ worker_facts(profile) }}{% endif %}
+    {% if profile_source == 'imported' %}
+    <p class="note">Demo account linked to research worker {{ profile.worker_id }}, which is part of the recommender's catalogue.</p>
+    {% else %}
+    <p class="note">New worker profile. The recommender uses a frozen research catalogue, so new profiles are not recommended to clients yet.</p>
+    {% endif %}
+  </section>
+  <section class="panel" aria-labelledby="bookings-heading">
+    <h2 id="bookings-heading">Bookings assigned to you</h2>
+    {{ booking_table(bookings_list, rules, 'worker', url_for('marketplace.dashboard')) }}
+  </section>
+</div>
+{% endblock %}

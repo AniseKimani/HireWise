@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% from "marketplace/macros.html" import worker_facts %}
+{% block title %}Profile · HireWise{% endblock %}
+{% block content %}
+<h1>Your worker profile</h1>
+<div class="workspace">
+  <section class="panel" aria-labelledby="facts-heading">
+    <h2 id="facts-heading">Profile</h2>
+    {% if profile %}{{ worker_facts(profile) }}{% else %}<p class="empty-state">No profile found.</p>{% endif %}
+  </section>
+  <section class="panel" aria-labelledby="reviews-heading">
+    <h2 id="reviews-heading">Reviews from HireWise clients</h2>
+    {% if reviews %}
+    <ul class="link-list">
+      {% for b in reviews %}
+      <li><strong>{{ b.review_rating }}/5</strong> for “{{ b.request_title }}”{% if b.review_text %}: {{ b.review_text }}{% endif %}</li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="empty-state">No reviews yet.</p>{% endif %}
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "marketplace/macros.html" import booking_table %}
+{% block title %}Dashboard · HireWise{% endblock %}
+{% block content %}
+<h1>Client dashboard</h1>
+<div class="workspace">
+  <section class="panel" aria-labelledby="profile-heading">
+    <h2 id="profile-heading">Your profile</h2>
+    <dl class="facts">
+      <dt>Name</dt><dd>{{ current_user.display_name }}</dd>
+      <dt>Email</dt><dd>{{ current_user.email }}</dd>
+      <dt>Country</dt><dd>{{ current_user.country or 'not stated' }}</dd>
+      <dt>Account type</dt>
+      <dd>{% if current_user.client_id %}Demo account linked to research client {{ current_user.client_id }} (its research-period hiring history informs recommendations){% else %}New client (no hiring history yet){% endif %}</dd>
+    </dl>
+  </section>
+  <section class="panel" aria-labelledby="requests-heading">
+    <h2 id="requests-heading">Your service requests</h2>
+    <p><a class="button" href="{{ url_for('marketplace.new_request') }}">Post a new request</a></p>
+    {% if requests_list %}
+    <ul class="link-list">
+      {% for r in requests_list %}
+      <li><a href="{{ url_for('marketplace.request_detail', request_id=r.request_id) }}">{{ r.title }}</a> <span class="muted">· {{ r.category }}</span></li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="empty-state">You have not posted any requests yet.</p>{% endif %}
+  </section>
+  <section class="panel" aria-labelledby="bookings-heading">
+    <h2 id="bookings-heading">Bookings</h2>
+    {{ booking_table(bookings_list, rules, 'client', url_for('marketplace.dashboard')) }}
+  </section>
+</div>
+{% endblock %}

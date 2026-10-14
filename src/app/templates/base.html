@@ -14,14 +14,47 @@
         <p class="site-title">HireWise</p>
         <p class="site-tagline">Knowledge graph-enhanced hybrid recommendations for digital worker services</p>
       </div>
-      <p id="health-status" class="health health--pending" role="status" aria-live="polite">Checking system status…</p>
+      {% block header_status %}{% endblock %}
     </div>
+    <nav class="site-nav" aria-label="Main">
+      <ul>
+        {% if current_user is none %}
+        <li><a href="{{ url_for('pages.index') }}">Home</a></li>
+        <li><a href="{{ url_for('marketplace.login') }}">Login</a></li>
+        <li><a href="{{ url_for('marketplace.register') }}">Register</a></li>
+        {% elif current_user.role == 'client' %}
+        <li><a href="{{ url_for('marketplace.dashboard') }}">Dashboard</a></li>
+        <li><a href="{{ url_for('marketplace.my_requests') }}">My Requests</a></li>
+        <li><a href="{{ url_for('marketplace.bookings_page') }}">Bookings</a></li>
+        {% else %}
+        <li><a href="{{ url_for('marketplace.dashboard') }}">Dashboard</a></li>
+        <li><a href="{{ url_for('marketplace.bookings_page') }}">Bookings</a></li>
+        <li><a href="{{ url_for('marketplace.profile') }}">Profile</a></li>
+        {% endif %}
+        {% if current_user is not none %}
+        <li class="site-nav__user">Signed in as {{ current_user.display_name }} ({{ current_user.role }})</li>
+        <li>
+          <form method="post" action="{{ url_for('marketplace.logout') }}" class="inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="button button--link">Logout</button>
+          </form>
+        </li>
+        {% endif %}
+      </ul>
+    </nav>
   </header>
   <main id="main" class="site-main">
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    <ul class="flash" role="status">
+      {% for message in messages %}<li>{{ message }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+    {% endwith %}
     {% block content %}{% endblock %}
   </main>
   <footer class="site-footer">
-    <p>Academic prototype. Recommendations are computed on a synthetic experimental dataset derived from real Upwork job postings.</p>
+    <p>Academic prototype. Recommendations are computed by the frozen research models on a synthetic experimental dataset derived from real Upwork job postings.</p>
   </footer>
   {% block scripts %}{% endblock %}
 </body>
