@@ -42,15 +42,16 @@ no credentials, URIs or file paths.
       "hybrid_config_sha256": "4d956748204f"
     }
   },
+  "postgresql": {"available": true, "data_loaded": true, "checked": true},
   "neo4j": {"available": true, "checked": true, "graph_matches_day6_counts": true},
   "recommendations_require_neo4j": false
 }
 ```
 
 **`status` values:**
-- `ok`: the recommender is ready, and Neo4j is reachable or wasn't probed.
-- `degraded`: the recommender is ready but Neo4j is unreachable. Recommendations still work.
-- `unavailable`: the recommender isn't loaded. `recommender.reason` is `load_failed`, `frozen_artifact_mismatch` or `not_loaded`.
+- `ok`: the recommender is ready, the application database (PostgreSQL, Day 11) is available with data loaded, and Neo4j is reachable or wasn't probed.
+- `degraded`: the recommender and database are ready but Neo4j is unreachable. Recommendations still work.
+- `unavailable` (HTTP 503): the recommender isn't loaded (`recommender.reason` is `load_failed`, `frozen_artifact_mismatch` or `not_loaded`), **or** the application database is unreachable or not loaded (`postgresql.available: false` or `data_loaded: false`).
 
 `graph_matches_day6_counts` compares the live node and relationship
 totals with the Day 6 manifest (6,420 / 79,165) using read-only queries.
@@ -227,13 +228,14 @@ Every error has the same body, and none contains a stack trace or internal detai
 | 404 | `unknown_request`, `unknown_worker`, `not_found` (unknown route) |
 | 405 | `method_not_allowed` (every endpoint is GET-only) |
 | 409 | `request_not_recommendable` |
-| 503 | `recommender_unavailable`, `neo4j_unavailable` |
+| 503 | `recommender_unavailable`, `database_unavailable` (Day 11: PostgreSQL unreachable), `neo4j_unavailable` |
 | 500 | `internal_error` (details are logged server-side only) |
 
 ## Dependency behaviour
 
 | Situation | Behaviour |
 |---|---|
-| Neo4j down at start-up | The app starts normally. Health reports `degraded` with `neo4j.available: false`. Recommendations, request lookups and worker lookups still work. `/workers/<id>/graph` returns 503 |
+| PostgreSQL down (Day 11) | The app starts (the database engine connects lazily). Health returns 503 `unavailable` with `postgresql.available: false`. Request listing and lookup, worker lookups and recommendations return 503 `database_unavailable`. There is no CSV fallback |
+| Neo4j down at start-up | The app starts normally. Health reports `degraded` with `neo4j.available: false`. Recommendations, request lookups and worker lookups still work (they use PostgreSQL and the frozen artifacts). `/workers/<id>/graph` returns 503 |
 | Frozen Day 8 artifacts modified | The recommender refuses to load (`frozen_artifact_mismatch`). Health returns 503 and recommendation routes return 503 |
 | Processed data missing | Same as above, with reason `load_failed` |
