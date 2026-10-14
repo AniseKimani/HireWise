@@ -17,7 +17,7 @@ describe performance within that constructed experimental environment.
 
 ## Project status
 
-Days 1–11 are complete:
+Days 1–12 are complete:
 
 | Day | Milestone | Report |
 |---|---|---|
@@ -30,6 +30,7 @@ Days 1–11 are complete:
 | 9 | Flask API | `docs/day9_api.md`, `docs/day9_backend_report.md` |
 | 10 | Frontend and end-to-end workflow | `docs/day10_frontend_report.md` |
 | 11 | PostgreSQL application database | `docs/day11_postgresql_report.md` |
+| 12 | Accounts and marketplace workflow: register, request, book, complete, review | `docs/day12_marketplace_report.md` |
 
 The recommender models, their selected configurations and all
 experimental results (`results/`) are **frozen**.
@@ -42,8 +43,9 @@ src/
   recommenders/  CBF, CF, KG, Hybrid + frozen-model reconstruction
   kg/            Neo4j client, graph schema/loader, training-only graph view, path explanations
   evaluation/    protocol (candidate eligibility, relevance), metrics, significance, diversity
-  db/            PostgreSQL schema, deterministic loader, repositories (Day 11)
+  db/            PostgreSQL schema (v2), deterministic loader, data + marketplace repositories
   app/           Flask: factory, config, routes (/api), services, serializers, errors
+    marketplace/ accounts, CSRF/sessions, booking rules, runtime recommender, pages (Day 12)
     templates/   Jinja pages            static/  CSS + JavaScript modules
 config/          frozen experiment and model configuration (YAML)
 data/            git-ignored: raw/ (Upwork CSV) and processed/ (generated data)
@@ -59,12 +61,14 @@ Requests flow `browser → Flask routes → services → repositories / frozen m
 
 | Store | Holds | Used for |
 |---|---|---|
-| **PostgreSQL** | Application data: clients, workers, service requests, skills, categories, training-period ratings | Request browsing and lookup, worker profiles |
+| **PostgreSQL** | Imported application data (clients, workers, service requests, skills, categories, training-period ratings) and, in separate tables, runtime marketplace data (users, client-created requests, bookings, reviews) | Request browsing and lookup, worker profiles, the marketplace |
 | **Neo4j** | The knowledge graph | The optional worker graph view (the KG model uses a training-only snapshot verified against it) |
 | **Frozen artifacts** | Deterministic `data/processed` + `results/` | The evaluated models: candidate pools and scoring |
 
-PostgreSQL never feeds the models, so recommendations are byte-identical
-to the evaluated stack.
+PostgreSQL never feeds the models, so recommendations for the research
+requests are byte-identical to the evaluated stack. Client-created
+requests are scored by the same frozen hybrid from their observable
+features, without retraining or fabricated history (see the Day 12 report).
 
 ## Setup (Windows, PowerShell)
 
@@ -75,7 +79,7 @@ to the evaluated stack.
    pip install -r requirements.txt
    ```
 2. **Data.** Place the Upwork CSV at `data/raw/upwork-jobs.csv` (it is git-ignored and not redistributed). Then generate the processed data with the pipeline commands below.
-3. **Credentials.** Copy `.env.example` to `.env` and fill in your local Neo4j and PostgreSQL credentials. `.env` is git-ignored.
+3. **Credentials.** Copy `.env.example` to `.env` and fill in your local Neo4j and PostgreSQL credentials, plus a session key: `FLASK_SECRET_KEY` (generate one with `python -c "import secrets; print(secrets.token_hex(32))"`). `.env` is git-ignored.
 4. **Neo4j.** Start Neo4j (5.x/2026.x), then load the graph:
    ```powershell
    python scripts/prepare_kg_data.py
@@ -84,7 +88,7 @@ to the evaluated stack.
    ```
 5. **PostgreSQL.** This needs PostgreSQL 18, plus a role `hirewise_app` that owns the databases `hirewise` and `hirewise_test`; see `docs/day11_postgresql_report.md`.
    ```powershell
-   python scripts/init_postgres.py      # create missing tables (never drops)
+   python scripts/init_postgres.py      # create missing tables, incl. the marketplace tables (never drops)
    python scripts/load_postgres.py      # load; no-op if identical; refuses differences without --reset
    python scripts/verify_postgres.py
    ```
@@ -95,7 +99,15 @@ to the evaluated stack.
 python -m flask --app "src.app:create_app('development')" run
 ```
 
-Then open http://127.0.0.1:5000/.
+Then open http://127.0.0.1:5000/. Register as a client to post a request, see
+recommendations, book a worker and leave a review. To demonstrate the worker
+side, link a demo worker account to an imported catalogue profile (the
+password comes from `HIREWISE_DEMO_PASSWORD` or a hidden prompt):
+
+```powershell
+python scripts/create_demo_account.py --show-demo-recommendation
+python scripts/create_demo_account.py --role worker --email worker@demo.local --name "Demo Worker" --worker-id W001674
+```
 
 - `src.app:create_app` with no arguments uses production settings (debug off).
 - If Neo4j is down, only the graph view is unavailable.
@@ -115,6 +127,7 @@ python scripts/verify_day6.py              # after the Neo4j steps above
 python scripts/run_day7_evaluation.py; python scripts/verify_day7.py
 python scripts/run_day8_evaluation.py; python scripts/verify_day8.py
 python scripts/verify_day9.py; python scripts/verify_day10.py; python scripts/verify_day11.py
+python scripts/verify_day12.py              # writes only to the hirewise_test database
 ```
 
 ## Tests
@@ -126,6 +139,6 @@ python -m unittest discover -s tests
 The default suite needs neither database. Live database tests are opt-in:
 
 ```powershell
-$env:HIREWISE_RUN_POSTGRES_TESTS = "1"     # read-only on hirewise; destructive cycle only on hirewise_test
+$env:HIREWISE_RUN_POSTGRES_TESTS = "1"     # read-only on hirewise; destructive/marketplace tests only on hirewise_test
 $env:HIREWISE_RUN_NEO4J_WRITE_TESTS = "1"  # temporary uniquely-labelled nodes in Neo4j
 ```
