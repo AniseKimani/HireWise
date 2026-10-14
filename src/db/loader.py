@@ -151,7 +151,9 @@ def load(engine: Engine, reset: bool = False, repo_root: Path = REPO_ROOT) -> di
         existing = _counts(conn)
         meta = stored_metadata(conn)
         if any(existing.values()) or meta:
-            if not reset and meta.get("source_fingerprint") == target and existing == {n: len(tables[n]) for n in TABLE_LOAD_ORDER}:
+            if (not reset and meta.get("source_fingerprint") == target
+                    and existing == {n: len(tables[n]) for n in TABLE_LOAD_ORDER}
+                    and fingerprint(read_back(conn)) == target):  # actual contents, not just the stored claim
                 return {"action": "unchanged", "fingerprint": target, "row_counts": existing}
             if not reset:
                 raise LoadRefused("database already holds different HireWise data; rerun with --reset to replace it")
