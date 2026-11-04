@@ -3,24 +3,76 @@
 {% block title %}HireWise · Find the right people for your projects{% endblock %}
 {% block content %}
 <section class="hero" aria-labelledby="hero-heading">
-  <div>
+  <div class="hero__content">
     <p class="hero__eyebrow">Skilled people. Meaningful work.</p>
     <h1 id="hero-heading">Find the right people for your projects</h1>
-    <p class="hero__lead">HireWise uses intelligent matching and a knowledge graph to connect clients with skilled workers
-      for real-world projects, and shows you why each worker was recommended.</p>
+    <p class="hero__lead">HireWise considers skills, specialisation, price compatibility, past hiring patterns and knowledge-graph evidence to rank workers for each request.</p>
     <div class="hero__actions">
       <a class="button button--lg" href="{{ url_for('marketplace.register') }}">Sign up</a>
       <a class="button button--secondary button--lg" href="{{ url_for('marketplace.login') }}">Log in</a>
     </div>
+    <ul class="hero__points">
+      <li>{{ icon("check") }} Post a request in a few steps</li>
+      <li>{{ icon("check") }} See why each worker was recommended</li>
+      <li>{{ icon("check") }} Book, complete and review in one place</li>
+    </ul>
   </div>
   <div class="hero__visual">
-    <svg viewBox="0 0 320 240" aria-hidden="true" focusable="false">
-      <circle cx="160" cy="70" r="34" fill="#1549a8"/>
-      <path d="M96 196c0-40 28-70 64-70s64 30 64 70z" fill="#1d5fd6"/>
-      <rect x="70" y="168" width="180" height="58" rx="8" fill="#0f2440"/>
-      <rect x="82" y="178" width="156" height="38" rx="4" fill="#dbe3ef"/>
-      <rect x="50" y="224" width="220" height="10" rx="5" fill="#4a5a70"/>
-      <circle cx="160" cy="197" r="6" fill="#1d5fd6"/>
+    {# Original illustration: a service request (left), its ranked worker matches (right) and the knowledge-graph
+       links between them. Abstract shapes only: no portraits, no text. Decorative, so hidden from assistive tech. #}
+    <svg viewBox="0 0 520 420" aria-hidden="true" focusable="false">
+      <circle cx="430" cy="88" r="72" fill="#f1edff"/>
+      <circle cx="78" cy="348" r="58" fill="#fff0e9"/>
+      <rect x="318" y="318" width="168" height="84" rx="24" fill="#e9f7f4"/>
+      <circle cx="488" cy="282" r="9" fill="#f3a76b"/>
+      <circle cx="52" cy="58" r="8" fill="#e87963"/>
+      <path d="M22 236c14-16 28-16 42 0s28 16 42 0" fill="none" stroke="#18b6a4" stroke-width="5" stroke-linecap="round"/>
+      <g fill="none" stroke="#18b6a4" stroke-width="3" stroke-linecap="round">
+        <path d="M262 112 C300 112 304 78 338 78" stroke-dasharray="2 9"/>
+        <path d="M338 78 L392 116 L436 92"/>
+        <path d="M392 116 L380 160"/>
+      </g>
+      <circle cx="338" cy="78" r="11" fill="#0e7c70"/>
+      <circle cx="392" cy="116" r="9" fill="#e87963"/>
+      <circle cx="436" cy="92" r="7" fill="#f3a76b"/>
+      <circle cx="380" cy="160" r="6" fill="#172b4d"/>
+      <rect x="46" y="66" width="220" height="156" rx="18" fill="#172b4d" opacity="0.08"/>
+      <rect x="40" y="58" width="220" height="156" rx="18" fill="#fff" stroke="#e6e0d8" stroke-width="2"/>
+      <rect x="60" y="78" width="38" height="38" rx="11" fill="#e9f7f4"/>
+      <path d="M70 92h18v15H70zM75 92v-4h8v4" fill="none" stroke="#0e7c70" stroke-width="2.5" stroke-linejoin="round"/>
+      <rect x="110" y="84" width="124" height="11" rx="5.5" fill="#172b4d"/>
+      <rect x="110" y="103" width="78" height="8" rx="4" fill="#d8d1c7"/>
+      <rect x="60" y="136" width="58" height="22" rx="11" fill="#f1edff"/>
+      <rect x="126" y="136" width="66" height="22" rx="11" fill="#e9f7f4"/>
+      <rect x="200" y="136" width="42" height="22" rx="11" fill="#fff0e9"/>
+      <rect x="60" y="178" width="182" height="8" rx="4" fill="#ece7df"/>
+      <rect x="60" y="194" width="120" height="8" rx="4" fill="#ece7df"/>
+      <rect x="236" y="188" width="252" height="206" rx="18" fill="#172b4d" opacity="0.08"/>
+      <rect x="230" y="180" width="252" height="206" rx="18" fill="#fff" stroke="#e6e0d8" stroke-width="2"/>
+      <rect x="244" y="196" width="224" height="52" rx="12" fill="#e9f7f4"/>
+      <g>
+        <circle cx="272" cy="222" r="17" fill="#0e7c70"/>
+        <circle cx="272" cy="216" r="5.5" fill="#fff"/><path d="M262 231a10 8 0 0 1 20 0z" fill="#fff"/>
+        <rect x="300" y="211" width="92" height="9" rx="4.5" fill="#172b4d"/>
+        <rect x="300" y="227" width="58" height="7" rx="3.5" fill="#b9c9c5"/>
+        <rect x="404" y="216" width="52" height="9" rx="4.5" fill="#0e7c70"/>
+      </g>
+      <g>
+        <circle cx="272" cy="284" r="17" fill="#e87963"/>
+        <circle cx="272" cy="278" r="5.5" fill="#fff"/><path d="M262 293a10 8 0 0 1 20 0z" fill="#fff"/>
+        <rect x="300" y="273" width="80" height="9" rx="4.5" fill="#172b4d"/>
+        <rect x="300" y="289" width="64" height="7" rx="3.5" fill="#d8d1c7"/>
+        <rect x="404" y="278" width="52" height="9" rx="4.5" fill="#e9f7f4"/>
+        <rect x="404" y="278" width="40" height="9" rx="4.5" fill="#18b6a4"/>
+      </g>
+      <g>
+        <circle cx="272" cy="342" r="17" fill="#f3a76b"/>
+        <circle cx="272" cy="336" r="5.5" fill="#fff"/><path d="M262 351a10 8 0 0 1 20 0z" fill="#fff"/>
+        <rect x="300" y="331" width="86" height="9" rx="4.5" fill="#172b4d"/>
+        <rect x="300" y="347" width="50" height="7" rx="3.5" fill="#d8d1c7"/>
+        <rect x="404" y="336" width="52" height="9" rx="4.5" fill="#e9f7f4"/>
+        <rect x="404" y="336" width="30" height="9" rx="4.5" fill="#18b6a4"/>
+      </g>
     </svg>
     <ul class="hero__badges">
       <li>{{ icon("user") }} Find skilled workers</li>
@@ -30,26 +82,35 @@
   </div>
 </section>
 
-<section class="features landing-section" aria-label="Why HireWise">
-  <article class="card feature">
-    <div class="feature__icon">{{ icon("spark") }}</div>
-    <h3>Intelligent matching</h3>
-    <p>Combines skills, category, experience and knowledge-graph insights to rank the best-fitting workers for a request.</p>
-  </article>
-  <article class="card feature">
-    <div class="feature__icon">{{ icon("eye") }}</div>
-    <h3>Transparent recommendations</h3>
-    <p>Every recommendation explains itself with real knowledge-graph evidence such as matching and related skills.</p>
-  </article>
-  <article class="card feature">
-    <div class="feature__icon">{{ icon("shield") }}</div>
-    <h3>Secure bookings and reviews</h3>
-    <p>A structured way to book workers, track progress and leave a rating and review when the work is complete.</p>
-  </article>
+<section class="landing-section" aria-labelledby="features-heading">
+  <div class="section-head">
+    <p class="eyebrow">Why HireWise</p>
+    <h2 id="features-heading">Recommendations you can understand</h2>
+  </div>
+  <div class="features">
+    <article class="card feature feature--teal">
+      <div class="feature__icon">{{ icon("spark") }}</div>
+      <h3>Intelligent matching</h3>
+      <p>Ranks the eligible workers for each request by combining profile and skill matching, collaborative hiring patterns and knowledge-graph insights.</p>
+    </article>
+    <article class="card feature feature--lavender">
+      <div class="feature__icon">{{ icon("eye") }}</div>
+      <h3>Transparent recommendations</h3>
+      <p>Every recommendation explains itself, with the contribution of each part of the score and knowledge-graph evidence such as matching and related skills.</p>
+    </article>
+    <article class="card feature feature--coral">
+      <div class="feature__icon">{{ icon("shield") }}</div>
+      <h3>Secure bookings and reviews</h3>
+      <p>A structured way to book workers, track progress and leave a rating and review when the work is complete.</p>
+    </article>
+  </div>
 </section>
 
-<section id="how-it-works" class="landing-section" aria-labelledby="how-heading">
-  <h2 id="how-heading">How HireWise works</h2>
+<section id="how-it-works" class="landing-section how" aria-labelledby="how-heading">
+  <div class="section-head">
+    <p class="eyebrow">Three steps</p>
+    <h2 id="how-heading">How HireWise works</h2>
+  </div>
   <ol class="steps">
     <li><span class="steps__num" aria-hidden="true">1</span><div><h3>Create an account</h3><p>Sign up as a client or a worker in a few minutes.</p></div></li>
     <li><span class="steps__num" aria-hidden="true">2</span><div><h3>Post a request</h3><p>Clients describe the work and get ranked worker recommendations with explanations.</p></div></li>
@@ -58,7 +119,8 @@
 </section>
 
 <section class="audience landing-section" aria-label="Who HireWise is for">
-  <article id="for-clients" class="card">
+  <article id="for-clients" class="card audience-card audience-card--clients">
+    <div class="audience-card__icon">{{ icon("briefcase") }}</div>
     <h2>For clients</h2>
     <ul class="checklist">
       <li>{{ icon("check") }} Post service requests</li>
@@ -68,7 +130,8 @@
     </ul>
     <a class="button" href="{{ url_for('marketplace.register', role='client') }}">Hire a worker</a>
   </article>
-  <article id="for-workers" class="card">
+  <article id="for-workers" class="card audience-card audience-card--workers">
+    <div class="audience-card__icon">{{ icon("tools") }}</div>
     <h2>For workers</h2>
     <ul class="checklist">
       <li>{{ icon("check") }} Showcase your skills and experience</li>
@@ -76,14 +139,21 @@
       <li>{{ icon("check") }} Build your reputation with reviews</li>
     </ul>
     <a class="button" href="{{ url_for('marketplace.register', role='worker') }}">Offer your services</a>
+    <p class="note audience-card__note">In this prototype, recommendations and bookings use the research catalogue of workers;
+      newly registered worker profiles are not yet recommended to clients.</p>
   </article>
 </section>
 
-<section id="about" class="card landing-section" aria-labelledby="about-heading">
-  <h2 id="about-heading">About HireWise</h2>
-  <p>HireWise is a final-year project: a knowledge graph-enhanced hybrid recommender for digital worker-service platforms.
-    Recommendations combine profile matching, collaborative hiring patterns and knowledge-graph evidence, and were evaluated on a
-    research dataset derived from real Upwork job postings.</p>
-  <p class="note">Want to see the evaluated research system itself? Open the <a href="{{ url_for('pages.demo') }}">Research Demo</a>.</p>
+<section id="about" class="about landing-section" aria-labelledby="about-heading">
+  <div class="about__text">
+    <h2 id="about-heading">About HireWise</h2>
+    <p>HireWise is a final-year project: a knowledge graph-enhanced hybrid recommender for digital worker-service platforms.
+      Recommendations combine profile matching, collaborative hiring patterns and knowledge-graph evidence, and were evaluated on a
+      research dataset derived from real Upwork job postings.</p>
+  </div>
+  <aside class="about__demo" aria-label="Research Demo">
+    <span class="about__demo-icon">{{ icon("flask") }}</span>
+    <p class="note">Want to see the evaluated research system itself? Open the <a href="{{ url_for('pages.demo') }}">Research Demo</a>.</p>
+  </aside>
 </section>
 {% endblock %}

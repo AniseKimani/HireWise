@@ -6,9 +6,12 @@
 {% block content %}
 <div class="auth">
   {% if errors %}
-  <div class="card flash" role="alert">
-    <p><strong>Please correct the highlighted fields.</strong></p>
-    {% if errors.get('role') %}<p class="field-error">{{ errors['role'] }}</p>{% endif %}
+  <div class="form-alert form-alert--danger" role="alert">
+    {{ icon("x-circle", "icon form-alert__icon") }}
+    <div>
+      <p><strong>Please correct the highlighted fields.</strong></p>
+      {% if errors.get('role') %}<p class="field-error">{{ errors['role'] }}</p>{% endif %}
+    </div>
   </div>
   {% endif %}
 
@@ -23,13 +26,13 @@
       </div>
       <fieldset class="role-cards">
         <legend class="visually-hidden">I want to</legend>
-        <label class="role-card" for="role-client">
+        <label class="role-card role-card--client" for="role-client">
           <span class="role-card__icon">{{ icon("briefcase") }}</span>
           <strong>I want to hire a worker</strong>
           <span>Create a client account to post service requests and find the right people for your projects.</span>
           <input type="radio" id="role-client" name="role" value="client" {% if role == 'client' %}checked{% endif %}>
         </label>
-        <label class="role-card" for="role-worker">
+        <label class="role-card role-card--worker" for="role-worker">
           <span class="role-card__icon">{{ icon("tools") }}</span>
           <strong>I want to offer services</strong>
           <span>Create a worker account to showcase your skills and receive booking requests.</span>
@@ -51,8 +54,10 @@
 
     {# ---- Step 1: account details (shared) -------------------------------------- #}
     <section class="reg-step" data-step="account" aria-labelledby="account-heading">
-      <h2 id="account-heading">Create your <span data-role-label>HireWise</span> account</h2>
-      <p class="muted">Tell us a bit about yourself to get started.</p>
+      <div class="reg-step__head">
+        <h2 id="account-heading">Create your <span data-role-label>HireWise</span> account</h2>
+        <p class="muted">Tell us a bit about yourself to get started.</p>
+      </div>
       {# Source order: fields, then the step actions, then the supplementary side panel. On desktop the
          panel is placed beside the fields (style.css "reg-step"); on narrow screens it follows the actions
          instead of separating the fields from Continue. #}
@@ -109,9 +114,11 @@
 
     {# ---- Step 2: role-specific details -------------------------------------------- #}
     <section class="reg-step" data-step="details" aria-labelledby="details-heading">
-      <h2 id="details-heading">Tell us more about your <span data-role-label>HireWise</span> account</h2>
-      <p class="muted" data-role="client">This information helps us tailor your experience.</p>
-      <p class="muted" data-role="worker">This information is shown to clients and helps you get matched with relevant requests.</p>
+      <div class="reg-step__head">
+        <h2 id="details-heading">Tell us more about your <span data-role-label>HireWise</span> account</h2>
+        <p class="muted" data-role="client">This information helps us tailor your experience.</p>
+        <p class="muted" data-role="worker">This information is shown to clients and helps you get matched with relevant requests.</p>
+      </div>
       <div class="reg-step__grid">
         <div class="card reg-step__main">
           <div class="form-grid">

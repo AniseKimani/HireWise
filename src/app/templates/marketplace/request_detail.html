@@ -3,8 +3,16 @@
 {% from "_icons.html" import icon %}
 {% block title %}Recommended workers · {{ req.title }} · HireWise{% endblock %}
 {% block content %}
-<div class="page-head">
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <ol>
+    <li><a href="{{ url_for('marketplace.dashboard') }}">Dashboard</a></li>
+    <li><a href="{{ url_for('marketplace.my_requests') }}">My Requests</a></li>
+    <li aria-current="page">{{ req.title }}</li>
+  </ol>
+</nav>
+<div class="page-head results-head">
   <div>
+    <p class="eyebrow">Recommendations for your request</p>
     <h1>Recommended Workers</h1>
     <p class="page-head__sub">{{ req.title }} · {{ req.category }}</p>
   </div>
@@ -12,35 +20,67 @@
 </div>
 
 <div class="grid-2 request-overview">
-  <section class="card" aria-labelledby="details-heading">
-    <h2 id="details-heading">Request details</h2>
-    <dl class="facts">
-      <dt>Required skills</dt><dd>{{ req.skills|join(', ') }}</dd>
-      <dt>Pay</dt>
-      <dd>{{ req.pay_type|capitalize }}{% if req.budget %}, budget {{ '%.2f'|format(req.budget) }}{% endif %}{% if req.hourly_low or req.hourly_high %}, {{ req.hourly_low or '…' }}–{{ req.hourly_high or '…' }} per hour{% endif %}</dd>
-      <dt>Budget level</dt><dd>{% if req.price_tier is not none %}Percentile {{ (req.price_tier * 100)|round|int }} of 100 within its category{% else %}not stated{% endif %}</dd>
-      <dt>Location</dt><dd>{{ req.location_requirement or 'Any' }}</dd>
+  <section class="card request-summary" aria-labelledby="details-heading">
+    <p class="request-summary__label">Request details</p>
+    <h2 id="details-heading" class="request-summary__title">{{ req.title }}</h2>
+    <dl class="request-summary__facts">
+      <div><dt>Category</dt><dd>{{ req.category }}</dd></div>
+      <div><dt>Pay</dt>
+        <dd>{{ req.pay_type|capitalize }}{% if req.budget %}, budget {{ '%.2f'|format(req.budget) }}{% endif %}{% if req.hourly_low or req.hourly_high %}, {{ req.hourly_low or '…' }}–{{ req.hourly_high or '…' }} per hour{% endif %}</dd></div>
+      <div><dt>Budget level</dt><dd>{% if req.price_tier is not none %}Percentile {{ (req.price_tier * 100)|round|int }} of 100 within its category{% else %}not stated{% endif %}</dd></div>
+      <div><dt>Location</dt><dd>{{ req.location_requirement or 'Any' }}</dd></div>
     </dl>
+    <p class="field-label">Required skills</p>
+    <ul class="chips" aria-label="Required skills">{% for s in req.skills %}<li class="chip chip--match">{{ icon("check") }} {{ s }}</li>{% endfor %}</ul>
   </section>
-  <section class="card" aria-labelledby="bookings-heading">
+  <section class="card request-bookings" aria-labelledby="bookings-heading">
     <h2 id="bookings-heading">Bookings for this request</h2>
     {% if active_booking %}<p class="note">Active booking #{{ active_booking.booking_id }} ({{ active_booking.status }}). Cancel it to book someone else.</p>{% endif %}
     {{ booking_table(request_bookings, rules, 'client', url_for('marketplace.request_detail', request_id=req.request_id)) }}
   </section>
 </div>
 
-<section aria-labelledby="recs-heading" class="landing-section">
-  <h2 id="recs-heading" class="visually-hidden">Recommended workers</h2>
-  <p class="note">
+<section class="how-ranked landing-section" aria-labelledby="how-ranked-heading">
+  <h2 id="how-ranked-heading">How these workers were ranked</h2>
+  <p class="how-ranked__lead">
     Top {{ result.n_returned }} of {{ result.n_candidates }} eligible workers, ranked by the HireWise hybrid recommender
-    (profile 0.40 · collaborative 0.10 · knowledge graph 0.50). Hybrid scores are ranking scores, not probabilities.
+    (profile 0.40 · collaborative 0.10 · knowledge graph 0.50). Each worker's hybrid score is the sum of three parts:
+  </p>
+  <ul class="how-ranked__parts">
+    <li><span class="swatch contribution--cbf" aria-hidden="true"></span><div><strong>Profile match</strong>
+      How well the worker's declared skills, specialisation (primary or secondary category) and usual price level fit this request.</div></li>
+    <li><span class="swatch contribution--cf" aria-hidden="true"></span><div><strong>Similar clients' hiring</strong>
+      Patterns in past hiring between clients and workers. It contributes only when your account has hiring history.</div></li>
+    <li><span class="swatch contribution--kg" aria-hidden="true"></span><div><strong>Knowledge-graph evidence</strong>
+      Connections in the HireWise knowledge graph, such as your required skills, related skills, specialisation, hiring history and reputation.</div></li>
+  </ul>
+  <p class="note how-ranked__note">
+    Hybrid scores are ranking scores, not probabilities: they compare workers within this request's eligible pool only.
     {% if not result.history.collaborative_history_available %}
     This account has no hiring history yet, so the collaborative component contributes nothing and no history-based
     graph paths are used.
     {% endif %}
   </p>
+</section>
+
+<section aria-labelledby="recs-heading" class="landing-section">
+  <h2 id="recs-heading" class="visually-hidden">Recommended workers</h2>
+  {% if active_booking %}
+  <p class="results-locked" id="booking-locked-note">{{ icon("info", "icon results-locked__icon") }}
+    <span>Booking is paused for this request: it already has an active booking (#{{ active_booking.booking_id }}, {{ active_booking.status }}). Cancel it to book someone else.</span></p>
+  {% endif %}
+  {% if result.recommendations %}
   <ol class="worker-cards">
-    {% for rec in result.recommendations %}{{ worker_card(rec, req.request_id, active_booking) }}{% endfor %}
+    {% for rec in result.recommendations %}{{ worker_card(rec, req.request_id, active_booking, req.skills) }}{% endfor %}
   </ol>
+  {% else %}
+  <div class="card dash-empty dash-empty--page">
+    <span class="dash-empty__icon">{{ icon("user") }}</span>
+    <h3>No eligible workers for this request</h3>
+    <p class="empty-state">No worker in the recommendation catalogue is eligible for this category{% if req.location_requirement %} in {{ req.location_requirement }}{% endif %}.
+      Eligible workers have the request's category as a primary or secondary specialisation{% if req.location_requirement %} and are located in the required country{% endif %}.</p>
+    <a class="button" href="{{ url_for('marketplace.new_request') }}">{{ icon("plus") }} Post a new request</a>
+  </div>
+  {% endif %}
 </section>
 {% endblock %}

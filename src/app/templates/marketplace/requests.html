@@ -2,23 +2,50 @@
 {% from "_icons.html" import icon %}
 {% block title %}My requests · HireWise{% endblock %}
 {% block content %}
-<div class="page-head">
+<div class="page-head client-head">
   <div>
+    <p class="eyebrow">Client</p>
     <h1>My Requests</h1>
     <p class="page-head__sub">Your service requests and their recommended workers</p>
   </div>
   <a class="button page-head__cta" href="{{ url_for('marketplace.new_request') }}">{{ icon("plus") }} Post a new request</a>
 </div>
-<section class="card" aria-label="Your service requests">
+<section aria-label="Your service requests">
   {% if requests_list %}
-  <ul class="item-list">
+  <p class="list-count">{{ requests_list|length }} request{{ 's' if requests_list|length != 1 }}, newest first</p>
+  <ul class="request-cards">
     {% for r in requests_list %}
-    <li class="item">
-      <div><span class="item__title">{{ r.title }}</span><div class="item__meta">{{ r.category }} · {{ r.skills|join(', ') }} · {{ r.pay_type }}</div></div>
-      <a class="button button--secondary" href="{{ url_for('marketplace.request_detail', request_id=r.request_id) }}">View recommended workers</a>
+    <li class="card request-card">
+      <div class="request-card__top">
+        {% if r.pay_type == 'hourly' %}<span class="pay-tag pay-tag--hourly">{{ icon("clock") }} Hourly</span>
+        {% elif r.pay_type == 'fixed' %}<span class="pay-tag pay-tag--fixed">{{ icon("briefcase") }} Fixed price</span>
+        {% else %}<span class="pay-tag">Pay not specified</span>{% endif %}
+        {% if r.created_at %}<span class="request-card__date">Posted <time datetime="{{ r.created_at.date().isoformat() }}">{{ r.created_at.day }} {{ r.created_at.strftime('%b %Y') }}</time></span>{% endif %}
+      </div>
+      <h2 class="request-card__title">{{ r.title }}</h2>
+      <dl class="request-card__facts">
+        <div><dt>Category</dt><dd>{{ r.category }}</dd></div>
+        <div><dt>Pay</dt><dd class="num">
+          {%- if r.pay_type == 'fixed' and r.budget %}Budget {{ '%.2f'|format(r.budget) }}
+          {%- elif r.pay_type == 'hourly' %}{{ '%.2f'|format(r.hourly_low) if r.hourly_low else '…' }}–{{ '%.2f'|format(r.hourly_high) if r.hourly_high else '…' }} per hour
+          {%- else %}{{ r.pay_type|capitalize }}{% endif -%}
+        </dd></div>
+        <div><dt>Location</dt><dd>{{ r.location_requirement or 'Any' }}</dd></div>
+      </dl>
+      <ul class="chips" aria-label="Required skills for {{ r.title }}">{% for s in r.skills %}<li class="chip">{{ s }}</li>{% endfor %}</ul>
+      <div class="request-card__actions">
+        <a class="button button--secondary" href="{{ url_for('marketplace.request_detail', request_id=r.request_id) }}">View recommended workers</a>
+      </div>
     </li>
     {% endfor %}
   </ul>
-  {% else %}<p class="empty-state">You have not posted any requests yet.</p>{% endif %}
+  {% else %}
+  <div class="card dash-empty dash-empty--page">
+    <span class="dash-empty__icon">{{ icon("send") }}</span>
+    <h2>No requests yet</h2>
+    <p class="empty-state">You have not posted any requests yet.</p>
+    <a class="button" href="{{ url_for('marketplace.new_request') }}">{{ icon("plus") }} Post your first request</a>
+  </div>
+  {% endif %}
 </section>
 {% endblock %}

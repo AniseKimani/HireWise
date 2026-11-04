@@ -4,39 +4,70 @@
 {% block title %}Profile · HireWise{% endblock %}
 {% block content %}
 {% if profile %}
-<section class="card profile-head" aria-labelledby="profile-heading">
-  <div class="avatar" aria-hidden="true">{{ icon("user") }}</div>
-  <div>
-    <h1 id="profile-heading">{% if profile.worker_id %}Worker {{ profile.worker_id }}{% else %}{{ current_user.display_name }}{% endif %}</h1>
-    <p class="meta-row">
-      <span>{{ icon("pin") }} {{ profile.country }}</span>
-      <span>{{ icon("briefcase") }} {{ '%.0f'|format(profile.experience_years) }} years experience ({{ profile.experience_level }})</span>
-    </p>
-    {% if profile.training_review_count is not none %}{{ rating_summary(profile.training_review_count, profile.training_mean_rating) }}{% endif %}
+{# The worker's own profile: only the fields the application stores (catalogue profile for demo accounts
+   linked to the research catalogue, or the profile entered at registration). Not editable here. #}
+<section class="card worker-hero own-profile__head" aria-labelledby="profile-heading">
+  <div class="worker-hero__top">
+    <div class="avatar" aria-hidden="true">{{ icon("user") }}</div>
+    <div class="worker-hero__identity">
+      <p class="eyebrow">Your worker profile</p>
+      <h1 id="profile-heading">{% if profile.worker_id %}Worker {{ profile.worker_id }}{% else %}{{ current_user.display_name }}{% endif %}</h1>
+      <p class="meta-row">
+        {% if profile.primary_category %}<span>{{ icon("tools") }} {{ profile.primary_category }}</span>{% endif %}
+        <span>{{ icon("pin") }} {{ profile.country }}</span>
+        <span>{{ icon("briefcase") }} {{ '%.0f'|format(profile.experience_years) }} years experience ({{ profile.experience_level }})</span>
+      </p>
+      {% if profile.training_review_count is not none %}<p class="worker-hero__rating">{{ rating_summary(profile.training_review_count, profile.training_mean_rating) }}{% if profile.training_review_count %} <span class="worker-card__source">research-period reviews</span>{% endif %}</p>{% endif %}
+    </div>
   </div>
+  <dl class="worker-hero__facts">
+    <div><dt>Specialisation</dt><dd>{{ profile.primary_category or 'not stated' }}</dd></div>
+    <div><dt>Experience</dt><dd>{{ (profile.experience_level or 'not stated')|capitalize }}, {{ '%.1f'|format(profile.experience_years) }} years</dd></div>
+    <div><dt>Rate</dt><dd class="num">{{ '%.2f'|format(profile.rate) }}</dd></div>
+    <div><dt>Location</dt><dd>{{ profile.country or 'not stated' }}</dd></div>
+  </dl>
+  <p class="own-profile__status">
+    {% if profile_source == 'imported' %}<span class="badge badge--brand">In the recommendation catalogue</span>
+      Demo account linked to a catalogue profile, so clients can be recommended to book you. Catalogue details come from the research dataset and have not been verified by HireWise.
+    {% else %}<span class="badge badge--neutral">Not yet recommended</span>
+      New worker profile. The recommender uses a frozen research catalogue, so new profiles are not recommended to clients yet.{% endif %}
+  </p>
 </section>
-<div class="grid-2 landing-section">
-  <section class="card" aria-labelledby="skills-heading">
-    <h2 id="skills-heading" class="section-title">{{ icon("tools") }} Associated skills</h2>
-    {{ skills_chips(profile.skills, "Skills") }}
+<div class="own-profile__grid">
+  <section class="card dash-section" aria-labelledby="skills-heading">
+    <h2 id="skills-heading" class="section-title">{{ icon("tools") }} Associated skills <span class="section-title__count">{{ profile.skills|length }}</span></h2>
+    {% if profile.skills %}{{ skills_chips(profile.skills, "Skills") }}{% else %}<p class="empty-state">No skills listed.</p>{% endif %}
     <hr class="divider">
     <h2 class="section-title">{{ icon("list") }} Services offered</h2>
-    <ul class="link-list">
-      <li>{{ profile.primary_category }} (primary category)</li>
-      {% for c in profile.secondary_categories %}<li>{{ c }}</li>{% endfor %}
+    <ul class="service-list">
+      <li><span>{{ profile.primary_category }}</span> <span class="badge badge--brand">Primary category</span></li>
+      {% for c in profile.secondary_categories %}<li><span>{{ c }}</span></li>{% endfor %}
     </ul>
-    <p class="note">Rate: {{ '%.2f'|format(profile.rate) }}</p>
   </section>
-  <section class="card" aria-labelledby="reviews-heading">
-    <h2 id="reviews-heading" class="section-title">{{ icon("star") }} Reviews from HireWise clients</h2>
-    {% if reviews %}
-    <ul class="review-list">
-      {% for b in reviews %}<li><span class="rating">{{ icon("star") }} <strong>{{ b.review_rating }}/5</strong></span> for “{{ b.request_title }}”{% if b.review_text %}<br>{{ b.review_text }}{% endif %}</li>{% endfor %}
-    </ul>
-    {% else %}<p class="empty-state">No reviews yet.</p>{% endif %}
+  <section class="card dash-section" aria-labelledby="reviews-heading">
+    <h2 id="reviews-heading" class="section-title">{{ icon("star") }} Ratings and reviews</h2>
+    {# Two sources, never merged: the research dataset's rating summary (catalogue profiles only) and
+       reviews clients left on completed HireWise bookings. #}
+    <div class="review-sources review-sources--stacked">
+      {% if profile.training_review_count is not none %}
+      <div class="review-source review-source--research">
+        <h3>Research-period rating</h3>
+        <p>{{ rating_summary(profile.training_review_count, profile.training_mean_rating) }}</p>
+        <p class="note">From the research dataset behind the recommendation catalogue. These reviews were not submitted through HireWise.</p>
+      </div>
+      {% endif %}
+      <div class="review-source review-source--app">
+        <h3>Reviews on HireWise</h3>
+        {% if reviews %}
+        <ul class="review-list">
+          {% for b in reviews %}<li><span class="rating">{{ icon("star") }} <strong>{{ b.review_rating }}/5</strong></span> for “{{ b.request_title }}”{% if b.review_text %}<br>{{ b.review_text }}{% endif %}</li>{% endfor %}
+        </ul>
+        {% else %}<p class="empty-state">No reviews yet.</p>{% endif %}
+      </div>
+    </div>
   </section>
 </div>
 {% else %}
-<section class="card"><h1>Your worker profile</h1><p class="empty-state">No profile found.</p></section>
+<section class="card dash-empty dash-empty--page"><span class="dash-empty__icon">{{ icon("user") }}</span><h1>Your worker profile</h1><p class="empty-state">No profile found.</p></section>
 {% endif %}
 {% endblock %}

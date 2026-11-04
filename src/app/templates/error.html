@@ -1,9 +1,12 @@
 {% extends "base.html" %}
 {% block title %}{{ status }} · HireWise{% endblock %}
 {% block content %}
-<section class="panel narrow" aria-labelledby="error-heading">
-  <h1 id="error-heading">{{ heading }}</h1>
-  <p>{{ message }}</p>
-  <p><a href="{{ url_for('pages.landing') }}">Return to HireWise</a></p>
+<section class="error-page" aria-labelledby="error-heading">
+  <div class="card error-page__card">
+    <p class="error-page__code"><span class="visually-hidden">Error </span>{{ status }}</p>
+    <h1 id="error-heading">{{ heading }}</h1>
+    <p class="error-page__message">{{ message }}</p>
+    <p class="error-page__actions"><a class="button" href="{{ url_for('pages.landing') }}">Return to HireWise</a></p>
+  </div>
 </section>
 {% endblock %}

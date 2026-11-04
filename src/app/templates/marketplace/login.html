@@ -1,28 +1,36 @@
 {% extends "base.html" %}
 {% from "marketplace/macros.html" import csrf_field %}
+{% from "_icons.html" import icon %}
 {% block title %}Log in · HireWise{% endblock %}
 {% block content %}
-<div class="auth">
-  <div class="auth__head">
-    <h1 id="login-heading">Welcome back</h1>
-    <p>Log in to your HireWise account.</p>
-  </div>
+<div class="auth auth--login">
   <section class="card auth-card" aria-labelledby="login-heading">
-    {% if error %}<p class="field-error" role="alert">{{ error }}</p>{% endif %}
+    <div class="auth__head">
+      <h1 id="login-heading">Welcome back</h1>
+      <p>Log in to your HireWise account.</p>
+    </div>
+    {% if error %}<p class="form-alert form-alert--danger" id="login-error" role="alert">{{ icon("x-circle", "icon form-alert__icon") }}<span>{{ error }}</span></p>{% endif %}
     <form method="post" action="{{ url_for('marketplace.login') }}" class="form-grid">
       {{ csrf_field() }}
       {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
       <div class="field">
         <label for="email">Email address</label>
-        <input id="email" name="email" type="email" autocomplete="username" maxlength="254" required placeholder="you@example.com" value="{{ email }}">
+        <input id="email" name="email" type="email" autocomplete="username" maxlength="254" required placeholder="you@example.com" value="{{ email }}"{% if error %} aria-describedby="login-error"{% endif %}>
       </div>
       <div class="field">
         <label for="password">Password</label>
-        <input id="password" name="password" type="password" autocomplete="current-password" maxlength="128" required>
+        <input id="password" name="password" type="password" autocomplete="current-password" maxlength="128" required{% if error %} aria-describedby="login-error"{% endif %}>
       </div>
       <button type="submit" class="button button--lg button--block">Log in</button>
     </form>
-    <p>New to HireWise? <a href="{{ url_for('marketplace.register') }}">Create an account</a></p>
+    <p class="auth-card__switch">New to HireWise? <a href="{{ url_for('marketplace.register') }}">Create an account</a></p>
   </section>
+  <aside class="auth-aside" aria-label="What you can do after logging in">
+    <h2>Pick up where you left off</h2>
+    <ul class="auth-aside__list">
+      <li><span class="auth-aside__icon auth-aside__icon--teal">{{ icon("briefcase") }}</span><span><strong>Clients</strong> see their requests, recommended workers and bookings.</span></li>
+      <li><span class="auth-aside__icon auth-aside__icon--coral">{{ icon("tools") }}</span><span><strong>Workers</strong> manage booking requests and the reviews they receive.</span></li>
+    </ul>
+  </aside>
 </div>
 {% endblock %}

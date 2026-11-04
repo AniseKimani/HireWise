@@ -3,72 +3,133 @@
 {% from "_icons.html" import icon %}
 {% block title %}Dashboard · HireWise{% endblock %}
 {% block content %}
-<div class="page-head">
+{% set active = requests_list|selectattr('request_id', 'in', requests_in_progress)|list %}
+{% set others = requests_list|rejectattr('request_id', 'in', requests_in_progress)|list %}
+<div class="page-head client-head">
   <div>
+    <p class="eyebrow">Client dashboard</p>
     <h1>Welcome back, {{ current_user.display_name }}</h1>
-    <p class="page-head__sub">Client dashboard</p>
+    <p class="page-head__sub">Your requests, recommended workers and bookings in one place.</p>
   </div>
   <a class="button button--lg page-head__cta" href="{{ url_for('marketplace.new_request') }}">{{ icon("plus") }} Post a new request</a>
 </div>
 
-<div class="stats" role="group" aria-label="Booking status summary">
-  <div class="stat"><span class="stat__value">{{ requests_list|length }}</span><span class="stat__label">Service requests</span></div>
-  <div class="stat"><span class="stat__value">{{ status_counts.pending }}</span><span class="stat__label">Awaiting worker</span></div>
-  <div class="stat"><span class="stat__value">{{ status_counts.accepted }}</span><span class="stat__label">In progress</span></div>
-  <div class="stat"><span class="stat__value">{{ status_counts.completed }}</span><span class="stat__label">Completed</span></div>
+{# The four existing counts. Status tiles use the same semantic colours as the booking status badges. #}
+<div class="metrics" role="group" aria-label="Booking status summary">
+  <div class="metric metric--brand">
+    <span class="metric__icon">{{ icon("list") }}</span>
+    <span class="metric__value">{{ requests_list|length }}</span><span class="metric__label">Service requests</span>
+  </div>
+  <div class="metric metric--warning">
+    <span class="metric__icon">{{ icon("clock") }}</span>
+    <span class="metric__value">{{ status_counts.pending }}</span><span class="metric__label">Awaiting worker</span>
+  </div>
+  <div class="metric metric--info">
+    <span class="metric__icon">{{ icon("briefcase") }}</span>
+    <span class="metric__value">{{ status_counts.accepted }}</span><span class="metric__label">In progress</span>
+  </div>
+  <div class="metric metric--success">
+    <span class="metric__icon">{{ icon("check") }}</span>
+    <span class="metric__value">{{ status_counts.completed }}</span><span class="metric__label">Completed</span>
+  </div>
 </div>
 
-<div class="grid-main-side">
-  <div class="stack">
-    <section class="card" aria-labelledby="active-heading">
-      <h2 id="active-heading">Active service requests</h2>
-      {% set active = requests_list|selectattr('request_id', 'in', requests_in_progress)|list %}
+<div class="client-dash">
+  <div class="client-dash__main">
+    {# Current activity: requests that have a pending or accepted booking. #}
+    <section class="card dash-section" aria-labelledby="active-heading">
+      <div class="dash-section__head">
+        <h2 id="active-heading">Active service requests</h2>
+        {% if active %}<span class="dash-section__count">{{ active|length }}</span>{% endif %}
+      </div>
       {% if active %}
-      <ul class="item-list">
+      <ul class="request-rows">
         {% for r in active %}
-        <li class="item"><div><a class="item__title" href="{{ url_for('marketplace.request_detail', request_id=r.request_id) }}">{{ r.title }}</a><div class="item__meta">{{ r.category }}</div></div><span class="status-badge status-badge--accepted">booking in progress</span></li>
+        <li class="request-row request-row--active">
+          <div class="request-row__body">
+            <a class="request-row__title" href="{{ url_for('marketplace.request_detail', request_id=r.request_id) }}">{{ r.title }}</a>
+            <p class="request-row__meta">{{ r.category }}</p>
+          </div>
+          <span class="status-badge status-badge--accepted">booking in progress</span>
+        </li>
         {% endfor %}
       </ul>
-      {% else %}<p class="empty-state">No requests with a booking in progress.</p>{% endif %}
+      {% else %}
+      <p class="empty-state">No requests with a booking in progress.</p>
+      {% endif %}
     </section>
 
-    <section class="card" aria-labelledby="recent-heading">
-      <h2 id="recent-heading">Recent requests</h2>
-      {% if requests_list %}
-      <ul class="item-list">
-        {% for r in requests_list[:5] %}
-        <li class="item"><div><span class="item__title">{{ r.title }}</span><div class="item__meta">{{ r.category }} · {{ r.skills|join(', ') }}</div></div>
-          <a class="button button--secondary" href="{{ url_for('marketplace.request_detail', request_id=r.request_id) }}">View recommended workers</a></li>
+    {# Recent requests without an active booking (those already appear above). #}
+    <section class="card dash-section" aria-labelledby="recent-heading">
+      <div class="dash-section__head">
+        <h2 id="recent-heading">Recent requests</h2>
+        {% if requests_list %}<a class="dash-section__link" href="{{ url_for('marketplace.my_requests') }}">View all requests</a>{% endif %}
+      </div>
+      {% if others %}
+      <ul class="request-rows">
+        {% for r in others[:5] %}
+        <li class="request-row">
+          <div class="request-row__body">
+            <span class="request-row__title">{{ r.title }}</span>
+            <p class="request-row__meta">{{ r.category }} · {{ r.skills|join(', ') }}</p>
+          </div>
+          <a class="button button--secondary" href="{{ url_for('marketplace.request_detail', request_id=r.request_id) }}">View recommended workers</a>
+        </li>
         {% endfor %}
       </ul>
-      {% else %}<p class="empty-state">You have not posted any requests yet. <a href="{{ url_for('marketplace.new_request') }}">Post your first request</a> to see recommended workers.</p>{% endif %}
+      {% elif requests_list %}
+      <p class="empty-state">Every recent request has a booking in progress; they are listed above.</p>
+      {% else %}
+      <div class="dash-empty">
+        <span class="dash-empty__icon">{{ icon("send") }}</span>
+        <p>You have not posted any requests yet. <a href="{{ url_for('marketplace.new_request') }}">Post your first request</a> to see recommended workers.</p>
+      </div>
+      {% endif %}
     </section>
 
-    <section class="card" aria-labelledby="bookings-heading">
-      <h2 id="bookings-heading">Service history</h2>
+    {# History: the most recent bookings, any status. #}
+    <section class="card dash-section" aria-labelledby="bookings-heading">
+      <div class="dash-section__head">
+        <h2 id="bookings-heading">Service history</h2>
+        {% if bookings_list %}<a class="dash-section__link" href="{{ url_for('marketplace.bookings_page') }}">{% if bookings_list|length > 5 %}See all bookings{% else %}Open service history{% endif %}</a>{% endif %}
+      </div>
       {{ booking_table(bookings_list[:5], rules, 'client', url_for('marketplace.dashboard')) }}
-      {% if bookings_list|length > 5 %}<p><a href="{{ url_for('marketplace.bookings_page') }}">See all bookings</a></p>{% endif %}
     </section>
   </div>
 
-  <aside class="stack">
-    <section class="card" aria-labelledby="latest-recs-heading">
-      <h2 id="latest-recs-heading">Top matches for your latest request</h2>
+  <aside class="client-dash__side">
+    <section class="card dash-section matches" aria-labelledby="latest-recs-heading">
+      <div class="dash-section__head">
+        <h2 id="latest-recs-heading">Top matches for your latest request</h2>
+      </div>
       {% if latest_request %}
-      <p class="muted">{{ latest_request.title }}</p>
-      <ul class="item-list">
+      <p class="matches__request">{{ icon("list") }}<span>{{ latest_request.title }}</span></p>
+      <ol class="match-list">
         {% for rec in latest_recs %}
-        <li class="item"><div><span class="item__title">Worker {{ rec.worker.worker_id }}</span>
-          <div class="item__meta">{{ rec.worker.primary_category }} · {{ rec.worker.country }}</div>
-          {{ rating_summary(rec.worker.training_review_count, rec.worker.training_mean_rating) }}</div>
-          <span class="score-pill" title="Ranking score, not a probability">Hybrid score: {{ '%.3f'|format(rec.score) }}</span></li>
+        <li class="match">
+          <span class="match__rank"><span class="visually-hidden">Rank </span>{{ rec.rank }}</span>
+          <div class="match__body">
+            <span class="match__name">Worker {{ rec.worker.worker_id }}</span>
+            <span class="match__meta">{{ rec.worker.primary_category }} · {{ rec.worker.country }}</span>
+            {{ rating_summary(rec.worker.training_review_count, rec.worker.training_mean_rating) }}
+          </div>
+          <span class="score-pill" title="Ranking score, not a probability">Hybrid score: {{ '%.3f'|format(rec.score) }}</span>
+        </li>
         {% endfor %}
-      </ul>
-      <p><a href="{{ url_for('marketplace.request_detail', request_id=latest_request.request_id) }}">See all recommended workers and why</a></p>
-      {% else %}<p class="empty-state">Post a request to see recommended workers here.</p>{% endif %}
+      </ol>
+      <p class="note">Hybrid scores rank workers within this request's eligible pool; they are not probabilities.</p>
+      <a class="button button--secondary button--block" href="{{ url_for('marketplace.request_detail', request_id=latest_request.request_id) }}">See all recommended workers and why</a>
+      {% else %}
+      <div class="dash-empty">
+        <span class="dash-empty__icon">{{ icon("spark") }}</span>
+        <p>Post a request to see recommended workers here.</p>
+      </div>
+      {% endif %}
     </section>
-    <section class="card" aria-labelledby="account-heading">
-      <h2 id="account-heading">Your account</h2>
+    <section class="card dash-section" aria-labelledby="account-heading">
+      <div class="dash-section__head">
+        <h2 id="account-heading">Your account</h2>
+      </div>
       <dl class="facts">
         <dt>Email</dt><dd>{{ current_user.email }}</dd>
         <dt>Location</dt><dd>{{ current_user.country or 'not stated' }}</dd>

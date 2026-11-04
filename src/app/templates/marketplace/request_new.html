@@ -1,69 +1,119 @@
 {% extends "base.html" %}
 {% from "marketplace/macros.html" import field_error, csrf_field %}
+{% from "_icons.html" import icon %}
 {% block title %}New request · HireWise{% endblock %}
+{% macro described(name, hint) -%}
+{%- if errors.get(name) %} aria-describedby="{{ name }}-error" aria-invalid="true"{% elif hint %} aria-describedby="{{ hint }}"{% endif -%}
+{%- endmacro %}
 {% block content %}
-<div class="page-head">
+<div class="page-head client-head">
   <div>
+    <p class="eyebrow">New request</p>
     <h1 id="new-heading">Post a service request</h1>
     <p class="page-head__sub">Describe the work and HireWise will recommend the best-fitting workers.</p>
   </div>
 </div>
-<section class="card narrow" aria-labelledby="new-heading">
-  {% if errors %}<p class="field-error" role="alert">Please correct the highlighted fields.</p>{% endif %}
-  <form method="post" action="{{ url_for('marketplace.new_request') }}" class="form-grid" novalidate>
-    {{ csrf_field() }}
-    <div class="field">
-      <label for="title">Title</label>
-      <input id="title" name="title" type="text" minlength="3" maxlength="200" required value="{{ form.get('title', '') }}"{% if errors.get('title') %} aria-describedby="title-error" aria-invalid="true"{% endif %}>
-      {{ field_error(errors, 'title') }}
-    </div>
-    <div class="field">
-      <label for="category">Category</label>
-      <select id="category" name="category" required{% if errors.get('category') %} aria-describedby="category-error" aria-invalid="true"{% endif %}>
-        <option value="">Choose…</option>
-        {% for c in categories %}<option value="{{ c }}" {% if form.get('category') == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
-      </select>
-      {{ field_error(errors, 'category') }}
-    </div>
-    <div class="field">
-      <label for="skills">Required skills (comma-separated, from the skill list)</label>
-      <input id="skills" name="skills" type="text" list="skill-list" maxlength="2000" required autocorrect="off" spellcheck="false" value="{{ form.get('skills', '') }}"{% if errors.get('skills') %} aria-describedby="skills-error" aria-invalid="true"{% endif %}>
-      <datalist id="skill-list">{% for s in skills %}<option value="{{ s }}">{% endfor %}</datalist>
-      {{ field_error(errors, 'skills') }}
-    </div>
-    <div class="field">
-      <label for="pay_type">Pay type</label>
-      <select id="pay_type" name="pay_type" required{% if errors.get('pay_type') %} aria-describedby="pay_type-error" aria-invalid="true"{% endif %}>
-        {% for p in ('fixed', 'hourly', 'unspecified') %}<option value="{{ p }}" {% if form.get('pay_type', 'fixed') == p %}selected{% endif %}>{{ p|capitalize }}</option>{% endfor %}
-      </select>
-      {{ field_error(errors, 'pay_type') }}
-    </div>
-    <div class="field">
-      <label for="budget">Budget (fixed price only)</label>
-      <input id="budget" name="budget" type="number" inputmode="decimal" min="0.01" step="0.01" value="{{ form.get('budget', '') }}"{% if errors.get('budget') %} aria-describedby="budget-error" aria-invalid="true"{% endif %}>
-      {{ field_error(errors, 'budget') }}
-    </div>
-    <div class="field-pair">
-      <div class="field">
-        <label for="hourly_low">Minimum hourly rate (hourly only)</label>
-        <input id="hourly_low" name="hourly_low" type="number" inputmode="decimal" min="0.01" step="0.01" value="{{ form.get('hourly_low', '') }}"{% if errors.get('hourly_low') %} aria-describedby="hourly_low-error" aria-invalid="true"{% endif %}>
-        {{ field_error(errors, 'hourly_low') }}
+<div class="request-new">
+  <section class="card request-form" aria-labelledby="new-heading">
+    {% if errors %}<p class="form-alert form-alert--danger" role="alert">{{ icon("x-circle", "icon form-alert__icon") }}<span>Please correct the highlighted fields.</span></p>{% endif %}
+    <p class="request-form__intro">Fields are required unless marked optional.</p>
+    <form method="post" action="{{ url_for('marketplace.new_request') }}" class="form-grid" novalidate>
+      {{ csrf_field() }}
+      <fieldset class="form-section">
+        <legend class="form-section__title"><span class="form-section__num" aria-hidden="true">1</span>About the work</legend>
+        <div class="field">
+          <label for="title">Title</label>
+          <input id="title" name="title" type="text" minlength="3" maxlength="200" required value="{{ form.get('title', '') }}"{{ described('title', 'title-hint') }}>
+          <p class="field-hint" id="title-hint">3–200 characters. A short, specific title works best.</p>
+          {{ field_error(errors, 'title') }}
+        </div>
+        <div class="field">
+          <label for="category">Category</label>
+          <select id="category" name="category" required{{ described('category', none) }}>
+            <option value="">Choose…</option>
+            {% for c in categories %}<option value="{{ c }}" {% if form.get('category') == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+          </select>
+          {{ field_error(errors, 'category') }}
+        </div>
+        <div class="field">
+          <label for="skills">Required skills</label>
+          <input id="skills" name="skills" type="text" list="skill-list" maxlength="2000" required autocorrect="off" spellcheck="false" value="{{ form.get('skills', '') }}"{{ described('skills', 'skills-hint') }}>
+          <datalist id="skill-list">{% for s in skills %}<option value="{{ s }}">{% endfor %}</datalist>
+          <p class="field-hint" id="skills-hint">Comma-separated names from the HireWise skill list, e.g. Logo Design, Typography. Suggestions appear as you type.</p>
+          {{ field_error(errors, 'skills') }}
+        </div>
+      </fieldset>
+
+      {# Pay: the server reads only the amounts for the chosen pay type (fixed: budget; hourly: at least one rate;
+         unspecified: none). static/js/request-form.js shows just the matching group; without JavaScript every
+         group stays visible. Hidden groups are never disabled or cleared, so nothing the server expects is lost. #}
+      <fieldset class="form-section">
+        <legend class="form-section__title"><span class="form-section__num" aria-hidden="true">2</span>Budget</legend>
+        <div class="field">
+          <label for="pay_type">Pay type</label>
+          <select id="pay_type" name="pay_type" required{{ described('pay_type', 'pay_type-hint') }}>
+            {% for p in ('fixed', 'hourly', 'unspecified') %}<option value="{{ p }}" {% if form.get('pay_type', 'fixed') == p %}selected{% endif %}>{{ p|capitalize }}</option>{% endfor %}
+          </select>
+          <p class="field-hint" id="pay_type-hint">Fixed: one budget for the whole job. Hourly: a rate range. Only the amounts for the chosen pay type are used.</p>
+          {{ field_error(errors, 'pay_type') }}
+        </div>
+        <div class="pay-option" data-pay="fixed">
+          <div class="field">
+            <label for="budget">Fixed budget</label>
+            <input id="budget" name="budget" type="number" inputmode="decimal" min="0.01" step="0.01" value="{{ form.get('budget', '') }}"{{ described('budget', 'budget-hint') }}>
+            <p class="field-hint" id="budget-hint">Fixed-price requests: the total amount for the whole job.</p>
+            {{ field_error(errors, 'budget') }}
+          </div>
+        </div>
+        <div class="pay-option" data-pay="hourly">
+          <div class="field-pair">
+            <div class="field">
+              <label for="hourly_low">Minimum hourly rate</label>
+              <input id="hourly_low" name="hourly_low" type="number" inputmode="decimal" min="0.01" step="0.01" value="{{ form.get('hourly_low', '') }}"{{ described('hourly_low', 'hourly-hint') }}>
+              {{ field_error(errors, 'hourly_low') }}
+            </div>
+            <div class="field">
+              <label for="hourly_high">Maximum hourly rate</label>
+              <input id="hourly_high" name="hourly_high" type="number" inputmode="decimal" min="0.01" step="0.01" value="{{ form.get('hourly_high', '') }}"{{ described('hourly_high', 'hourly-hint') }}>
+              {{ field_error(errors, 'hourly_high') }}
+            </div>
+          </div>
+          <p class="field-hint" id="hourly-hint">Hourly requests: enter at least one rate. The maximum must not be below the minimum.</p>
+        </div>
+        <p class="pay-option pay-option--none" data-pay="unspecified" hidden>No budget is recorded for requests with an unspecified pay type.</p>
+      </fieldset>
+
+      <fieldset class="form-section">
+        <legend class="form-section__title"><span class="form-section__num" aria-hidden="true">3</span>Location</legend>
+        <div class="field">
+          <label for="location_requirement">Only workers located in (optional)</label>
+          <select id="location_requirement" name="location_requirement"{{ described('location_requirement', 'location-hint') }}>
+            <option value="">Any location</option>
+            {% for c in countries %}<option value="{{ c }}" {% if form.get('location_requirement') == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+          </select>
+          <p class="field-hint" id="location-hint">Leave as “Any location” to consider workers in every country.</p>
+          {{ field_error(errors, 'location_requirement') }}
+        </div>
+      </fieldset>
+
+      <div class="request-form__actions">
+        <button type="submit" class="button button--lg">Post request and see recommended workers</button>
+        <a class="button button--ghost" href="{{ url_for('marketplace.my_requests') }}">Cancel</a>
       </div>
-      <div class="field">
-        <label for="hourly_high">Maximum hourly rate (hourly only)</label>
-        <input id="hourly_high" name="hourly_high" type="number" inputmode="decimal" min="0.01" step="0.01" value="{{ form.get('hourly_high', '') }}"{% if errors.get('hourly_high') %} aria-describedby="hourly_high-error" aria-invalid="true"{% endif %}>
-        {{ field_error(errors, 'hourly_high') }}
-      </div>
-    </div>
-    <div class="field">
-      <label for="location_requirement">Only workers located in (optional)</label>
-      <select id="location_requirement" name="location_requirement"{% if errors.get('location_requirement') %} aria-describedby="location_requirement-error" aria-invalid="true"{% endif %}>
-        <option value="">Any location</option>
-        {% for c in countries %}<option value="{{ c }}" {% if form.get('location_requirement') == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
-      </select>
-      {{ field_error(errors, 'location_requirement') }}
-    </div>
-    <button type="submit" class="button button--lg">Post request and see recommended workers</button>
-  </form>
-</section>
+    </form>
+  </section>
+
+  <aside class="request-aside" aria-labelledby="next-heading">
+    <h2 id="next-heading">What happens next</h2>
+    <ol class="request-aside__steps">
+      <li>You go straight to your recommended workers, ranked by the HireWise hybrid recommender, each with an explanation.</li>
+      <li>Skills are matched by name, so use names from the skill list; unknown skill names are rejected.</li>
+      <li>Your budget is compared with other requests in the same category to show its budget level.</li>
+      <li>Book one recommended worker at a time, and review them once the job is complete.</li>
+    </ol>
+  </aside>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/request-form.js') }}" defer></script>
 {% endblock %}

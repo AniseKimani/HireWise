@@ -20,39 +20,75 @@
 {% if v == 0 %}0{% elif v < 0.001 %}&lt;0.001{% else %}{{ '%.3f'|format(v) }}{% endif %}
 {%- endmacro %}
 
-{# One "Recommended Workers" card (wireframe layout, real values only). #}
-{% macro worker_card(rec, request_id, booking_locked) -%}
+{# Client-facing names for the three hybrid components and the knowledge-graph path types. Labels only:
+   every value shown next to them comes unchanged from the recommender (the same path-type labels as the
+   Research Demo, static/js/format.js). #}
+{% set COMPONENT_NAMES = {"cbf": "Profile match", "cf": "Similar clients' hiring", "kg": "Knowledge-graph evidence"} %}
+{% set PATH_LABELS = {"skill": "Required skill", "related_skill": "Related skill", "category": "Specialisation",
+                      "repeat_hire": "Your hiring history", "hired_similar_skill": "Similar to a past hire", "co_hire": "Shared clients"} %}
+
+{# One "Recommended Workers" card (real values only; the list order is the recommender's rank order).
+   request_skills (optional) lets the card list the worker's declared skills that are also in the request
+   first; it is a display order only and changes no value. #}
+{% macro worker_card(rec, request_id, booking_locked, request_skills=()) -%}
 {% set w = rec.worker %}
+{% set matched = w.declared_skills|select('in', request_skills)|list %}
+{% set others = w.declared_skills|reject('in', request_skills)|list %}
+{% set shown_others = others[:[6 - matched|length, 0]|max] %}
+{% set hidden_count = w.declared_skills|length - matched|length - shown_others|length %}
 <li class="card worker-card">
-  <div class="avatar" aria-hidden="true">{{ icon("user") }}</div>
-  <div class="worker-card__body">
-    <div class="worker-card__top">
-      <div>
-        <span class="worker-card__rank">#{{ rec.rank }}</span>
-        <h3 class="worker-card__name">Worker {{ w.worker_id }}</h3>
-      </div>
-      <span class="score-pill" title="Ranking score within this request's eligible workers, not a probability">
-        Hybrid score: {{ '%.3f'|format(rec.score) }}
-      </span>
+  <div class="worker-card__head">
+    <div class="avatar" aria-hidden="true">{{ icon("user") }}</div>
+    <div class="worker-card__identity">
+      <p class="worker-card__rank">Rank #{{ rec.rank }}{% if rec.rank == 1 %} <span class="badge badge--brand">Top ranked</span>{% endif %}</p>
+      <h3 class="worker-card__name">Worker {{ w.worker_id }}</h3>
+      <p class="meta-row">
+        {% if w.primary_category %}<span>{{ icon("tools") }} {{ w.primary_category }}</span>{% endif %}
+        <span>{{ icon("briefcase") }} {{ '%.0f'|format(w.experience_years) }} yrs experience ({{ w.experience_level }})</span>
+        <span>{{ icon("pin") }} {{ w.country }}</span>
+      </p>
+      <p class="worker-card__rating">{{ rating_summary(w.training_review_count, w.training_mean_rating) }}{% if w.training_review_count %} <span class="worker-card__source">research-period reviews</span>{% endif %}</p>
     </div>
-    {{ rating_summary(w.training_review_count, w.training_mean_rating) }}
-    <p class="meta-row">
-      <span>{{ icon("briefcase") }} {{ '%.0f'|format(w.experience_years) }} yrs experience ({{ w.experience_level }})</span>
-      <span>{{ icon("pin") }} {{ w.country }}</span>
-    </p>
-    <p class="field-label">Skills</p>
+    <span class="score-pill" title="Ranking score within this request's eligible workers, not a probability">
+      Hybrid score: {{ '%.3f'|format(rec.score) }}
+    </span>
+  </div>
+
+  <div class="worker-card__skills">
+    <p class="field-label">Skills{% if matched %} <span class="worker-card__skills-note">· {{ matched|length }} in your request</span>{% endif %}</p>
     <ul class="chips" aria-label="Skills of worker {{ w.worker_id }}">
-      {% for s in w.declared_skills[:6] %}<li class="chip">{{ s }}</li>{% endfor %}
-      {% if w.declared_skills|length > 6 %}<li class="chip chip--more">+{{ w.declared_skills|length - 6 }} more</li>{% endif %}
+      {% for s in matched %}<li class="chip chip--match">{{ icon("check") }} {{ s }}<span class="visually-hidden"> (in your request)</span></li>{% endfor %}
+      {% for s in shown_others %}<li class="chip">{{ s }}</li>{% endfor %}
+      {% if hidden_count > 0 %}<li class="chip chip--more">+{{ hidden_count }} more</li>{% endif %}
     </ul>
   </div>
+
   <div class="worker-card__side">
     <section class="why" aria-label="Why worker {{ w.worker_id }} was recommended">
       <h4>{{ icon("bulb") }} Why this worker was recommended</h4>
       {% if rec.kg_evidence %}
-      <ul>{% for ev in rec.kg_evidence %}<li>{{ ev.text }}</li>{% endfor %}</ul>
+      <ul class="why__evidence">{% for ev in rec.kg_evidence %}<li><span class="evidence-tag">{{ PATH_LABELS.get(ev.path_type, "Graph evidence") }}</span> {{ ev.text }}</li>{% endfor %}</ul>
       {% else %}<p>{{ rec.explanation }}</p>{% endif %}
     </section>
+
+    {# The three contributions as returned (they add up to the hybrid score). The bar is drawn on the 0-1
+       score scale; segment widths are the contribution values themselves, nothing is rescaled. #}
+    <div class="contrib">
+      <p class="contrib__title">What makes up this score</p>
+      <svg class="contrib__bar" viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        <rect class="contrib__track" x="0" y="0" width="100" height="8"/>
+        {% set ns = namespace(x=0) %}
+        {% for key in ("cbf", "cf", "kg") %}{% set v = rec.contributions[key] or 0 %}
+        <rect class="contrib__seg contrib__seg--{{ key }}" x="{{ '%.4f'|format(ns.x) }}" y="0" width="{{ '%.4f'|format(v * 100) }}" height="8"/>
+        {% set ns.x = ns.x + v * 100 %}{% endfor %}
+      </svg>
+      <ul class="contrib__legend">
+        {% for key in ("cbf", "cf", "kg") %}
+        <li><span class="swatch contribution--{{ key }}" aria-hidden="true"></span>{{ COMPONENT_NAMES[key] }} <span class="contrib__value">{{ score_value(rec.contributions[key]) }}</span></li>
+        {% endfor %}
+      </ul>
+    </div>
+
     <details class="score-details">
       <summary>Score breakdown</summary>
       <table class="contribution-table">
@@ -68,14 +104,15 @@
       <p class="note">{{ rec.explanation }}</p>
       <p class="note">Scores rank workers within this request's eligible pool; they are not probabilities.</p>
     </details>
-    <div class="worker-card__actions">
-      <a class="button button--secondary" href="{{ url_for('marketplace.worker_detail', worker_id=w.worker_id, request=request_id) }}">View profile</a>
-      <form method="post" action="{{ url_for('marketplace.book_worker', request_id=request_id) }}" class="inline-form">
-        {{ csrf_field() }}
-        <input type="hidden" name="worker_id" value="{{ w.worker_id }}">
-        <button type="submit" class="button" {% if booking_locked %}disabled{% endif %}>Book / Hire worker</button>
-      </form>
-    </div>
+  </div>
+
+  <div class="worker-card__actions">
+    <a class="button button--secondary" href="{{ url_for('marketplace.worker_detail', worker_id=w.worker_id, request=request_id) }}">View profile</a>
+    <form method="post" action="{{ url_for('marketplace.book_worker', request_id=request_id) }}" class="inline-form">
+      {{ csrf_field() }}
+      <input type="hidden" name="worker_id" value="{{ w.worker_id }}">
+      <button type="submit" class="button" {% if booking_locked %}disabled aria-describedby="booking-locked-note"{% endif %}>Book / Hire worker</button>
+    </form>
   </div>
 </li>
 {%- endmacro %}
@@ -86,9 +123,40 @@
    label, and the actions sit at the bottom of the card. Changing the display of table elements makes
    some browsers drop their table semantics, so the explicit ARIA table roles below keep rows, cells
    and column headers exposed to assistive technology in both layouts. #}
+{% macro short_date(d) -%}
+{% if d %}<time datetime="{{ d.date().isoformat() }}">{{ d.day }} {{ d.strftime('%b %Y') }}</time>{% endif %}
+{%- endmacro %}
+
+{# Booking progress, derived only from the stored status (rules.py: pending -> accepted -> completed;
+   pending -> declined; pending or accepted -> cancelled). Dates are shown only where the stored fields
+   really are that step's date: created_at = requested; completed_at = completed; updated_at changes only
+   on a status transition, so it is the acceptance date while the status is still "accepted" and the
+   decline / cancellation date for those final states. A completed booking's acceptance date is not
+   stored, and a cancelled booking does not record whether it had been accepted, so neither is shown. #}
+{% macro booking_progress(b) -%}
+{% set s = b.status %}
+{% set steps = [("Requested", "current" if s == "pending" else "done", b.created_at)] %}
+{% if s == "declined" or s == "cancelled" %}
+  {% set steps = steps + [(s|capitalize, "stopped", b.updated_at)] %}
+{% else %}
+  {% set steps = steps + [("Accepted", "current" if s == "accepted" else ("done" if s == "completed" else "upcoming"), b.updated_at if s == "accepted" else none)] %}
+  {% set steps = steps + [("Completed", "done current" if s == "completed" else "upcoming", b.completed_at if s == "completed" else none)] %}
+{% endif %}
+{% set spoken = {"done": "done", "current": "current step", "done current": "done", "upcoming": "not reached", "stopped": "booking ended"} %}
+<ol class="booking-progress" aria-label="Booking progress">
+  {% for label, state, date in steps %}
+  <li class="booking-progress__step{% for st in state.split() %} is-{{ st }}{% endfor %}"{% if 'current' in state or state == 'stopped' %} aria-current="step"{% endif %}>
+    <span class="booking-progress__dot" aria-hidden="true"></span>
+    <span class="booking-progress__label">{{ label }}<span class="visually-hidden"> ({{ spoken[state] }})</span></span>
+    {% if date %}<span class="booking-progress__date">{{ short_date(date) }}</span>{% endif %}
+  </li>
+  {% endfor %}
+</ol>
+{%- endmacro %}
+
 {% macro booking_table(bookings_list, rules, role, return_to) -%}
 {% if not bookings_list %}
-<p class="empty-state">No bookings yet.</p>
+<div class="bookings-empty">{{ icon("clock", "icon bookings-empty__icon") }}<p class="empty-state">No bookings yet.</p></div>
 {% else %}
 <div class="table-scroll booking-table-wrap">
 <table class="data-table booking-table" role="table">
@@ -100,13 +168,19 @@
   {% for b in bookings_list %}
     {% set actions = rules.allowed_actions(b.status, role) %}
     {% set can_rate = role == 'client' and b.status == 'completed' and not b.review_rating %}
+    {# "Needs your action": exactly the rows where this role has an action that moves the booking on
+       (worker: accept / decline a pending booking; client: complete an accepted one, or review). #}
+    {% set needs_action = (role == 'worker' and 'accept' in actions) or (role == 'client' and ('complete' in actions or can_rate)) %}
     <tr role="row" class="booking-row">
       <td role="cell" class="booking-row__id" data-label="Booking">#{{ b.booking_id }}</td>
       <td role="cell" class="booking-row__request" data-label="Request">{{ b.request_title }}</td>
       <td role="cell" class="booking-row__worker" data-label="Worker">{{ b.worker_id }}</td>
-      <td role="cell" class="booking-row__status" data-label="Status"><span class="status-badge status-badge--{{ b.status }}">{{ b.status }}</span></td>
+      <td role="cell" class="booking-row__status" data-label="Status">
+        <span class="booking-row__status-line"><span class="status-badge status-badge--{{ b.status }}">{{ b.status }}</span>{% if needs_action %}<span class="booking-attention">{{ icon("alert", "icon") }} Needs your action</span>{% endif %}</span>
+        {{ booking_progress(b) }}
+      </td>
       <td role="cell" class="booking-row__review" data-label="Review">
-        {% if b.review_rating %}<span class="rating">{{ icon("star") }} {{ b.review_rating }}/5</span>{% if b.review_text %}<br><span class="muted">“{{ b.review_text }}”</span>{% endif %}
+        {% if b.review_rating %}<span class="rating">{{ icon("star") }} {{ b.review_rating }}/5</span> <span class="booking-review-source">HireWise review</span>{% if b.review_text %}<br><span class="muted">“{{ b.review_text }}”</span>{% endif %}
         {% else %}—{% endif %}
       </td>
       <td role="cell" class="actions booking-row__actions{% if not actions and not can_rate %} booking-row__actions--none{% endif %}" data-label="Actions">
@@ -114,7 +188,7 @@
         <form method="post" action="{{ url_for('marketplace.booking_action', booking_id=b.booking_id, action=action) }}" class="inline-form">
           {{ csrf_field() }}
           <input type="hidden" name="return_to" value="{{ return_to }}">
-          <button type="submit" class="button{% if action in ('decline', 'cancel') %} button--secondary{% endif %}">{{ action|capitalize }}<span class="visually-hidden"> booking #{{ b.booking_id }}</span></button>
+          <button type="submit" class="button{% if action in ('decline', 'cancel') %} button--danger{% endif %}">{{ action|capitalize }}<span class="visually-hidden"> booking #{{ b.booking_id }}</span></button>
         </form>
         {% endfor %}
         {% if can_rate %}

@@ -1,17 +1,42 @@
 {% extends "base.html" %}
 {% from "marketplace/macros.html" import booking_table %}
+{% from "_icons.html" import icon %}
 {% block title %}Service history · HireWise{% endblock %}
 {% block content %}
-<div class="page-head">
+{% set role = current_user.role %}
+{# Counts of the bookings listed below, by their stored status (nothing else is counted). "Needs your
+   action" uses the same rule as the marker on each row (macros.html booking_table). #}
+{% set ns = namespace(action=0) %}
+{% for b in bookings_list %}
+  {% set acts = rules.allowed_actions(b.status, role) %}
+  {% if (role == 'worker' and 'accept' in acts) or (role == 'client' and ('complete' in acts or (b.status == 'completed' and not b.review_rating))) %}{% set ns.action = ns.action + 1 %}{% endif %}
+{% endfor %}
+<div class="page-head client-head">
   <div>
+    <p class="eyebrow">Bookings</p>
     <h1>Service History</h1>
-    <p class="page-head__sub">{% if current_user.role == 'client' %}Your bookings, their status and your reviews{% else %}Bookings assigned to you{% endif %}</p>
+    <p class="page-head__sub">{% if role == 'client' %}Your bookings, their status and your reviews{% else %}Bookings assigned to you{% endif %}</p>
   </div>
 </div>
-<section class="card" aria-label="Bookings">
-  {% if current_user.role == 'worker' and not current_user.worker_id %}
+
+{% if bookings_list %}
+<ul class="booking-summary" aria-label="Booking summary">
+  <li class="booking-summary__item booking-summary__item--action"><span class="booking-summary__value">{{ ns.action }}</span> Needs your action</li>
+  <li class="booking-summary__item booking-summary__item--pending"><span class="booking-summary__value">{{ bookings_list|selectattr('status', 'equalto', 'pending')|list|length }}</span> Pending</li>
+  <li class="booking-summary__item booking-summary__item--accepted"><span class="booking-summary__value">{{ bookings_list|selectattr('status', 'equalto', 'accepted')|list|length }}</span> In progress</li>
+  <li class="booking-summary__item booking-summary__item--completed"><span class="booking-summary__value">{{ bookings_list|selectattr('status', 'equalto', 'completed')|list|length }}</span> Completed</li>
+  <li class="booking-summary__item booking-summary__item--closed"><span class="booking-summary__value">{{ bookings_list|selectattr('status', 'in', ['declined', 'cancelled'])|list|length }}</span> Declined or cancelled</li>
+</ul>
+{% endif %}
+
+<section class="card bookings-page" aria-label="Bookings">
+  {% if role == 'worker' and not current_user.worker_id %}
   <p class="note">New worker profiles are not yet part of the recommender's catalogue, so they do not receive bookings.</p>
   {% endif %}
-  {{ booking_table(bookings_list, rules, current_user.role, url_for('marketplace.bookings_page')) }}
+  {% if bookings_list %}
+  <p class="bookings-page__intro">Newest first. Each booking moves from <strong>requested</strong> to <strong>accepted</strong> to <strong>completed</strong>;
+    a booking can also end as <strong>declined</strong> (by the worker) or <strong>cancelled</strong> (by the client).</p>
+  {% endif %}
+  {{ booking_table(bookings_list, rules, role, url_for('marketplace.bookings_page')) }}
 </section>
 {% endblock %}

@@ -1,62 +1,129 @@
 {% extends "base.html" %}
-{% from "marketplace/macros.html" import booking_table, rating_summary, skills_chips %}
+{% from "marketplace/macros.html" import booking_table, rating_summary, skills_chips, short_date %}
 {% from "_icons.html" import icon %}
 {% block title %}Dashboard · HireWise{% endblock %}
 {% block content %}
-<div class="page-head">
+{% set pending = bookings_list|selectattr('status', 'equalto', 'pending')|list %}
+<div class="page-head client-head">
   <div>
+    <p class="eyebrow">Worker dashboard</p>
     <h1>Welcome back, {{ current_user.display_name }}</h1>
-    <p class="page-head__sub">Worker dashboard</p>
+    <p class="page-head__sub">Respond to booking requests, follow your work in progress and see the reviews clients leave you.</p>
   </div>
   <a class="button button--secondary page-head__cta" href="{{ url_for('marketplace.profile') }}">{{ icon("user") }} View profile</a>
 </div>
 
-<div class="stats" role="group" aria-label="Booking status summary">
-  <div class="stat"><span class="stat__value">{{ status_counts.pending }}</span><span class="stat__label">New booking requests</span></div>
-  <div class="stat"><span class="stat__value">{{ status_counts.accepted }}</span><span class="stat__label">In progress</span></div>
-  <div class="stat"><span class="stat__value">{{ status_counts.completed }}</span><span class="stat__label">Completed jobs</span></div>
-  <div class="stat"><span class="stat__value">{{ reviews|length }}</span><span class="stat__label">Reviews received</span></div>
+{# The four existing counts. Reviews are left on completed jobs, so the last two overlap (said below). #}
+<div class="metrics" role="group" aria-label="Booking status summary">
+  <div class="metric metric--warning">
+    <span class="metric__icon">{{ icon("clock") }}</span>
+    <span class="metric__value">{{ status_counts.pending }}</span><span class="metric__label">New booking requests</span>
+  </div>
+  <div class="metric metric--info">
+    <span class="metric__icon">{{ icon("briefcase") }}</span>
+    <span class="metric__value">{{ status_counts.accepted }}</span><span class="metric__label">In progress</span>
+  </div>
+  <div class="metric metric--success">
+    <span class="metric__icon">{{ icon("check") }}</span>
+    <span class="metric__value">{{ status_counts.completed }}</span><span class="metric__label">Completed jobs</span>
+  </div>
+  <div class="metric metric--brand">
+    <span class="metric__icon">{{ icon("star") }}</span>
+    <span class="metric__value">{{ reviews|length }}</span><span class="metric__label">Reviews received <span class="metric__qualifier">on completed jobs</span></span>
+  </div>
 </div>
 
-<div class="grid-main-side">
-  <div class="stack">
-    <section class="card" aria-labelledby="bookings-heading">
-      <h2 id="bookings-heading">Bookings assigned to you</h2>
+<div class="worker-dash">
+  <div class="worker-dash__main">
+    {# What needs the worker now (catalogue-linked workers only: new profiles cannot receive bookings, which
+       the bookings section and the profile note already say). Accept / Decline stay in the bookings table
+       below, so each action exists once on the page. #}
+    {% if profile_source == 'imported' %}
+    <section class="card dash-section worker-attention{% if pending %} worker-attention--pending{% endif %}" aria-labelledby="attention-heading">
+      <div class="dash-section__head">
+        <h2 id="attention-heading">{% if pending %}Booking requests waiting for you{% else %}Your next step{% endif %}</h2>
+        {% if pending %}<span class="dash-section__count dash-section__count--warning">{{ pending|length }}</span>{% endif %}
+      </div>
+      {% if pending %}
+      <ul class="request-rows">
+        {% for b in pending[:5] %}
+        <li class="request-row request-row--pending">
+          <div class="request-row__body">
+            <span class="request-row__title">{{ b.request_title }}</span>
+            <p class="request-row__meta">Booking #{{ b.booking_id }}{% if b.created_at %} · requested {{ short_date(b.created_at) }}{% endif %}</p>
+          </div>
+          <span class="status-badge status-badge--pending">pending</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% if pending|length > 5 %}<p class="note">Showing the 5 newest of {{ pending|length }} requests.</p>{% endif %}
+      <p class="worker-attention__hint">Accept or decline each request in <a href="#bookings-heading">Bookings assigned to you</a>.</p>
+      {% elif status_counts.accepted %}
+      <div class="dash-empty">
+        <span class="dash-empty__icon">{{ icon("briefcase") }}</span>
+        <p>No new booking requests. You have {{ status_counts.accepted }} booking{{ 's' if status_counts.accepted != 1 }} in progress; the client marks each one complete when the work is done.</p>
+      </div>
+      {% else %}
+      <div class="dash-empty">
+        <span class="dash-empty__icon">{{ icon("send") }}</span>
+        <p>No booking requests right now. When a client books you from their recommended workers, the request appears here for you to accept or decline.</p>
+      </div>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    <section class="card dash-section" aria-labelledby="bookings-heading">
+      <div class="dash-section__head">
+        <h2 id="bookings-heading">Bookings assigned to you</h2>
+        {% if profile_source == 'imported' and bookings_list %}<a class="dash-section__link" href="{{ url_for('marketplace.bookings_page') }}">Open service history</a>{% endif %}
+      </div>
       {% if profile_source == 'imported' %}
       {{ booking_table(bookings_list, rules, 'worker', url_for('marketplace.dashboard')) }}
       {% else %}
       <p class="empty-state">New worker profiles are not yet part of the recommendation catalogue, so they do not receive bookings yet.</p>
       {% endif %}
     </section>
-    <section class="card" aria-labelledby="reviews-heading">
-      <h2 id="reviews-heading">Reviews received</h2>
+
+    <section class="card dash-section" aria-labelledby="reviews-heading">
+      <div class="dash-section__head">
+        <h2 id="reviews-heading">Reviews received</h2>
+        <span class="worker-card__source worker-card__source--app">HireWise reviews</span>
+      </div>
       {% if reviews %}
       <ul class="review-list">
         {% for b in reviews %}<li><span class="rating">{{ icon("star") }} <strong>{{ b.review_rating }}/5</strong></span> for “{{ b.request_title }}”{% if b.review_text %}<br>{{ b.review_text }}{% endif %}</li>{% endfor %}
       </ul>
-      {% else %}<p class="empty-state">No reviews yet.</p>{% endif %}
+      {% else %}
+      <div class="dash-empty">
+        <span class="dash-empty__icon">{{ icon("star") }}</span>
+        <p>No reviews yet. Clients can rate and review a booking once they have marked it complete.</p>
+      </div>
+      {% endif %}
     </section>
   </div>
 
-  <aside class="card" aria-labelledby="profile-heading">
-    {% if profile %}
-    <div class="profile-head card">
-      <div class="avatar avatar--sm" aria-hidden="true">{{ icon("user") }}</div>
-      <div>
-        <h2 id="profile-heading">{% if profile.worker_id %}Worker {{ profile.worker_id }}{% else %}{{ current_user.display_name }}{% endif %}</h2>
-        <p class="meta-row"><span>{{ icon("pin") }} {{ profile.country }}</span></p>
-        {% if profile.training_review_count is not none %}{{ rating_summary(profile.training_review_count, profile.training_mean_rating) }}{% endif %}
+  <aside class="worker-dash__side" aria-labelledby="profile-heading">
+    <section class="card dash-section worker-summary">
+      {% if profile %}
+      <div class="worker-summary__head">
+        <div class="avatar avatar--sm" aria-hidden="true">{{ icon("user") }}</div>
+        <div class="worker-summary__identity">
+          <h2 id="profile-heading">{% if profile.worker_id %}Worker {{ profile.worker_id }}{% else %}{{ current_user.display_name }}{% endif %}</h2>
+          <p class="meta-row"><span>{{ icon("pin") }} {{ profile.country }}</span></p>
+          {% if profile.training_review_count is not none %}<p class="worker-card__rating">{{ rating_summary(profile.training_review_count, profile.training_mean_rating) }}{% if profile.training_review_count %} <span class="worker-card__source">research-period reviews</span>{% endif %}</p>{% endif %}
+        </div>
       </div>
-    </div>
-    <dl class="facts">
-      <dt>Specialisation</dt><dd>{{ profile.primary_category }}{% if profile.secondary_categories %} · {{ profile.secondary_categories|join(', ') }}{% endif %}</dd>
-      <dt>Experience</dt><dd>{{ profile.experience_level|capitalize }}, {{ '%.1f'|format(profile.experience_years) }} years</dd>
-      <dt>Rate</dt><dd>{{ '%.2f'|format(profile.rate) }}</dd>
-    </dl>
-    <p class="field-label">Skills</p>
-    {{ skills_chips(profile.skills, "Your skills") }}
-    <p class="note">{% if profile_source == 'imported' %}Demo account linked to a catalogue profile, so clients can be recommended to book you.{% else %}New worker profile. The recommender uses a frozen research catalogue, so new profiles are not recommended to clients yet.{% endif %}</p>
-    {% else %}<h2 id="profile-heading">Profile</h2><p class="empty-state">No profile found.</p>{% endif %}
+      <dl class="facts worker-summary__facts">
+        <dt>Specialisation</dt><dd>{{ profile.primary_category }}{% if profile.secondary_categories %} · {{ profile.secondary_categories|join(', ') }}{% endif %}</dd>
+        <dt>Experience</dt><dd>{{ profile.experience_level|capitalize }}, {{ '%.1f'|format(profile.experience_years) }} years</dd>
+        <dt>Rate</dt><dd class="num">{{ '%.2f'|format(profile.rate) }}</dd>
+      </dl>
+      <p class="field-label">Skills</p>
+      {{ skills_chips(profile.skills, "Your skills") }}
+      <p class="note worker-summary__note">{% if profile_source == 'imported' %}Demo account linked to a catalogue profile, so clients can be recommended to book you.{% else %}New worker profile. The recommender uses a frozen research catalogue, so new profiles are not recommended to clients yet.{% endif %}</p>
+      <a class="button button--secondary button--block" href="{{ url_for('marketplace.profile') }}">Open your full profile</a>
+      {% else %}<h2 id="profile-heading">Profile</h2><p class="empty-state">No profile found.</p>{% endif %}
+    </section>
   </aside>
 </div>
 {% endblock %}

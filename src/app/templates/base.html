@@ -52,8 +52,9 @@
             <span class="visually-hidden">account menu</span>{{ icon("chevron") }}
           </summary>
           <div class="account-menu__panel">
-            <p><strong>{{ current_user.display_name }}</strong></p>
-            <p class="muted">{{ current_user.email }} · {{ current_user.role|capitalize }} account</p>
+            <p class="account-menu__who"><strong>{{ current_user.display_name }}</strong></p>
+            <p class="muted account-menu__email">{{ current_user.email }}</p>
+            <p><span class="badge badge--brand account-menu__role">{{ current_user.role|capitalize }} account</span></p>
             <form method="post" action="{{ url_for('marketplace.logout') }}" class="inline-form">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button type="submit" class="button button--secondary button--block">Log out</button>
@@ -66,10 +67,19 @@
     </div>
   </header>
   <main id="main" class="site-main">
-    {% with messages = get_flashed_messages() %}
+    {# Flash messages. The routes currently use Flask's default category ("message"), shown as information;
+       success / error / warning categories get their own styles if a route ever sends them. Each kind has its
+       own icon as well as its own colour. Error and warning messages are announced assertively. #}
+    {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-    <ul class="flash" role="status">
-      {% for message in messages %}<li>{{ message }}</li>{% endfor %}
+    {% set kinds = {"success": "success", "error": "danger", "danger": "danger", "warning": "warning"} %}
+    {% set icons = {"success": "check", "danger": "x-circle", "warning": "alert", "info": "info"} %}
+    {% set urgent = messages|selectattr(0, "in", ("error", "danger", "warning"))|list %}
+    <ul class="flash-list" role="{{ 'alert' if urgent else 'status' }}">
+      {% for category, message in messages %}
+      {% set kind = kinds.get(category, "info") %}
+      <li class="flash flash--{{ kind }}">{{ icon(icons[kind], "icon flash__icon") }}<span class="flash__text">{{ message }}</span></li>
+      {% endfor %}
     </ul>
     {% endif %}
     {% endwith %}
@@ -77,8 +87,14 @@
   </main>
   <footer class="site-footer">
     <div class="site-footer__inner">
-      <p>HireWise · knowledge graph-enhanced hybrid recommendations for digital worker services. Academic prototype.</p>
-      <p><a href="{{ url_for('pages.demo') }}">Research Demo</a> (the evaluated recommender on the research dataset)</p>
+      <div class="site-footer__about">
+        <p class="site-footer__brand">{{ icon("logo", "site-footer__logo") }}<span>HireWise</span></p>
+        <p>HireWise · knowledge graph-enhanced hybrid recommendations for digital worker services. Academic prototype.</p>
+      </div>
+      <div class="site-footer__section">
+        <p class="site-footer__heading">Research</p>
+        <p><a href="{{ url_for('pages.demo') }}">Research Demo</a> (the evaluated recommender on the research dataset)</p>
+      </div>
     </div>
   </footer>
   {% block scripts %}{% endblock %}
