@@ -13,9 +13,10 @@ import re
 from flask import Blueprint, abort, current_app, flash, g, redirect, render_template, request, url_for
 
 from src.app.marketplace import rules
+from src.app.marketplace.account import send_verification
 from src.app.marketplace.runtime import RuntimeRequest
 from src.app.marketplace.security import (
-    hash_password, login_required, login_user, logout_user, role_required, safe_next_url, verify_password,
+    hash_password, login_required, login_user, logout_user, role_required, safe_next_url, verified_required, verify_password,
 )
 from src.app.marketplace.validation import validate_login, validate_registration, validate_request, validate_review
 from src.db.marketplace import ActiveBookingExists, DuplicateEmail, DuplicateReview, StaleBookingState
@@ -101,16 +102,19 @@ def register():
     categories, vocabulary, countries = _reference()
     data, errors = validate_registration(request.form, categories, vocabulary, countries)
     if not errors:
+        # Milestone 1: the account starts unverified, and the response is the same whether or not the address
+        # already had an account (no account enumeration). Only a genuinely new account gets an email (its
+        # verification link); an address that already has an account gets NO email and its account is left
+        # unchanged. No duplicate account is ever created; the user logs in afterwards.
+        password_hash = hash_password(data["password"])
         try:
-            user_id = _repo().create_user(data["email"], hash_password(data["password"]), data["role"],
-                                          data["display_name"], data["country"],
-                                          worker_profile=data.get("worker_profile"))
+            user_id = _repo().create_user(data["email"], password_hash, data["role"], data["display_name"], data["country"],
+                                          worker_profile=data.get("worker_profile"), verified=False)
         except DuplicateEmail:
-            errors["email"] = "An account with this email already exists."
+            pass  # existing address: nothing is sent and nothing changes
         else:
-            login_user(user_id)
-            flash("Welcome to HireWise. Your account has been created.")
-            return redirect(url_for("marketplace.dashboard"))
+            send_verification(user_id, data["email"], background=True)
+        return redirect(url_for("account.check_email"))
     form = {k: v for k, v in request.form.items() if "password" not in k}
     return render_template("marketplace/register.html", form=form, errors=errors, **context), 400
 
@@ -134,7 +138,7 @@ def login():
         return render_template("marketplace/login.html", email=data["email"], next_url=next_url,
                                error="Invalid email or password."), 401
     limiter.reset(address, data["email"])
-    login_user(credentials[0])
+    login_user(credentials[0], _repo().get_user(credentials[0])["auth_version"])
     return redirect(next_url or url_for("marketplace.dashboard"))
 
 
@@ -231,6 +235,7 @@ def my_requests():
 
 @marketplace.route("/client/requests/new", methods=["GET", "POST"])
 @role_required("client")
+@verified_required
 def new_request():
     context = _form_context()
     if request.method == "GET":
@@ -260,6 +265,7 @@ def request_detail(request_id: int):
 
 @marketplace.post("/client/requests/<int:request_id>/book")
 @role_required("client")
+@verified_required
 def book_worker(request_id: int):
     req = _own_request(request_id)
     worker_id = (request.form.get("worker_id") or "").strip()
@@ -296,6 +302,7 @@ def bookings_page():
 
 @marketplace.post("/bookings/<int:booking_id>/<action>")
 @login_required
+@verified_required
 def booking_action(booking_id: int, action: str):
     if action not in rules.ACTIONS:
         abort(404)
@@ -322,6 +329,7 @@ def booking_action(booking_id: int, action: str):
 
 @marketplace.post("/bookings/<int:booking_id>/review")
 @role_required("client")
+@verified_required
 def review_booking(booking_id: int):
     repo = _repo()
     booking = repo.get_booking(booking_id)

@@ -2,8 +2,13 @@
 password hashing is Werkzeug's (scrypt by default), tokens come from
 `secrets`, comparisons use `hmac.compare_digest`.
 
-- Sessions: Flask's signed cookie session holding only `user_id` and the
-  CSRF token. The session is cleared on login (no fixation) and logout.
+- Sessions: Flask's signed cookie session holding only `user_id`, the
+  account's `auth_version` (Milestone 1) and the CSRF token. The session is
+  cleared on login (no fixation) and logout, and is rejected once the
+  account's auth_version has moved on (a password reset increments it).
+- Email verification (Milestone 1): unverified accounts may log in and
+  browse; `verified_required` guards the actions that create or change
+  marketplace data.
 - CSRF: a per-session random token, embedded in every form as a hidden
   field and checked on every state-changing request outside /api
   (all /api routes are read-only GETs).
@@ -19,7 +24,7 @@ import time
 from collections import deque
 from functools import wraps
 
-from flask import abort, current_app, g, redirect, request, session, url_for
+from flask import abort, current_app, flash, g, redirect, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
 CSRF_SESSION_KEY = "csrf_token"
@@ -66,9 +71,10 @@ def protect_against_csrf() -> None:
 # ---------------------------------------------------------------------------
 # Sessions and guards
 # ---------------------------------------------------------------------------
-def login_user(user_id: int) -> None:
+def login_user(user_id: int, auth_version: int = 0) -> None:
     session.clear()  # drop any pre-login session state, including its CSRF token
     session["user_id"] = user_id
+    session["auth_version"] = auth_version
     session.permanent = True
     csrf_token()
 
@@ -78,7 +84,11 @@ def logout_user() -> None:
 
 
 def load_current_user() -> None:
-    """before_request hook: g.user = the logged-in user's profile, or None."""
+    """before_request hook: g.user = the logged-in user's profile, or None.
+
+    A session whose auth_version differs from the account's (the password was reset since it was created)
+    is cleared, so the user must log in again. Sessions created before auth_version existed carry none and
+    are compared as 0, so upgrading does not log anyone out."""
     g.user = None
     user_id = session.get("user_id")
     if user_id is not None:
@@ -86,6 +96,12 @@ def load_current_user() -> None:
         user = repo.get_user(user_id) if repo is not None else None
         if user is None:
             session.clear()  # stale session (user removed)
+        elif session.get("auth_version", 0) != user.get("auth_version", 0):
+            session.clear()
+            flash("Your password was changed, so you have been signed out. Please log in again.", "warning")
+            user = None
+        else:
+            user["email_verified"] = user.get("email_verified_at") is not None
         g.user = user
 
 
@@ -108,6 +124,20 @@ def role_required(role: str):
             return view(*args, **kwargs)
         return wrapper
     return decorator
+
+
+def verified_required(view):
+    """Actions that create or change marketplace data need a verified email address. Use it inside
+    login_required / role_required. Unverified users are sent to the verification page with an explanation
+    (a GET form page is guarded the same way, so a form that cannot be submitted is never shown)."""
+    @wraps(view)
+    @login_required
+    def wrapper(*args, **kwargs):
+        if not g.user.get("email_verified"):
+            flash("Verify your email address to post requests, book workers, manage bookings or leave reviews.", "warning")
+            return redirect(url_for("account.verify_email"))
+        return view(*args, **kwargs)
+    return wrapper
 
 
 def safe_next_url(target: str | None) -> str | None:

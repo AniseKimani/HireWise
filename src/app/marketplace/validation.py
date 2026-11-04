@@ -109,6 +109,17 @@ def validate_registration(form, categories: set[str], vocabulary: dict[str, str]
     return data, errors
 
 
+def validate_new_password(form) -> tuple[str, dict]:
+    """Password reset: the same policy and messages as registration."""
+    errors: dict[str, str] = {}
+    password = form.get("password") or ""
+    if not MIN_PASSWORD_LENGTH <= len(password) <= MAX_PASSWORD_LENGTH:
+        errors["password"] = f"Password must be {MIN_PASSWORD_LENGTH}-{MAX_PASSWORD_LENGTH} characters."
+    elif password != (form.get("confirm_password") or ""):
+        errors["confirm_password"] = "Passwords do not match."
+    return password, errors
+
+
 def validate_login(form) -> tuple[dict, dict]:
     errors: dict[str, str] = {}
     email = _text(form, "email").lower()

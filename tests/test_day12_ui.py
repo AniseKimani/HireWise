@@ -35,7 +35,24 @@ class TestRedesignedPages(unittest.TestCase):
         return c.post(path, data={**data, "csrf_token": self.token(c, token_path)})
 
     def register(self, c, data):
-        return c.post("/register", data={**data, "csrf_token": self.token(c, "/register")})
+        sent_before = len(self.app.extensions["hirewise_mailer"].backend.messages)
+        response = c.post("/register", data={**data, "csrf_token": self.token(c, "/register")})
+        if response.status_code == 302:
+            self.complete_signup(c, data["email"].lower(), data["password"], sent_before)
+        return response
+
+    def complete_signup(self, c, email, password, sent_before):
+        """Milestone 1: registration no longer logs in and new accounts start unverified. Follow the real flow
+        for the new account (emailed link -> confirm -> log in), so these page tests keep using a normal,
+        verified account."""
+        new_messages = self.app.extensions["hirewise_mailer"].backend.messages[sent_before:]
+        links = [re.search(r"https?://[^/\s]+(/verify-email/confirm/[A-Za-z0-9_-]+)", m.get_content()).group(1)
+                 for m in new_messages if m["To"] == email and "/verify-email/confirm/" in m.get_content()]
+        if not links:
+            return
+        c.get(links[-1])
+        c.post("/verify-email/confirm", data={"csrf_token": self.token(c, "/verify-email/confirm")})
+        self.post(c, "/login", {"email": email, "password": password})
 
     def client_form(self, email, **extra):
         return {"email": email, "role": "client", "display_name": "Client", "password": PASSWORD, "confirm_password": PASSWORD, **extra}

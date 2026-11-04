@@ -57,6 +57,8 @@
         </div>
       {% elif not can_review %}
         <p class="review-closed">{{ icon("clock", "icon review-closed__icon") }}<span>Reviews open once the booking is completed. This booking is <span class="status-badge status-badge--{{ booking.status }}">{{ booking.status }}</span>.</span></p>
+      {% elif not current_user.email_verified %}
+        <p class="review-closed">{{ icon("alert", "icon review-closed__icon") }}<span>Verify your email address to leave a review. <a href="{{ url_for('account.verify_email') }}">Verify or resend the email</a></span></p>
       {% else %}
         <p class="muted">Share your experience with this worker for booking #{{ booking.booking_id }}.</p>
         <form method="post" action="{{ url_for('marketplace.review_booking', booking_id=booking.booking_id) }}" class="form-grid">

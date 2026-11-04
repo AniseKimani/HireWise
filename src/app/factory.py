@@ -23,13 +23,17 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import secrets
 
 from flask import Flask, g
 from flask.json.provider import DefaultJSONProvider
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from src.app.config import resolve_config
 from src.app.errors import register_error_handlers
+from src.app.marketplace.account import account
+from src.app.marketplace.mailer import MailConfigError, build_mailer, resolve_settings
 from src.app.marketplace.runtime import RuntimeRecommender
 from src.app.marketplace.security import LoginRateLimiter, csrf_token, load_current_user, protect_against_csrf
 from src.app.marketplace.views import marketplace
@@ -47,6 +51,46 @@ CONTENT_SECURITY_POLICY = (
 
 class MissingSecretKey(RuntimeError):
     """Production configuration started without FLASK_SECRET_KEY."""
+
+
+class MissingMailConfig(MailConfigError):
+    """Production marketplace started without a usable email configuration."""
+
+
+# Email links carry single-use tokens in their path (/verify-email/confirm/<token>, /reset-password/<token>).
+# The development server logs request lines, so those tokens are redacted from its log records.
+_TOKEN_IN_PATH = re.compile(r"(/(?:verify-email/confirm|reset-password)/)[A-Za-z0-9_-]+")
+
+
+class RedactTokenPaths(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        message = record.getMessage()
+        if _TOKEN_IN_PATH.search(message):
+            record.msg, record.args = _TOKEN_IN_PATH.sub(r"\1[redacted]", message), ()
+        return True
+
+
+def _install_token_redaction() -> None:
+    werkzeug_logger = logging.getLogger("werkzeug")
+    if not any(isinstance(f, RedactTokenPaths) for f in werkzeug_logger.filters):
+        werkzeug_logger.addFilter(RedactTokenPaths())
+
+
+def _environment_name(app: Flask) -> str:
+    return "testing" if app.testing else "development" if app.debug else "production"
+
+
+def _configure_mailer(app: Flask, marketplace_expected: bool) -> None:
+    """Email delivery (src/app/marketplace/mailer.py). In production, an active marketplace needs a valid
+    configuration: start-up stops here, before any expensive loading, if it is missing or invalid."""
+    try:
+        mailer = build_mailer(resolve_settings(app.config), environment=_environment_name(app), required=marketplace_expected)
+    except MailConfigError as exc:
+        raise MissingMailConfig(
+            f"Email is not configured for production: {exc}. Set the MAIL_* / SMTP_* / APP_BASE_URL variables "
+            "(see .env.example); MAIL_BACKEND=file or console is accepted for local, non-public runs.") from None
+    if mailer is not None:
+        app.extensions["hirewise_mailer"] = mailer
 
 
 def _configure_secret_key(app: Flask) -> None:
@@ -91,6 +135,16 @@ def create_app(config=None, service: RecommendationService | None = None, neo4j_
         app.config.from_object(resolve_config(config))
     app.json.sort_keys = app.config["JSON_SORT_KEYS"]
     _configure_secret_key(app)  # before any expensive loading: fail fast in production
+    # The marketplace is built below when a database-backed repository is available (an injected repository,
+    # an injected service whose repository has an engine, or the service built at start-up).
+    marketplace_expected = marketplace_repository is not None or (app.config["LOAD_MARKETPLACE"] and (
+        getattr(getattr(service, "repository", None), "engine", None) is not None
+        if service is not None else app.config["LOAD_RECOMMENDER_ON_STARTUP"]))
+    _configure_mailer(app, marketplace_expected)  # likewise fails fast in production
+    _install_token_redaction()
+    proxies = int(app.config.get("TRUSTED_PROXY_COUNT") or 0)
+    if proxies > 0:  # trust X-Forwarded-For/-Proto from exactly this many proxies (client address for rate limits)
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=proxies, x_proto=proxies)
 
     if service is None and app.config["LOAD_RECOMMENDER_ON_STARTUP"]:
         try:
@@ -133,6 +187,8 @@ def create_app(config=None, service: RecommendationService | None = None, neo4j_
         app.extensions["hirewise_runtime_recommender"] = runtime_recommender
     app.extensions["hirewise_login_limiter"] = LoginRateLimiter(app.config["LOGIN_MAX_FAILURES"],
                                                                 app.config["LOGIN_FAILURE_WINDOW_SECONDS"])
+    for name in ("VERIFY_RESEND_LIMIT", "RESET_REQUEST_LIMIT", "RESET_REQUEST_ADDRESS_LIMIT", "RESET_ATTEMPT_LIMIT"):
+        app.extensions[f"hirewise_{name.lower()}"] = LoginRateLimiter(*app.config[name])
     app.before_request(protect_against_csrf)
     app.before_request(load_current_user)
 
@@ -146,6 +202,7 @@ def create_app(config=None, service: RecommendationService | None = None, neo4j_
     app.register_blueprint(api)
     app.register_blueprint(pages)
     app.register_blueprint(marketplace)
+    app.register_blueprint(account)
 
     @app.after_request
     def security_headers(response):

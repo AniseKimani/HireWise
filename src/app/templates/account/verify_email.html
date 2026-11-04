@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% from "marketplace/macros.html" import csrf_field %}
+{% from "_icons.html" import icon %}
+{% block title %}Email verification · HireWise{% endblock %}
+{% block content %}
+<div class="auth">
+  <section class="card auth-card account-card" aria-labelledby="verify-heading">
+    {% if verified %}
+    <span class="account-card__icon account-card__icon--success">{{ icon("check") }}</span>
+    <div class="auth__head">
+      <h1 id="verify-heading">Your email is verified</h1>
+      <p>{{ current_user.email }} is confirmed. Every part of HireWise is open to you.</p>
+    </div>
+    <a class="button button--lg button--block" href="{{ url_for('marketplace.dashboard') }}">Go to your dashboard</a>
+    {% else %}
+    <span class="account-card__icon">{{ icon("send") }}</span>
+    <div class="auth__head">
+      <h1 id="verify-heading">Verify your email address</h1>
+      <p>We sent a verification link to <strong>{{ current_user.email }}</strong>. Open it to finish setting up your account.</p>
+    </div>
+    <ul class="account-steps account-steps--plain">
+      <li>{{ icon("check", "icon account-steps__icon") }}<span>You can log in and browse while you wait.</span></li>
+      <li>{{ icon("alert", "icon account-steps__icon account-steps__icon--muted") }}<span>Posting requests, booking workers, managing bookings and leaving reviews unlock after verification.</span></li>
+      <li>{{ icon("clock", "icon account-steps__icon account-steps__icon--muted") }}<span>Each link expires in {{ ttl }} and works once. Asking for a new link cancels the previous one.</span></li>
+    </ul>
+    <form method="post" action="{{ url_for('account.resend_verification') }}" class="form-grid">
+      {{ csrf_field() }}
+      <button type="submit" class="button button--lg button--block">{{ icon("send") }} Send a new verification link</button>
+    </form>
+    <p class="auth-card__switch"><a href="{{ url_for('marketplace.dashboard') }}">Continue to your dashboard</a></p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

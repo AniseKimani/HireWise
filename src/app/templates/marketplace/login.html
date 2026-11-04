@@ -20,6 +20,7 @@
       <div class="field">
         <label for="password">Password</label>
         <input id="password" name="password" type="password" autocomplete="current-password" maxlength="128" required{% if error %} aria-describedby="login-error"{% endif %}>
+        <a class="login-forgot" href="{{ url_for('account.forgot_password') }}">Forgot your password?</a>
       </div>
       <button type="submit" class="button button--lg button--block">Log in</button>
     </form>

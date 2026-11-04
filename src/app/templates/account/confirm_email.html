@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% from "marketplace/macros.html" import csrf_field %}
+{% from "_icons.html" import icon %}
+{% block title %}Confirm your email · HireWise{% endblock %}
+{% block content %}
+{# state: valid | expired | used | invalid | missing; result: "done" after a successful confirmation. #}
+<div class="auth">
+  <section class="card auth-card account-card" aria-labelledby="confirm-heading">
+    {% if result == "done" %}
+    <span class="account-card__icon account-card__icon--success">{{ icon("check") }}</span>
+    <div class="auth__head" role="status">
+      <h1 id="confirm-heading">Email address verified</h1>
+      <p>Thank you. Your HireWise account is fully set up.</p>
+    </div>
+    {% if current_user %}<a class="button button--lg button--block" href="{{ url_for('marketplace.dashboard') }}">Go to your dashboard</a>
+    {% else %}<a class="button button--lg button--block" href="{{ url_for('marketplace.login') }}">Log in</a>{% endif %}
+
+    {% elif state == "valid" %}
+    <span class="account-card__icon">{{ icon("shield") }}</span>
+    <div class="auth__head">
+      <h1 id="confirm-heading">Confirm your email address</h1>
+      <p>Select the button below to confirm that this email address belongs to your HireWise account.</p>
+    </div>
+    <form method="post" action="{{ url_for('account.confirm_email_submit') }}" class="form-grid">
+      {{ csrf_field() }}
+      <button type="submit" class="button button--lg button--block">{{ icon("check") }} Confirm my email address</button>
+    </form>
+
+    {% elif state == "expired" %}
+    <span class="account-card__icon account-card__icon--warning">{{ icon("clock") }}</span>
+    <div class="auth__head">
+      <h1 id="confirm-heading">This link has expired</h1>
+      <p>Verification links work for a limited time. You can ask for a new one.</p>
+    </div>
+    {% if current_user and not current_user.email_verified %}
+    <form method="post" action="{{ url_for('account.resend_verification') }}" class="form-grid">
+      {{ csrf_field() }}
+      <button type="submit" class="button button--lg button--block">{{ icon("send") }} Send a new verification link</button>
+    </form>
+    {% elif current_user %}<a class="button button--lg button--block" href="{{ url_for('account.verify_email') }}">Check your verification status</a>
+    {% else %}<a class="button button--lg button--block" href="{{ url_for('marketplace.login', next=url_for('account.verify_email')) }}">Log in to get a new link</a>{% endif %}
+
+    {% elif state == "used" %}
+    <span class="account-card__icon">{{ icon("info") }}</span>
+    <div class="auth__head">
+      <h1 id="confirm-heading">This link has already been used</h1>
+      <p>Each verification link works once, and a newer link replaces older ones. If you have already verified your address, you're all set.</p>
+    </div>
+    <a class="button button--lg button--block" href="{{ url_for('account.verify_email') if current_user else url_for('marketplace.login') }}">{% if current_user %}Check your verification status{% else %}Log in{% endif %}</a>
+
+    {% else %}
+    <span class="account-card__icon account-card__icon--warning">{{ icon("x-circle") }}</span>
+    <div class="auth__head">
+      <h1 id="confirm-heading">This link isn't valid</h1>
+      <p>The verification link is incomplete or not recognised. Open the most recent email from HireWise, or ask for a new link.</p>
+    </div>
+    <a class="button button--lg button--block" href="{{ url_for('account.verify_email') if current_user else url_for('marketplace.login', next=url_for('account.verify_email')) }}">{% if current_user %}Get a new link{% else %}Log in to get a new link{% endif %}</a>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

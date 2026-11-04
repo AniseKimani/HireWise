@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}Check your email · HireWise{% endblock %}
+{% block content %}
+{# Shown after every successful registration submission, whether or not the address already had an account. #}
+<div class="auth">
+  <section class="card auth-card account-card" aria-labelledby="check-heading">
+    <span class="account-card__icon">{{ icon("send") }}</span>
+    <div class="auth__head">
+      <h1 id="check-heading">Check your email</h1>
+      <p>Thanks for signing up. If this address can be used for a new HireWise account, we've sent a verification link to it.</p>
+    </div>
+    <ol class="account-steps">
+      <li>Open the email from HireWise and follow the link. It expires in {{ ttl }} and works once.</li>
+      <li>You can log in and browse straight away. Posting requests, booking workers and leaving reviews unlock once your address is verified.</li>
+      <li>Nothing after a few minutes? Check your spam folder, or log in and ask for a new link.</li>
+    </ol>
+    <a class="button button--lg button--block" href="{{ url_for('marketplace.login') }}">Log in</a>
+    <p class="auth-card__switch">Already have an account with this address? <a href="{{ url_for('account.forgot_password') }}">Reset your password</a></p>
+  </section>
+</div>
+{% endblock %}

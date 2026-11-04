@@ -147,7 +147,25 @@ class MarketplaceBehaviour:
     def register(self, client, email, role="client", **extra):
         form = {"email": email, "role": role, "display_name": email.split("@")[0], "password": PASSWORD,
                 "confirm_password": PASSWORD, **extra}
-        return client.post("/register", data={**form, "csrf_token": self.token(client, "/register")})
+        sent_before = len(self.app.extensions["hirewise_mailer"].backend.messages)
+        response = client.post("/register", data={**form, "csrf_token": self.token(client, "/register")})
+        if response.status_code == 302:
+            self.complete_signup(client, email.lower(), PASSWORD, sent_before)
+        return response
+
+    def complete_signup(self, client, email, password, sent_before):
+        """Milestone 1: registration no longer logs in and new accounts start unverified. Follow the real flow
+        for the account just created -- open the emailed verification link, confirm it, log in -- so the
+        existing tests keep exercising a normal, verified account. A duplicate address gets no email at all,
+        so there is nothing to complete."""
+        new_messages = self.app.extensions["hirewise_mailer"].backend.messages[sent_before:]
+        links = [re.search(r"https?://[^/\s]+(/verify-email/confirm/[A-Za-z0-9_-]+)", m.get_content()).group(1)
+                 for m in new_messages if m["To"] == email and "/verify-email/confirm/" in m.get_content()]
+        if not links:
+            return
+        client.get(links[-1])
+        client.post("/verify-email/confirm", data={"csrf_token": self.token(client, "/verify-email/confirm")})
+        self.login(client, email, password)
 
     def register_worker_form(self):
         return {"worker_country": "India", "primary_category": "Logo Design", "experience_level": "intermediate",
@@ -192,7 +210,8 @@ class MarketplaceBehaviour:
         c = self.new_client()
         response = self.register(c, "New.Client@Example.com")
         self.assertEqual(response.status_code, 302)
-        self.assertTrue(response.headers["Location"].endswith("/dashboard"))
+        # Milestone 1: registration ends on the "check your email" page (it no longer logs in by itself).
+        self.assertTrue(response.headers["Location"].endswith("/register/check-email"))
         user_id, stored = self.repo.get_credentials("new.client@example.com")
         self.assertNotEqual(stored, PASSWORD)
         self.assertNotIn(PASSWORD, stored)
@@ -210,10 +229,14 @@ class MarketplaceBehaviour:
         self.assertIn("not recommended to clients yet", c.get("/dashboard").get_data(as_text=True))
 
     def test_duplicate_email_rejected_case_insensitively(self):
-        self.register(self.new_client(), "dup@example.com")
-        response = self.register(self.new_client(), "DUP@example.com")
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("already exists", response.get_data(as_text=True))
+        first = self.register(self.new_client(), "dup@example.com")
+        user_id, stored_hash = self.repo.get_credentials("dup@example.com")
+        response = self.register(self.new_client(), "DUP@example.com", display_name="someone else")
+        # Milestone 1: no duplicate account, and a response identical to a fresh registration's (no enumeration).
+        self.assertEqual((response.status_code, response.headers["Location"]), (first.status_code, first.headers["Location"]))
+        self.assertNotIn("already exists", response.get_data(as_text=True))
+        self.assertEqual(self.repo.get_credentials("dup@example.com"), (user_id, stored_hash))
+        self.assertEqual(self.repo.get_user(user_id)["display_name"], "dup")
 
     def test_invalid_registrations_rejected(self):
         cases = [{"email": "not-an-email"}, {"password": "short", "confirm_password": "short"}, {"role": "admin"},

@@ -60,10 +60,34 @@ class BaseConfig:
     # Build the marketplace (PostgreSQL repository + runtime recommender) with the service.
     LOAD_MARKETPLACE = True
 
+    # ---- Email and account security (pre-deployment Milestone 1) ----------------------------
+    # Delivery settings come from the environment / git-ignored .env (src/app/marketplace/mailer.py):
+    # MAIL_BACKEND (smtp | console | file), SMTP_HOST, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD,
+    # SMTP_USE_TLS (1 = STARTTLS, ssl = implicit TLS), MAIL_FROM, APP_BASE_URL, MAIL_OUTBOX_DIR.
+    # A value set here (e.g. by a config override) wins over the environment.
+    MAIL_BACKEND = None
+    APP_BASE_URL = None
+    DEFAULT_MAIL_BACKEND = None          # production: must be configured explicitly
+    DEFAULT_APP_BASE_URL = None
+    MAIL_TIMEOUT_SECONDS = 10            # SMTP connection / read timeout
+    MAIL_SEND_ASYNC = True               # deliver after the response, so timing never depends on delivery
+    EMAIL_VERIFICATION_TTL = timedelta(hours=24)
+    PASSWORD_RESET_TTL = timedelta(hours=1)
+    # Rate limits: (events, window seconds), per key -- in-process, like the login limiter.
+    VERIFY_RESEND_LIMIT = (3, 15 * 60)            # per account
+    RESET_REQUEST_LIMIT = (3, 15 * 60)            # per (client address, email)
+    RESET_REQUEST_ADDRESS_LIMIT = (10, 15 * 60)   # per client address
+    RESET_ATTEMPT_LIMIT = (10, 15 * 60)           # new-password submissions per client address
+    # Number of reverse proxies in front of the app whose X-Forwarded-* headers are trusted (werkzeug ProxyFix).
+    # 0 (default) trusts none. Set HIREWISE_TRUSTED_PROXIES=1 only when exactly one proxy you control sets them.
+    TRUSTED_PROXY_COUNT = int(os.environ.get("HIREWISE_TRUSTED_PROXIES", "0") or 0)
+
 
 class DevelopmentConfig(BaseConfig):
     DEBUG = True
     REQUIRE_SECRET_KEY = False  # a temporary key is acceptable locally (logins end on restart)
+    DEFAULT_MAIL_BACKEND = "console"
+    DEFAULT_APP_BASE_URL = "http://127.0.0.1:5000"
 
 
 class TestingConfig(BaseConfig):
@@ -74,6 +98,10 @@ class TestingConfig(BaseConfig):
     POSTGRES_HEALTHCHECK_ENABLED = False
     LOAD_MARKETPLACE = False
     REQUIRE_SECRET_KEY = False
+    # Never send real mail from tests, whatever the environment says: messages are captured in memory.
+    MAIL_BACKEND = "memory"
+    APP_BASE_URL = "http://localhost"
+    MAIL_SEND_ASYNC = False
 
 
 class ProductionConfig(BaseConfig):

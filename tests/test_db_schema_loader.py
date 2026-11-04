@@ -33,7 +33,11 @@ EXPECTED_COLUMNS = {
 }
 # Schema v2 (Day 12): runtime marketplace tables, added without altering any table above.
 RUNTIME_COLUMNS = {
-    "users": {"user_id", "email", "password_hash", "role", "display_name", "country", "client_id", "worker_id", "created_at"},
+    # schema v3 (Milestone 1) adds users.auth_version and the two account-security tables
+    "users": {"user_id", "email", "password_hash", "role", "display_name", "country", "client_id", "worker_id", "created_at",
+              "auth_version"},
+    "user_email_verification": {"user_id", "verified_at"},
+    "auth_tokens": {"token_id", "user_id", "purpose", "token_hash", "created_at", "expires_at", "used_at"},
     "runtime_worker_profiles": {"user_id", "primary_category", "experience_level", "experience_years", "rate", "country"},
     "runtime_worker_skills": {"user_id", "skill"},
     "runtime_requests": {"request_id", "client_user_id", "title", "category", "pay_type", "budget", "hourly_low",
@@ -55,7 +59,7 @@ class TestSchema(unittest.TestCase):
         self.assertEqual(set(schema.TABLE_LOAD_ORDER) | {"load_metadata"}, set(EXPECTED_COLUMNS))
         self.assertEqual(set(schema.RUNTIME_TABLES), set(RUNTIME_COLUMNS))
         self.assertFalse(set(schema.RUNTIME_TABLES) & set(schema.TABLE_LOAD_ORDER))
-        self.assertEqual(schema.SCHEMA_VERSION, "2")
+        self.assertEqual(schema.SCHEMA_VERSION, "3")
 
     def test_no_private_or_outcome_columns(self):
         for table in schema.metadata.tables.values():
@@ -99,7 +103,9 @@ class TestSchema(unittest.TestCase):
                                  "ix_worker_skills_skill", "ix_ratings_worker_id",
                                  # schema v2 (Day 12)
                                  "uq_bookings_one_active_per_request", "ix_bookings_worker_id",
-                                 "ix_bookings_client_user_id", "ix_runtime_requests_client_user_id"})
+                                 "ix_bookings_client_user_id", "ix_runtime_requests_client_user_id",
+                                 # schema v3 (Milestone 1)
+                                 "ix_auth_tokens_user_purpose", "ix_auth_tokens_expires_at"})
         dialect = postgresql.dialect()
         for table in schema.metadata.sorted_tables:
             ddl = str(CreateTable(table).compile(dialect=dialect))

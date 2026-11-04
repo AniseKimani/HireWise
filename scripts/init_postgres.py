@@ -34,6 +34,12 @@ def main() -> int:
     try:
         engine = make_engine(database_env=TEST_DATABASE_ENV if args.test_db else MAIN_DATABASE_ENV)
         before = set(inspect(engine).get_table_names())
+        # An existing schema-v2 users table cannot be upgraded by create_all (it never alters tables):
+        # refuse rather than record version 3 over an incomplete schema.
+        if "users" in before and "auth_version" not in {c["name"] for c in inspect(engine).get_columns("users")}:
+            print("Existing schema version 2 detected (users.auth_version is missing). Nothing was changed.\n"
+                  "Upgrade it with: python scripts/migrate_schema_v3.py" + (" --test-db" if args.test_db else ""))
+            return 1
         metadata.create_all(engine, checkfirst=True)
         with engine.begin() as conn:  # record the schema version (upsert; never drops or alters)
             conn.execute(pg_insert(load_metadata).values(key="schema_version", value=SCHEMA_VERSION)

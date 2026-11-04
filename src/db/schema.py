@@ -23,15 +23,25 @@ bookings, reviews) never share a table. Runtime tables use surrogate
 identity keys because they describe new entities; they reference
 imported entities only through existing identifiers (client_id,
 worker_id, category and skill names).
+
+Schema version 3 (pre-deployment Milestone 1) adds account security:
+`users.auth_version` (incremented by a password reset, so older sessions
+stop being accepted), `user_email_verification` (one row per user; a NULL
+verified_at means unverified) and `auth_tokens` (SHA-256 hashes of
+single-use, purpose-bound, expiring email-verification / password-reset
+tokens -- raw tokens are never stored). An existing version 2 database is
+upgraded by scripts/migrate_schema_v3.py (src/db/migrations.py), which also
+marks every existing account as verified; `metadata.create_all` alone
+cannot add the new users column.
 """
 from __future__ import annotations
 
 from sqlalchemy import (
     BigInteger, Boolean, CheckConstraint, Column, DateTime, Double, ForeignKey, ForeignKeyConstraint, Identity, Index,
-    MetaData, PrimaryKeyConstraint, SmallInteger, Table, Text, UniqueConstraint, func,
+    Integer, MetaData, PrimaryKeyConstraint, SmallInteger, Table, Text, UniqueConstraint, func, text,
 )
 
-SCHEMA_VERSION = "2"
+SCHEMA_VERSION = "3"
 metadata = MetaData()
 
 
@@ -177,6 +187,8 @@ users = Table(
     _id("client_id", ForeignKey("clients.client_id"), unique=True),
     _id("worker_id", ForeignKey("workers.worker_id"), unique=True),
     _timestamp("created_at", nullable=False, server_default=func.now()),
+    # Schema v3: sessions record the version they were created with; a password reset increments it.
+    Column("auth_version", Integer, nullable=False, server_default=text("0")),
     CheckConstraint("role IN ('client', 'worker')", name="ck_users_role"),
     CheckConstraint("email = lower(email) AND position('@' in email) > 1", name="ck_users_email"),
     CheckConstraint("role = 'client' OR client_id IS NULL", name="ck_users_client_link_role"),
@@ -275,8 +287,41 @@ Index("ix_bookings_worker_id", bookings.c.worker_id)                            
 Index("ix_bookings_client_user_id", bookings.c.client_user_id)                  # client dashboard
 Index("ix_runtime_requests_client_user_id", runtime_requests.c.client_user_id)  # "my requests"
 
-RUNTIME_TABLES = ("users", "runtime_worker_profiles", "runtime_worker_skills", "runtime_requests",
-                  "runtime_request_skills", "bookings", "app_reviews")
+# ---------------------------------------------------------------------------
+# Account security tables (schema version 3)
+# ---------------------------------------------------------------------------
+TOKEN_PURPOSES = ("verify_email", "reset_password")
+
+user_email_verification = Table(
+    "user_email_verification", metadata,
+    # One row per user, created together with the user. NULL verified_at = not yet verified.
+    Column("user_id", BigInteger, ForeignKey("users.user_id"), primary_key=True),
+    _timestamp("verified_at"),
+)
+
+auth_tokens = Table(
+    "auth_tokens", metadata,
+    Column("token_id", BigInteger, Identity(), primary_key=True),
+    Column("user_id", BigInteger, ForeignKey("users.user_id"), nullable=False),
+    Column("purpose", Text, nullable=False),
+    # Lower-case hex SHA-256 of the raw token; the raw token itself is never stored.
+    Column("token_hash", Text, nullable=False, unique=True),
+    _timestamp("created_at", nullable=False, server_default=func.now()),
+    _timestamp("expires_at", nullable=False),
+    # Set when the token is consumed, or when a newer token of the same purpose replaces it.
+    _timestamp("used_at"),
+    CheckConstraint("purpose IN ('verify_email', 'reset_password')", name="ck_auth_tokens_purpose"),
+    CheckConstraint("token_hash ~ '^[0-9a-f]{64}$'", name="ck_auth_tokens_token_hash"),
+    CheckConstraint("expires_at > created_at", name="ck_auth_tokens_expiry"),
+)
+Index("ix_auth_tokens_user_purpose", auth_tokens.c.user_id, auth_tokens.c.purpose)  # invalidate a user's older tokens
+Index("ix_auth_tokens_expires_at", auth_tokens.c.expires_at)                         # expiry housekeeping
+
+ACCOUNT_SECURITY_TABLES = ("user_email_verification", "auth_tokens")
+
+# Dependent tables come after "users", so reversed(RUNTIME_TABLES) clears children first.
+RUNTIME_TABLES = ("users", "user_email_verification", "auth_tokens", "runtime_worker_profiles", "runtime_worker_skills",
+                  "runtime_requests", "runtime_request_skills", "bookings", "app_reviews")
 
 # Load order respects foreign keys.
 TABLE_LOAD_ORDER = (

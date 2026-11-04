@@ -14,18 +14,34 @@ hashes are only returned by `get_credentials`, never by profile reads.
 from __future__ import annotations
 
 import itertools
+import threading
 from datetime import datetime, timezone
 from functools import wraps
 
 from sqlalchemy import and_, func, insert, select, update
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from src.db.repositories import DatabaseUnavailable
 from src.db.schema import (
-    ACTIVE_BOOKING_STATUSES, app_reviews, bookings, categories, clients, runtime_request_skills, runtime_requests,
-    runtime_worker_profiles, runtime_worker_skills, skills, users, workers,
+    ACTIVE_BOOKING_STATUSES, TOKEN_PURPOSES, app_reviews, auth_tokens, bookings, categories, clients, runtime_request_skills,
+    runtime_requests, runtime_worker_profiles, runtime_worker_skills, skills, user_email_verification, users, workers,
 )
+
+# Outcomes of looking up / consuming an auth token (src/app/marketplace/auth_tokens.py).
+TOKEN_VALID, TOKEN_EXPIRED, TOKEN_USED, TOKEN_INVALID = "valid", "expired", "used", "invalid"
+
+
+def _token_state(row, purpose: str, now: datetime) -> str:
+    """State of a token row (or None) for `purpose`: a token of another purpose is simply invalid here."""
+    if row is None or row["purpose"] != purpose:
+        return TOKEN_INVALID
+    if row["used_at"] is not None:
+        return TOKEN_USED
+    if row["expires_at"] <= now:
+        return TOKEN_EXPIRED
+    return TOKEN_VALID
 
 
 class DuplicateEmail(ValueError):
@@ -48,7 +64,7 @@ class StaleBookingState(RuntimeError):
     """The booking changed since it was read (or never existed)."""
 
 
-USER_FIELDS = ("user_id", "email", "role", "display_name", "country", "client_id", "worker_id", "created_at")
+USER_FIELDS = ("user_id", "email", "role", "display_name", "country", "client_id", "worker_id", "created_at", "auth_version")
 REQUEST_FIELDS = ("request_id", "client_user_id", "title", "category", "pay_type", "budget", "hourly_low", "hourly_high",
                   "price_tier", "location_requirement", "created_at")
 BOOKING_FIELDS = ("booking_id", "request_id", "client_user_id", "worker_id", "status", "created_at", "updated_at", "completed_at")
@@ -106,11 +122,15 @@ class PostgresMarketplaceRepository:
     # ---- users ----------------------------------------------------------------
     @_guard
     def create_user(self, email, password_hash, role, display_name, country=None, client_id=None, worker_id=None,
-                    worker_profile: dict | None = None) -> int:
+                    worker_profile: dict | None = None, verified: bool = True) -> int:
+        """`verified=False` for public self-registration (the email address is unproven); accounts created by an
+        operator (scripts/create_demo_account.py) or test fixtures default to verified. The verification row is
+        written in the same transaction as the user."""
         with self.engine.begin() as conn:
             user_id = conn.execute(insert(users).values(
                 email=email, password_hash=password_hash, role=role, display_name=display_name, country=country,
                 client_id=client_id, worker_id=worker_id).returning(users.c.user_id)).scalar_one()
+            conn.execute(insert(user_email_verification).values(user_id=user_id, verified_at=func.now() if verified else None))
             if worker_profile is not None:
                 conn.execute(insert(runtime_worker_profiles).values(
                     user_id=user_id, **{k: worker_profile[k] for k in
@@ -127,9 +147,73 @@ class PostgresMarketplaceRepository:
 
     @_guard
     def get_user(self, user_id: int) -> dict | None:
+        """Profile fields plus `email_verified_at` (None = unverified, also when no verification row exists)."""
         with self.engine.connect() as conn:
-            row = conn.execute(select(*[users.c[f] for f in USER_FIELDS]).where(users.c.user_id == user_id)).first()
+            row = conn.execute(
+                select(*[users.c[f] for f in USER_FIELDS], user_email_verification.c.verified_at.label("email_verified_at"))
+                .select_from(users.outerjoin(user_email_verification, user_email_verification.c.user_id == users.c.user_id))
+                .where(users.c.user_id == user_id)).first()
         return dict(row._mapping) if row else None
+
+    # ---- account security (schema v3) ---------------------------------------------
+    @_guard
+    def issue_auth_token(self, user_id: int, purpose: str, token_hash: str, expires_at: datetime, now: datetime) -> None:
+        """Store a new token hash; older unused tokens of the same purpose for this user stop working."""
+        if purpose not in TOKEN_PURPOSES:
+            raise ValueError(f"unknown token purpose {purpose!r}")
+        with self.engine.begin() as conn:
+            conn.execute(update(auth_tokens).where(and_(auth_tokens.c.user_id == user_id, auth_tokens.c.purpose == purpose,
+                                                        auth_tokens.c.used_at.is_(None))).values(used_at=now))
+            conn.execute(insert(auth_tokens).values(user_id=user_id, purpose=purpose, token_hash=token_hash, created_at=now,
+                                                    expires_at=expires_at))
+
+    @_guard
+    def auth_token_state(self, token_hash: str, purpose: str, now: datetime) -> str:
+        with self.engine.connect() as conn:
+            row = conn.execute(select(auth_tokens).where(auth_tokens.c.token_hash == token_hash)).first()
+        return _token_state(row._mapping if row else None, purpose, now)
+
+    def _consume(self, conn, token_hash: str, purpose: str, now: datetime) -> tuple[str, int | None]:
+        """Atomically mark a valid token used. A concurrent second consumer finds used_at already set (the row lock
+        makes it wait for the first transaction) and gets TOKEN_USED."""
+        user_id = conn.execute(
+            update(auth_tokens).where(and_(auth_tokens.c.token_hash == token_hash, auth_tokens.c.purpose == purpose,
+                                           auth_tokens.c.used_at.is_(None), auth_tokens.c.expires_at > now))
+            .values(used_at=now).returning(auth_tokens.c.user_id)).scalar()
+        if user_id is not None:
+            return TOKEN_VALID, user_id
+        row = conn.execute(select(auth_tokens).where(auth_tokens.c.token_hash == token_hash)).first()
+        return _token_state(row._mapping if row else None, purpose, now), None
+
+    def _mark_verified(self, conn, user_id: int, now: datetime) -> None:
+        conn.execute(pg_insert(user_email_verification).values(user_id=user_id, verified_at=now).on_conflict_do_update(
+            index_elements=["user_id"], set_={"verified_at": func.coalesce(user_email_verification.c.verified_at, now)}))
+
+    @_guard
+    def verify_email_with_token(self, token_hash: str, now: datetime) -> tuple[str, int | None]:
+        """Consume a verification token and mark its user verified, in one transaction."""
+        with self.engine.begin() as conn:
+            state, user_id = self._consume(conn, token_hash, "verify_email", now)
+            if user_id is not None:
+                self._mark_verified(conn, user_id, now)
+            return state, user_id
+
+    @_guard
+    def reset_password_with_token(self, token_hash: str, password_hash: str, now: datetime) -> tuple[str, int | None]:
+        """Consume a reset token, set the new password hash, increment auth_version (ending every existing
+        session), retire the user's other outstanding reset tokens and -- since the link proves control of the
+        mailbox -- mark the email verified. One transaction."""
+        with self.engine.begin() as conn:
+            state, user_id = self._consume(conn, token_hash, "reset_password", now)
+            if user_id is None:
+                return state, None
+            conn.execute(update(users).where(users.c.user_id == user_id)
+                         .values(password_hash=password_hash, auth_version=users.c.auth_version + 1))
+            conn.execute(update(auth_tokens).where(and_(auth_tokens.c.user_id == user_id,
+                                                        auth_tokens.c.purpose == "reset_password",
+                                                        auth_tokens.c.used_at.is_(None))).values(used_at=now))
+            self._mark_verified(conn, user_id, now)
+            return state, user_id
 
     @_guard
     def get_runtime_worker_profile(self, user_id: int) -> dict | None:
@@ -243,7 +327,10 @@ class InMemoryMarketplaceRepository:
         self._requests: dict[int, dict] = {}
         self._bookings: dict[int, dict] = {}
         self._reviews: dict[int, dict] = {}
-        self._ids = {name: itertools.count(1) for name in ("user", "request", "booking")}
+        self._verification: dict[int, datetime | None] = {}   # user_email_verification
+        self._tokens: dict[str, dict] = {}                      # auth_tokens, keyed by token_hash (unique)
+        self._lock = threading.RLock()                          # makes token consumption atomic, like the database
+        self._ids = {name: itertools.count(1) for name in ("user", "request", "booking", "token")}
 
     @classmethod
     def from_artifacts(cls) -> "InMemoryMarketplaceRepository":
@@ -270,7 +357,12 @@ class InMemoryMarketplaceRepository:
         return worker_id in self._workers
 
     def create_user(self, email, password_hash, role, display_name, country=None, client_id=None, worker_id=None,
-                    worker_profile=None):
+                    worker_profile=None, verified=True):
+        with self._lock:
+            return self._create_user(email, password_hash, role, display_name, country, client_id, worker_id,
+                                     worker_profile, verified)
+
+    def _create_user(self, email, password_hash, role, display_name, country, client_id, worker_id, worker_profile, verified):
         if role not in ("client", "worker") or email != email.lower() or "@" not in email[1:]:
             raise ValueError("constraint violated")
         if (role != "client" and client_id) or (role != "worker" and worker_id):
@@ -287,7 +379,8 @@ class InMemoryMarketplaceRepository:
         user_id = next(self._ids["user"])
         self._users[user_id] = {"user_id": user_id, "email": email, "password_hash": password_hash, "role": role,
                                 "display_name": display_name, "country": country, "client_id": client_id,
-                                "worker_id": worker_id, "created_at": self._now()}
+                                "worker_id": worker_id, "created_at": self._now(), "auth_version": 0}
+        self._verification[user_id] = self._now() if verified else None
         if worker_profile is not None:
             self._worker_profiles[user_id] = {"user_id": user_id, **{k: worker_profile[k] for k in (
                 "primary_category", "experience_level", "experience_years", "rate", "country")},
@@ -302,7 +395,50 @@ class InMemoryMarketplaceRepository:
 
     def get_user(self, user_id):
         u = self._users.get(user_id)
-        return {f: u[f] for f in USER_FIELDS} if u else None
+        return {**{f: u[f] for f in USER_FIELDS}, "email_verified_at": self._verification.get(user_id)} if u else None
+
+    # ---- account security (schema v3) ---------------------------------------------
+    def issue_auth_token(self, user_id, purpose, token_hash, expires_at, now):
+        if purpose not in TOKEN_PURPOSES or user_id not in self._users or token_hash in self._tokens or expires_at <= now:
+            raise ValueError("constraint violated")
+        with self._lock:
+            for t in self._tokens.values():
+                if t["user_id"] == user_id and t["purpose"] == purpose and t["used_at"] is None:
+                    t["used_at"] = now
+            self._tokens[token_hash] = {"token_id": next(self._ids["token"]), "user_id": user_id, "purpose": purpose,
+                                        "token_hash": token_hash, "created_at": now, "expires_at": expires_at, "used_at": None}
+
+    def auth_token_state(self, token_hash, purpose, now):
+        return _token_state(self._tokens.get(token_hash), purpose, now)
+
+    def _consume(self, token_hash, purpose, now):
+        t = self._tokens.get(token_hash)
+        state = _token_state(t, purpose, now)
+        if state != TOKEN_VALID:
+            return state, None
+        t["used_at"] = now
+        return TOKEN_VALID, t["user_id"]
+
+    def verify_email_with_token(self, token_hash, now):
+        with self._lock:
+            state, user_id = self._consume(token_hash, "verify_email", now)
+            if user_id is not None and self._verification.get(user_id) is None:
+                self._verification[user_id] = now
+            return state, user_id
+
+    def reset_password_with_token(self, token_hash, password_hash, now):
+        with self._lock:
+            state, user_id = self._consume(token_hash, "reset_password", now)
+            if user_id is None:
+                return state, None
+            self._users[user_id]["password_hash"] = password_hash
+            self._users[user_id]["auth_version"] += 1
+            for t in self._tokens.values():
+                if t["user_id"] == user_id and t["purpose"] == "reset_password" and t["used_at"] is None:
+                    t["used_at"] = now
+            if self._verification.get(user_id) is None:
+                self._verification[user_id] = now
+            return state, user_id
 
     def get_runtime_worker_profile(self, user_id):
         p = self._worker_profiles.get(user_id)

@@ -67,6 +67,13 @@
     </div>
   </header>
   <main id="main" class="site-main">
+    {% if current_user and not current_user.email_verified and not (request.endpoint or '').startswith('account.') %}
+    <div class="verify-banner" role="region" aria-label="Email verification">
+      {{ icon("alert", "icon verify-banner__icon") }}
+      <p>Verify your email address to post requests, book workers, manage bookings and leave reviews.</p>
+      <a class="button button--secondary verify-banner__action" href="{{ url_for('account.verify_email') }}">Verify or resend email</a>
+    </div>
+    {% endif %}
     {# Flash messages. The routes currently use Flask's default category ("message"), shown as information;
        success / error / warning categories get their own styles if a route ever sends them. Each kind has its
        own icon as well as its own colour. Error and warning messages are announced assertively. #}

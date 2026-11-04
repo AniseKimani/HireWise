@@ -1088,6 +1088,31 @@ a.request-row__title { color: var(--accent); }
   color: var(--color-neutral); font-family: var(--font-body); font-size: 0.8rem; font-weight: 700; }
 .review-sources--stacked { grid-template-columns: minmax(0, 1fr); margin-bottom: 0; }
 
+/* ---- Account security pages (Milestone 1): verification and password recovery -------------
+   Centred .auth-card pages (R3 auth styles) with a status icon, short step lists and the same form controls. */
+.account-card { display: grid; gap: 1.1rem; padding: 2rem 2rem 1.75rem; border-radius: var(--radius-lg); text-align: left; }
+.account-card .auth__head { margin-bottom: 0; text-align: left; }
+.account-card .auth__head p { margin-top: 0.4rem; }
+.account-card__icon { width: 3rem; height: 3rem; border-radius: var(--radius); display: grid; place-items: center;
+  background: var(--color-surface-brand); color: var(--color-brand-hover); }
+.account-card__icon .icon { width: 1.5rem; height: 1.5rem; }
+.account-card__icon--success { background: var(--color-success-bg); color: var(--color-success); }
+.account-card__icon--warning { background: var(--color-warning-bg); color: var(--color-warning); }
+.account-card .auth-card__switch { margin-top: 0; }
+.account-steps { margin: 0; padding: 0.85rem 1rem 0.85rem 2.25rem; display: grid; gap: 0.45rem; border-radius: var(--radius);
+  background: var(--color-surface-warm); color: var(--color-text); font-size: 0.95rem; }
+.account-steps--plain { list-style: none; padding-left: 1rem; }
+.account-steps--plain li { display: flex; align-items: flex-start; gap: 0.55rem; }
+.account-steps__icon { flex: none; margin-top: 0.15em; color: var(--color-brand); }
+.account-steps__icon--muted { color: var(--muted); }
+.login-forgot { justify-self: end; margin-top: 0.15rem; font-size: 0.9rem; font-weight: 600; }
+/* Logged-in, unverified accounts: shown above the page content until the email is verified. */
+.verify-banner { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1rem; margin: 0 0 1.25rem; padding: 0.75rem 1rem;
+  color: var(--color-text); background: var(--color-warning-bg); border: 1px solid var(--color-warning-border);
+  border-left: 4px solid var(--color-warning); border-radius: var(--radius-sm); }
+.verify-banner p { flex: 1 1 12rem; margin: 0; }
+.verify-banner__icon { flex: none; color: var(--color-warning); width: 1.25rem; height: 1.25rem; }
+
 /* ---- Research Demo (Day 10 page; classes used by static/js/app.js) ---------------------- */
 .demo-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 1.25rem; }
 .intro { margin-top: 0; max-width: 70ch; }
@@ -1224,6 +1249,7 @@ a.request-row__title { color: var(--accent); }
   .step-nav .button--link { min-height: var(--tap); }
   .dash-section__link { min-height: var(--tap); }
   .review-panel__back a { display: inline-flex; align-items: center; min-height: var(--tap); }
+  .login-forgot { display: inline-flex; align-items: center; min-height: var(--tap); }
   /* All buttons and button-styled links (desktop mouse size ~40px is unchanged). */
   .button { min-height: var(--tap); }
   /* While the Research Demo's worker dialog is open, touch-dragging the backdrop must not scroll the page
