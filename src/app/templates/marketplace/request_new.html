@@ -14,12 +14,12 @@
     {{ csrf_field() }}
     <div class="field">
       <label for="title">Title</label>
-      <input id="title" name="title" type="text" minlength="3" maxlength="200" required value="{{ form.get('title', '') }}">
+      <input id="title" name="title" type="text" minlength="3" maxlength="200" required value="{{ form.get('title', '') }}"{% if errors.get('title') %} aria-describedby="title-error" aria-invalid="true"{% endif %}>
       {{ field_error(errors, 'title') }}
     </div>
     <div class="field">
       <label for="category">Category</label>
-      <select id="category" name="category" required>
+      <select id="category" name="category" required{% if errors.get('category') %} aria-describedby="category-error" aria-invalid="true"{% endif %}>
         <option value="">Choose…</option>
         {% for c in categories %}<option value="{{ c }}" {% if form.get('category') == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
       </select>
@@ -27,37 +27,37 @@
     </div>
     <div class="field">
       <label for="skills">Required skills (comma-separated, from the skill list)</label>
-      <input id="skills" name="skills" type="text" list="skill-list" maxlength="2000" required value="{{ form.get('skills', '') }}">
+      <input id="skills" name="skills" type="text" list="skill-list" maxlength="2000" required autocorrect="off" spellcheck="false" value="{{ form.get('skills', '') }}"{% if errors.get('skills') %} aria-describedby="skills-error" aria-invalid="true"{% endif %}>
       <datalist id="skill-list">{% for s in skills %}<option value="{{ s }}">{% endfor %}</datalist>
       {{ field_error(errors, 'skills') }}
     </div>
     <div class="field">
       <label for="pay_type">Pay type</label>
-      <select id="pay_type" name="pay_type" required>
+      <select id="pay_type" name="pay_type" required{% if errors.get('pay_type') %} aria-describedby="pay_type-error" aria-invalid="true"{% endif %}>
         {% for p in ('fixed', 'hourly', 'unspecified') %}<option value="{{ p }}" {% if form.get('pay_type', 'fixed') == p %}selected{% endif %}>{{ p|capitalize }}</option>{% endfor %}
       </select>
       {{ field_error(errors, 'pay_type') }}
     </div>
     <div class="field">
       <label for="budget">Budget (fixed price only)</label>
-      <input id="budget" name="budget" type="number" min="0.01" step="0.01" value="{{ form.get('budget', '') }}">
+      <input id="budget" name="budget" type="number" inputmode="decimal" min="0.01" step="0.01" value="{{ form.get('budget', '') }}"{% if errors.get('budget') %} aria-describedby="budget-error" aria-invalid="true"{% endif %}>
       {{ field_error(errors, 'budget') }}
     </div>
     <div class="field-pair">
       <div class="field">
         <label for="hourly_low">Minimum hourly rate (hourly only)</label>
-        <input id="hourly_low" name="hourly_low" type="number" min="0.01" step="0.01" value="{{ form.get('hourly_low', '') }}">
+        <input id="hourly_low" name="hourly_low" type="number" inputmode="decimal" min="0.01" step="0.01" value="{{ form.get('hourly_low', '') }}"{% if errors.get('hourly_low') %} aria-describedby="hourly_low-error" aria-invalid="true"{% endif %}>
         {{ field_error(errors, 'hourly_low') }}
       </div>
       <div class="field">
         <label for="hourly_high">Maximum hourly rate (hourly only)</label>
-        <input id="hourly_high" name="hourly_high" type="number" min="0.01" step="0.01" value="{{ form.get('hourly_high', '') }}">
+        <input id="hourly_high" name="hourly_high" type="number" inputmode="decimal" min="0.01" step="0.01" value="{{ form.get('hourly_high', '') }}"{% if errors.get('hourly_high') %} aria-describedby="hourly_high-error" aria-invalid="true"{% endif %}>
         {{ field_error(errors, 'hourly_high') }}
       </div>
     </div>
     <div class="field">
       <label for="location_requirement">Only workers located in (optional)</label>
-      <select id="location_requirement" name="location_requirement">
+      <select id="location_requirement" name="location_requirement"{% if errors.get('location_requirement') %} aria-describedby="location_requirement-error" aria-invalid="true"{% endif %}>
         <option value="">Any location</option>
         {% for c in countries %}<option value="{{ c }}" {% if form.get('location_requirement') == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
       </select>

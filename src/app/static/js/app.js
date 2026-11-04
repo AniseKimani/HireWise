@@ -27,6 +27,11 @@ const ui = {
   prev: $("page-prev"),
   next: $("page-next"),
   pageInfo: $("page-info"),
+  requestBrowser: $("request-browser"),
+  requestPanel: $("request-panel"),
+  requestPanelHeading: $("request-panel-heading"),
+  resultsPanel: $("results"),
+  resultsHeading: $("results-heading"),
   selected: $("selected-request"),
   recommendForm: $("recommend-form"),
   kSelect: $("k-select"),
@@ -42,6 +47,27 @@ const ui = {
   graphStatus: $("graph-status"),
   graph: $("worker-graph"),
 };
+
+// ---------------------------------------------------------------------------
+// Narrow screens: show the panel that the user's action just updated
+// ---------------------------------------------------------------------------
+// Below desktop width the layout stacks (style.css ".layout"), so the selected-request and results
+// panels sit below the request list. The actual layout is measured rather than repeating the breakpoint.
+function isStacked() {
+  return ui.requestPanel.getBoundingClientRect().top >= ui.requestBrowser.getBoundingClientRect().bottom - 1;
+}
+
+// Only called right after the user's own action (choosing a request, or the recommendations they asked
+// for arriving). Focus moves to the panel heading, so screen readers announce it and Tab continues inside
+// that panel; the page scrolls only if the heading is not already visible, smoothly unless reduced motion.
+function revealPanel(panel, heading) {
+  heading.focus({ preventScroll: true });
+  const r = heading.getBoundingClientRect();
+  if (r.top < 0 || r.bottom > window.innerHeight) {
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    panel.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Health
@@ -144,6 +170,7 @@ function selectRequest(item) {
   ui.recommendButton.disabled = false;
   clear(ui.results);
   setStatus(ui.resultsStatus, "Ready. Choose how many workers to show, then select “Get recommendations”.");
+  if (isStacked()) revealPanel(ui.requestPanel, ui.requestPanelHeading);
 }
 
 // ---------------------------------------------------------------------------
@@ -170,6 +197,12 @@ async function loadRecommendations() {
   } finally {
     ui.results.removeAttribute("aria-busy");
     ui.recommendButton.disabled = false;
+    // Disabling the button while loading drops keyboard focus to the page body. If focus is still there
+    // (the user has not moved on), take it to the results on a stacked layout, or back to the button.
+    if (document.activeElement === document.body || document.activeElement === ui.recommendButton) {
+      if (isStacked()) revealPanel(ui.resultsPanel, ui.resultsHeading);
+      else ui.recommendButton.focus();
+    }
   }
 }
 
@@ -249,6 +282,16 @@ function renderEvidence(rec) {
 // ---------------------------------------------------------------------------
 // Worker details + optional graph view
 // ---------------------------------------------------------------------------
+let dialogOpener = null; // the control that opened the dialog; focus returns to it on close
+let pressStartedOnBackdrop = false;
+
+// A pointer on the ::backdrop targets the <dialog> itself but lies outside its box. (Clicks on the
+// dialog's own padding also target the dialog, but inside the box, so they do not close it.)
+function onBackdrop(event) {
+  if (event.target !== ui.dialog) return false;
+  const r = ui.dialog.getBoundingClientRect();
+  return event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom;
+}
 async function openWorker(workerId) {
   state.workerId = workerId;
   ui.dialogTitle.textContent = `Worker ${workerId}`;
@@ -258,7 +301,10 @@ async function openWorker(workerId) {
     ? "Graph details are temporarily unavailable (the knowledge-graph database is not reachable)." : "");
   ui.graphLoad.disabled = false;
   setStatus(ui.workerStatus, "Loading worker profile…");
-  if (!ui.dialog.open) ui.dialog.showModal();
+  if (!ui.dialog.open) {
+    dialogOpener = document.activeElement;
+    ui.dialog.showModal();
+  }
   try {
     const worker = await api.worker(workerId);
     setStatus(ui.workerStatus, "");
@@ -319,6 +365,17 @@ ui.prev.addEventListener("click", () => { if (state.page > 1) { state.page -= 1;
 ui.next.addEventListener("click", () => { if (state.page < state.totalPages) { state.page += 1; loadRequests(); } });
 ui.recommendForm.addEventListener("submit", (event) => { event.preventDefault(); loadRecommendations(); });
 ui.dialogClose.addEventListener("click", () => ui.dialog.close());
+// Close on a press that both starts and ends on the backdrop (a drag that merely ends there, e.g. while
+// selecting text inside the dialog, does not close it). Escape keeps its native behaviour.
+ui.dialog.addEventListener("pointerdown", (event) => { pressStartedOnBackdrop = onBackdrop(event); });
+ui.dialog.addEventListener("click", (event) => {
+  if (pressStartedOnBackdrop && onBackdrop(event)) ui.dialog.close();
+  pressStartedOnBackdrop = false;
+});
+ui.dialog.addEventListener("close", () => {
+  if (dialogOpener && dialogOpener.isConnected && document.activeElement !== dialogOpener) dialogOpener.focus();
+  dialogOpener = null;
+});
 ui.graphLoad.addEventListener("click", loadGraph);
 
 loadHealth();

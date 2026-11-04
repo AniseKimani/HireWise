@@ -7,7 +7,7 @@
     <h1>My Requests</h1>
     <p class="page-head__sub">Your service requests and their recommended workers</p>
   </div>
-  <a class="button" href="{{ url_for('marketplace.new_request') }}">{{ icon("plus") }} Post a new request</a>
+  <a class="button page-head__cta" href="{{ url_for('marketplace.new_request') }}">{{ icon("plus") }} Post a new request</a>
 </div>
 <section class="card" aria-label="Your service requests">
   {% if requests_list %}

@@ -116,6 +116,38 @@ class TestJavaScriptSafety(unittest.TestCase):
             self.assertIn(f"{code}:", JS["format.js"], code)
 
 
+class TestResearchDemoMobileUsability(unittest.TestCase):
+    """Mobile responsiveness, Milestone 6 (static checks; the behaviour itself needs a browser):
+    the updated panel is revealed only on the stacked layout and respects reduced motion, focus is never
+    left on the page body, and the worker dialog closes from its backdrop, restores focus, keeps its
+    header pinned and contains its own scrolling."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.html = create_app("testing").test_client().get("/demo").get_data(as_text=True)
+        cls.app_js = JS["app.js"]
+        cls.css = (STATIC / "css" / "style.css").read_text(encoding="utf-8")
+
+    def test_panel_headings_are_focus_targets(self):
+        for heading in ('id="request-panel-heading" tabindex="-1"', 'id="results-heading" tabindex="-1"'):
+            self.assertIn(heading, self.html)
+
+    def test_reveal_only_on_stacked_layout_and_respects_reduced_motion(self):
+        self.assertIn("if (isStacked()) revealPanel(ui.requestPanel, ui.requestPanelHeading);", self.app_js)
+        self.assertIn("(prefers-reduced-motion: reduce)", self.app_js)
+        self.assertIn("heading.focus({ preventScroll: true });", self.app_js)
+        # after loading, focus only moves if it was left on the body / the trigger (the user has not moved on)
+        self.assertIn("document.activeElement === document.body || document.activeElement === ui.recommendButton", self.app_js)
+
+    def test_dialog_backdrop_close_and_focus_restore(self):
+        for fragment in ('addEventListener("pointerdown"', "pressStartedOnBackdrop && onBackdrop(event)",
+                         'addEventListener("close"', "dialogOpener.focus()", "dialogOpener = document.activeElement;"):
+            self.assertIn(fragment, self.app_js)
+        for fragment in ("overscroll-behavior: contain;", "position: sticky; top: 0;",
+                         ".layout .facts, .worker-dialog .facts { grid-template-columns: fit-content(45%) minmax(0, 1fr); }"):
+            self.assertIn(fragment, self.css)
+
+
 @unittest.skipUnless(SYNTHETIC.exists() and (DAY8 / "selected_hybrid_config.json").exists(), "processed data / Day 8 results absent")
 class TestRequestListingAndEndToEnd(unittest.TestCase):
     @classmethod

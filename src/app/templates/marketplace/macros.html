@@ -80,37 +80,45 @@
 </li>
 {%- endmacro %}
 
+{# Bookings: one table, one set of forms (nothing duplicated or hidden). From 768px up it is the
+   ordinary table. On phones (<= 767px, see "Booking cards" in style.css) each row is shown as a card:
+   the request title becomes the card heading, every other cell shows its data-label as a visible
+   label, and the actions sit at the bottom of the card. Changing the display of table elements makes
+   some browsers drop their table semantics, so the explicit ARIA table roles below keep rows, cells
+   and column headers exposed to assistive technology in both layouts. #}
 {% macro booking_table(bookings_list, rules, role, return_to) -%}
 {% if not bookings_list %}
 <p class="empty-state">No bookings yet.</p>
 {% else %}
-<div class="table-scroll">
-<table class="data-table">
+<div class="table-scroll booking-table-wrap">
+<table class="data-table booking-table" role="table">
   <caption class="visually-hidden">Bookings</caption>
-  <thead>
-    <tr><th scope="col">Booking</th><th scope="col">Request</th><th scope="col">Worker</th><th scope="col">Status</th><th scope="col">Review</th><th scope="col">Actions</th></tr>
+  <thead role="rowgroup">
+    <tr role="row"><th scope="col" role="columnheader">Booking</th><th scope="col" role="columnheader">Request</th><th scope="col" role="columnheader">Worker</th><th scope="col" role="columnheader">Status</th><th scope="col" role="columnheader">Review</th><th scope="col" role="columnheader">Actions</th></tr>
   </thead>
-  <tbody>
+  <tbody role="rowgroup">
   {% for b in bookings_list %}
-    <tr>
-      <td>#{{ b.booking_id }}</td>
-      <td>{{ b.request_title }}</td>
-      <td>{{ b.worker_id }}</td>
-      <td><span class="status-badge status-badge--{{ b.status }}">{{ b.status }}</span></td>
-      <td>
+    {% set actions = rules.allowed_actions(b.status, role) %}
+    {% set can_rate = role == 'client' and b.status == 'completed' and not b.review_rating %}
+    <tr role="row" class="booking-row">
+      <td role="cell" class="booking-row__id" data-label="Booking">#{{ b.booking_id }}</td>
+      <td role="cell" class="booking-row__request" data-label="Request">{{ b.request_title }}</td>
+      <td role="cell" class="booking-row__worker" data-label="Worker">{{ b.worker_id }}</td>
+      <td role="cell" class="booking-row__status" data-label="Status"><span class="status-badge status-badge--{{ b.status }}">{{ b.status }}</span></td>
+      <td role="cell" class="booking-row__review" data-label="Review">
         {% if b.review_rating %}<span class="rating">{{ icon("star") }} {{ b.review_rating }}/5</span>{% if b.review_text %}<br><span class="muted">“{{ b.review_text }}”</span>{% endif %}
         {% else %}—{% endif %}
       </td>
-      <td class="actions">
-        {% for action in rules.allowed_actions(b.status, role) %}
+      <td role="cell" class="actions booking-row__actions{% if not actions and not can_rate %} booking-row__actions--none{% endif %}" data-label="Actions">
+        {% for action in actions %}
         <form method="post" action="{{ url_for('marketplace.booking_action', booking_id=b.booking_id, action=action) }}" class="inline-form">
           {{ csrf_field() }}
           <input type="hidden" name="return_to" value="{{ return_to }}">
-          <button type="submit" class="button{% if action in ('decline', 'cancel') %} button--secondary{% endif %}">{{ action|capitalize }}</button>
+          <button type="submit" class="button{% if action in ('decline', 'cancel') %} button--secondary{% endif %}">{{ action|capitalize }}<span class="visually-hidden"> booking #{{ b.booking_id }}</span></button>
         </form>
         {% endfor %}
-        {% if role == 'client' and b.status == 'completed' and not b.review_rating %}
-        <a class="button" href="{{ url_for('marketplace.review_page', booking_id=b.booking_id) }}">{{ icon("star") }} Rate &amp; review</a>
+        {% if can_rate %}
+        <a class="button" href="{{ url_for('marketplace.review_page', booking_id=b.booking_id) }}">{{ icon("star") }} Rate &amp; review<span class="visually-hidden"> booking #{{ b.booking_id }}</span></a>
         {% endif %}
       </td>
     </tr>

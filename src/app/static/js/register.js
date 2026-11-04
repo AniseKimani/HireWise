@@ -58,14 +58,15 @@
   }
 
   function stepIsValid(name) {
+    if (name === "account") {
+      // Recompute the match first, so a corrected confirmation clears an earlier mismatch message
+      // (checked before the loop, the stale custom error would otherwise block Continue forever).
+      var first = form.querySelector("[data-secret-entry]"), confirm = form.querySelector("[data-secret-confirm]");
+      confirm.setCustomValidity(first.value === confirm.value ? "" : "The two entries do not match.");
+    }
     var fields = sections[name].querySelectorAll("input, select, textarea");
     for (var i = 0; i < fields.length; i++) {
       if (!fields[i].disabled && !fields[i].checkValidity()) { fields[i].reportValidity(); return false; }
-    }
-    if (name === "account") {
-      var first = form.querySelector("[data-secret-entry]"), confirm = form.querySelector("[data-secret-confirm]");
-      confirm.setCustomValidity(first.value === confirm.value ? "" : "The two entries do not match.");
-      if (!confirm.checkValidity()) { confirm.reportValidity(); return false; }
     }
     return true;
   }

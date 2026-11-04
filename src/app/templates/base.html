@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}HireWise{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="{{ url_for('static', filename='js/site.js') }}" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to main content</a>
@@ -14,6 +15,12 @@
         {{ icon("logo", "brand__logo") }}<span class="brand__name">Hire<span>Wise</span></span>
       </a>
       {% set path = request.path %}
+      {# Shown only on phones, and only once static/js/site.js has initialised the collapsible menu. #}
+      <button type="button" class="nav-toggle" aria-expanded="false" aria-controls="site-menu">
+        <span class="nav-toggle__bars" aria-hidden="true"></span>
+        <span class="nav-toggle__label">Menu</span>
+      </button>
+      <div class="site-menu" id="site-menu">
       <nav class="site-nav" aria-label="Main">
         <ul>
           {% if current_user is none %}
@@ -41,7 +48,7 @@
         <details class="account-menu">
           <summary>
             <span class="account-menu__avatar">{{ icon("user") }}</span>
-            <span>{{ current_user.display_name }}</span>
+            <span class="account-menu__name">{{ current_user.display_name }}</span>
             <span class="visually-hidden">account menu</span>{{ icon("chevron") }}
           </summary>
           <div class="account-menu__panel">
@@ -54,6 +61,7 @@
           </div>
         </details>
         {% endif %}
+      </div>
       </div>
     </div>
   </header>

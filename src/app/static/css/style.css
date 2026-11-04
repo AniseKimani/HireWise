@@ -24,6 +24,13 @@
   --radius: 12px;
   --radius-sm: 8px;
   --shadow: 0 1px 2px rgba(15, 36, 64, 0.06), 0 4px 14px rgba(15, 36, 64, 0.05);
+  /* Spacing tokens (desktop values; reduced in the phone / small-phone media queries at the end). */
+  --gutter: 1.5rem;          /* horizontal page / header / footer padding */
+  --card-pad: 1.25rem 1.5rem;
+  --panel-pad: 1.1rem 1.35rem;
+  --tap: 2.75rem;            /* ~44px minimum touch target */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   font-size: 16px;
   line-height: 1.5;
@@ -32,7 +39,7 @@
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; }
+body { margin: 0; overflow-wrap: break-word; }  /* long words break only when they would overflow */
 a { color: var(--accent); }
 h1 { font-size: 1.75rem; line-height: 1.25; margin: 0 0 0.25rem; }
 h2 { font-size: 1.2rem; margin: 0 0 0.75rem; }
@@ -50,9 +57,13 @@ h3 { font-size: 1.05rem; margin: 0 0 0.5rem; }
 /* ---- Header / navigation ------------------------------------------------- */
 .site-header { background: var(--surface); border-bottom: 1px solid var(--border); }
 .site-header__inner {
-  max-width: 1200px; margin: 0 auto; padding: 0.75rem 1.5rem;
+  max-width: 1200px; margin: 0 auto; padding: 0.75rem var(--gutter);
   display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;
 }
+/* Wrapper around the navigation and header actions: the collapsible phone menu.
+   At tablet/desktop widths it lays its children out exactly as before. */
+.site-menu { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
+.nav-toggle { display: none; }  /* shown on phones once static/js/site.js has initialised */
 .brand { display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none; color: var(--accent); }
 .brand__logo { width: 2.2rem; height: 2.2rem; }
 .brand__name { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.01em; }
@@ -71,18 +82,19 @@ h3 { font-size: 1.05rem; margin: 0 0 0.5rem; }
   font-weight: 600;
 }
 .account-menu summary::-webkit-details-marker { display: none; }
+.account-menu__name { max-width: 14rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .account-menu__avatar { width: 1.9rem; height: 1.9rem; border-radius: 50%; background: var(--surface-tint); color: var(--accent);
   display: inline-grid; place-items: center; }
 .account-menu__panel {
   position: absolute; right: 0; top: calc(100% + 0.4rem); min-width: 15rem; z-index: 20; background: var(--surface);
   border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 0.75rem;
-  display: grid; gap: 0.5rem;
+  display: grid; gap: 0.5rem; max-width: calc(100vw - 2 * var(--gutter));
 }
-.account-menu__panel p { margin: 0; }
+.account-menu__panel p { margin: 0; overflow-wrap: anywhere; }
 
-.site-main { max-width: 1200px; margin: 0 auto; padding: 1.75rem 1.5rem 2.5rem; }
+.site-main { max-width: 1200px; margin: 0 auto; padding: 1.75rem var(--gutter) 2.5rem; }
 .site-footer { border-top: 1px solid var(--border); background: var(--surface); }
-.site-footer__inner { max-width: 1200px; margin: 0 auto; padding: 1rem 1.5rem; color: var(--muted); font-size: 0.9rem;
+.site-footer__inner { max-width: 1200px; margin: 0 auto; padding: 1rem var(--gutter); color: var(--muted); font-size: 0.9rem;
   display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; justify-content: space-between; }
 .site-footer p { margin: 0; }
 
@@ -104,13 +116,14 @@ h3 { font-size: 1.05rem; margin: 0 0 0.5rem; }
 
 /* ---- Generic page pieces ------------------------------------------------------ */
 .page-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; }
-.page-head__sub { margin: 0; color: var(--muted); font-size: 1.05rem; }
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1.25rem 1.5rem; }
+.page-head > * { min-width: 0; }
+.page-head__sub { margin: 0; color: var(--muted); font-size: 1.05rem; overflow-wrap: anywhere; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: var(--card-pad); }
 .card + .card { margin-top: 1.25rem; }
 .card__title { display: flex; align-items: center; gap: 0.5rem; }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
 .grid-main-side { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 1.25rem; align-items: start; }
-.stack { display: grid; gap: 1.25rem; }
+.stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
 .flash { list-style: none; margin: 0 0 1.25rem; padding: 0.75rem 1rem; border: 1px solid var(--accent); border-radius: var(--radius-sm);
   background: var(--surface-tint); }
 .note { color: var(--muted); font-size: 0.9rem; margin: 0 0 0.75rem; }
@@ -128,8 +141,9 @@ h3 { font-size: 1.05rem; margin: 0 0 0.5rem; }
 .item-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
 .item { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem;
   padding: 0.75rem 1rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
-.item__title { font-weight: 600; }
-.item__meta { color: var(--muted); font-size: 0.9rem; }
+.item > div { min-width: 0; }
+.item__title { font-weight: 600; overflow-wrap: anywhere; }
+.item__meta { color: var(--muted); font-size: 0.9rem; overflow-wrap: anywhere; }
 
 /* ---- Chips, pills, status ------------------------------------------------------- */
 .chips { list-style: none; padding: 0; margin: 0 0 0.5rem; display: flex; flex-wrap: wrap; gap: 0.4rem; }
@@ -164,7 +178,9 @@ h3 { font-size: 1.05rem; margin: 0 0 0.5rem; }
 .hero__actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
 .hero__visual { position: relative; min-height: 20rem; border-radius: 50% 1.5rem 1.5rem 50%; background: var(--surface-tint);
   display: grid; place-items: center; overflow: hidden; }
-.hero__visual svg { width: 70%; height: auto; }
+/* The illustration only (direct child). The former ".hero__visual svg" also matched the small icon in each
+   badge, blowing it up to 70% of the badge width so the badges grew huge and overlapped each other. */
+.hero__visual > svg { width: 70%; height: auto; }
 .hero__badges { list-style: none; margin: 0; padding: 0; position: absolute; inset: 0; }
 .hero__badges li { position: absolute; display: inline-flex; align-items: center; gap: 0.5rem; background: var(--surface);
   border: 1px solid var(--border); border-radius: 0.6rem; box-shadow: var(--shadow); padding: 0.45rem 0.75rem; font-size: 0.85rem; font-weight: 600; }
@@ -184,6 +200,9 @@ h3 { font-size: 1.05rem; margin: 0 0 0.5rem; }
 .steps p { margin: 0; color: var(--muted); font-size: 0.95rem; }
 .landing-section { margin-bottom: 2.5rem; }
 .audience { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+/* Cards side by side in these grids: ".card + .card" (meant for stacked cards) pushed every card after
+   the first one down, so the cards in a row did not line up. The grid gap provides the spacing. */
+.features > .card + .card, .audience > .card + .card { margin-top: 0; }
 .checklist { list-style: none; margin: 0.5rem 0 1rem; padding: 0; display: grid; gap: 0.45rem; }
 .checklist li { display: flex; gap: 0.5rem; align-items: flex-start; }
 .checklist .icon { color: var(--accent); margin-top: 0.15em; }
@@ -212,14 +231,28 @@ h3 { font-size: 1.05rem; margin: 0 0 0.5rem; }
   background: var(--surface); border: 2px solid var(--border); font-weight: 700; }
 .stepper li[aria-current="step"] { color: var(--accent); font-weight: 600; }
 .stepper li[aria-current="step"] .stepper__dot, .stepper li.is-done .stepper__dot { background: var(--accent); border-color: var(--accent); color: #fff; }
+/* Desktop: as an item of the form's grid, the auto-margined stepper would shrink to its content (~300px,
+   labels nearly touching); give it its designed width (up to 40rem, centred). Narrower screens keep the
+   compact stepper. */
+@media (min-width: 1024px) { .stepper { width: 100%; } }
 .reg-step { margin-bottom: 1.5rem; }
 .reg-step__grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 1.25rem; align-items: start; }
-.side-panel { background: var(--surface-tint); border-radius: var(--radius); padding: 1.25rem 1.5rem; }
+/* Source order in each step is fields, actions, side panel. On desktop the fields and the side panel
+   share the first row and the actions span the row below, exactly as before (the row gap replaces the
+   actions' own top margin). Below 1024px the three simply follow the source order. */
+.reg-step__main { grid-column: 1; grid-row: 1; }
+.reg-step__side { grid-column: 2; grid-row: 1; display: grid; gap: 1.25rem; align-content: start; }
+.reg-step__grid > .step-nav { grid-column: 1 / -1; margin-top: 0; }
+.side-panel { background: var(--surface-tint); border-radius: var(--radius); padding: var(--card-pad); }
 .side-panel h3 { margin-bottom: 0.25rem; }
 .step-nav { display: grid; justify-items: center; gap: 0.75rem; margin-top: 1.25rem; }
 .step-nav .button { min-width: 16rem; }
-.js-only { display: none; }
-.has-js .js-only { display: revert; }
+/* JavaScript-only controls are hidden until register.js has added .has-js, and then keep their own
+   display (the stepper's three-column grid, the centred .step-nav grid, .button's inline-flex).
+   Their own display rules would override the hidden attribute, so hidden ones are hidden explicitly
+   (register.js hides the "choose an account type" error, and the stepper on the role step). */
+html:not(.has-js) .js-only { display: none; }
+.has-js .js-only[hidden] { display: none; }
 .has-js .no-js-only { display: none; }
 /* Without JavaScript all steps show, and modern browsers hide the other role's
    fields via :has(); JavaScript additionally disables them so they are never
@@ -228,14 +261,17 @@ form:has(#role-client:checked) [data-role="worker"], form:has(#role-worker:check
 .has-js .reg-step[hidden] { display: none; }
 
 /* ---- Forms -------------------------------------------------------------------------- */
-.form-grid { display: grid; gap: 0.9rem; }
+/* Single form columns use minmax(0, 1fr) so a long unbroken word in an error or hint (e.g. an unknown
+   skill name echoed back) wraps inside the field instead of widening the form and the page. */
+.form-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.9rem; }
 .form-grid fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 0.9rem; min-width: 0; }
+.form-grid fieldset:not(.role-cards) { grid-template-columns: minmax(0, 1fr); }
 .form-grid legend { font-weight: 700; font-size: 1.1rem; padding: 0; margin-bottom: 0.25rem; }
-.field { display: grid; gap: 0.3rem; }
+.field { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.3rem; }
 .field-label, label { font-weight: 600; font-size: 0.92rem; }
-.field-hint { color: var(--muted); font-size: 0.85rem; margin: 0; }
+.field-hint { color: var(--muted); font-size: 0.85rem; margin: 0; overflow-wrap: anywhere; }
 .field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; }
-.field-error { color: var(--error); margin: 0.1rem 0 0; font-size: 0.9rem; }
+.field-error { color: var(--error); margin: 0.1rem 0 0; font-size: 0.9rem; overflow-wrap: anywhere; }
 input, select, textarea {
   font: inherit; padding: 0.55rem 0.7rem; border: 1px solid var(--border); border-radius: var(--radius-sm);
   background: var(--surface); color: var(--text); width: 100%;
@@ -267,6 +303,19 @@ input::placeholder, textarea::placeholder { color: #5f6e83; }  /* 5.2:1 */
 /* ---- Profile / review ------------------------------------------------------------------- */
 .profile-head { display: flex; flex-wrap: wrap; align-items: center; gap: 1.5rem; background: var(--surface-tint); }
 .profile-head h1 { margin-bottom: 0.25rem; }
+/* Worker profile / review page (worker_detail.html). Same geometry as the former grid-main-side + stack:
+   header and details on the left, the aside spanning the right; the 1fr second row absorbs a tall aside,
+   so the details stay directly under the header. The details' top margin reproduces the spacing the
+   former ".card + .card" rule gave it inside the stack. */
+.profile-layout {
+  display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); grid-template-rows: auto 1fr;
+  grid-template-areas: "head side" "details side"; gap: 1.25rem; align-items: start;
+}
+.profile-layout > .card { margin-top: 0; }
+.profile-layout__head { grid-area: head; }
+.profile-layout__side { grid-area: side; }
+.profile-layout__details { grid-area: details; }
+.profile-layout > .profile-layout__details { margin-top: 1.25rem; }
 .section-title { display: flex; align-items: center; gap: 0.5rem; margin: 0 0 0.75rem; font-size: 1.15rem; }
 .section-title .icon { color: var(--accent-strong); }
 .divider { border: 0; border-top: 1px solid var(--border); margin: 1.25rem 0; }
@@ -275,17 +324,24 @@ input::placeholder, textarea::placeholder { color: #5f6e83; }  /* 5.2:1 */
 .star-rating__options { display: inline-flex; flex-direction: row-reverse; justify-content: flex-end; gap: 0.25rem; }
 .star-rating__options input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .star-rating__options label { cursor: pointer; color: #7d8aa0;  /* 3.5:1 (non-text) */ font-size: 2rem; line-height: 1; font-weight: normal; }
-.star-rating__options input:checked ~ label, .star-rating__options label:hover, .star-rating__options label:hover ~ label { color: var(--star); }
+.star-rating__options input:checked ~ label { color: var(--star); }
+/* Hover preview only where a real hover exists; on touch screens a tapped star would otherwise keep a
+   "stuck" hover colour that can contradict the selected rating. */
+@media (hover: hover) and (pointer: fine) {
+  .star-rating__options label:hover, .star-rating__options label:hover ~ label { color: var(--star); }
+}
 .star-rating__options input:focus-visible + label { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
 .review-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.75rem; }
-.review-list li { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.75rem 1rem; }
+.review-list li { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.75rem 1rem; overflow-wrap: anywhere; }
 
 /* ---- Tables (service history) ------------------------------------------------------------ */
 .data-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
 .data-table th, .data-table td { text-align: left; padding: 0.6rem 0.5rem; border-bottom: 1px solid var(--border); vertical-align: top; }
 .data-table th { color: var(--muted); font-weight: 600; }
 .data-table .actions { display: flex; flex-wrap: wrap; gap: 0.4rem; }
-.table-scroll { overflow-x: auto; }
+/* position: relative keeps absolutely positioned descendants (e.g. .visually-hidden text inside
+   action buttons) contained by the scroll box, so they cannot widen the page. */
+.table-scroll { overflow-x: auto; position: relative; }
 
 /* ---- Research Demo (Day 10 page; classes used by static/js/app.js) ---------------------- */
 .demo-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 1.25rem; }
@@ -297,7 +353,7 @@ input::placeholder, textarea::placeholder { color: #5f6e83; }  /* 5.2:1 */
 .health--pending { color: var(--muted); }
 .layout { display: grid; grid-template-columns: minmax(280px, 360px) 1fr; gap: 1.25rem; align-items: start; }
 .workspace { display: grid; gap: 1.25rem; }
-.panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1.1rem 1.35rem; }
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: var(--panel-pad); }
 .panel h2 { margin: 0 0 0.75rem; font-size: 1.15rem; }
 .status { min-height: 1.5em; margin: 0.5rem 0; color: var(--muted); }
 .status[data-kind="error"] { color: var(--error); }
@@ -318,6 +374,11 @@ input::placeholder, textarea::placeholder { color: #5f6e83; }  /* 5.2:1 */
 .facts { display: grid; grid-template-columns: max-content 1fr; gap: 0.3rem 1rem; margin: 0 0 0.75rem; }
 .facts dt { font-weight: 600; color: var(--muted); }
 .facts dd { margin: 0; overflow-wrap: anywhere; }
+/* Research Demo facts (selected request, worker dialog): the label column is as wide as its longest label
+   but never more than 45% of the list, and labels may wrap, so values always keep room. Where labels
+   already fit (desktop) the layout is unchanged. */
+.layout .facts, .worker-dialog .facts { grid-template-columns: fit-content(45%) minmax(0, 1fr); }
+.layout .facts dt, .worker-dialog .facts dt { overflow-wrap: anywhere; }
 .recommend-form { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
 .recommend-form select { width: auto; }
 .recommendation-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.9rem; }
@@ -341,27 +402,217 @@ input::placeholder, textarea::placeholder { color: #5f6e83; }  /* 5.2:1 */
 .evidence summary { cursor: pointer; font-weight: 600; color: var(--accent); }
 .evidence__heading { margin: 0.5rem 0 0.25rem; font-weight: 600; font-size: 0.9rem; }
 .evidence__list { margin: 0; padding-left: 1.25rem; }
-.worker-dialog { width: min(720px, 92vw); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
+/* The dialog is its own scroll container: overscroll-behavior stops a scroll that reaches its end from
+   carrying on into the page behind. Its header (title + Close) stays pinned while long content scrolls;
+   the dialog has no top padding so the pinned header covers the full top edge. */
+.worker-dialog { width: min(720px, 92vw); border: 1px solid var(--border); border-radius: var(--radius); padding: 0 1.25rem 1.25rem;
+  overscroll-behavior: contain; }
 .worker-dialog::backdrop { background: rgba(15, 36, 64, 0.45); }
-.worker-dialog__header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.worker-dialog__header { display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+  position: sticky; top: 0; z-index: 1; background: var(--surface); padding: 1.25rem 0 0.75rem; margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border); }
+.workspace > .panel { scroll-margin-top: 1rem; }
 .worker-dialog__header h2 { margin: 0; }
 .graph-section { border-top: 1px solid var(--border); margin-top: 1rem; padding-top: 0.75rem; }
 .graph-section h3 { margin: 0 0 0.25rem; font-size: 1rem; }
 
 /* ---- Responsive ------------------------------------------------------------------------------- */
-@media (max-width: 1000px) {
+/* Desktop-first tiers (CSS custom properties cannot be used inside media queries, so the widths
+   are repeated here; static/js/site.js mirrors the phone width):
+     desktop       >= 1024px  the default rules above (unchanged design)
+     tablet         <= 1023px side columns collapse (was 1000px; the demo layout was 900px)
+     phone          <= 767px  single column, compact header with collapsible menu (was 760px)
+     small phone    <= 479px  tighter card/panel padding                                        */
+
+@media (max-width: 1023px) {
   .worker-card { grid-template-columns: auto minmax(0, 1fr); }
   .worker-card__side { grid-column: 1 / -1; }
-  .grid-main-side, .reg-step__grid, .hero { grid-template-columns: 1fr; }
+  /* minmax(0, 1fr), not 1fr: a single column must be able to shrink below wide content (e.g. the
+     booking table, which then scrolls inside its own .table-scroll box instead of the page). */
+  .grid-main-side, .reg-step__grid, .hero, .layout { grid-template-columns: minmax(0, 1fr); }
   .hero__visual { min-height: 15rem; border-radius: 1.5rem; }
+  .account-menu__name { max-width: 9rem; }
+
+  /* Request detail: the request-details / bookings pair stacks below desktop width, so the bookings
+     table gets the full width instead of stretching a half column past the viewport (the former
+     768-1023px page overflow). A long unbroken word in the request title may break rather than
+     widen the table (title cell only, so status badges and buttons never break mid-word). */
+  .request-overview { grid-template-columns: minmax(0, 1fr); }
+  .request-overview .booking-row__request { overflow-wrap: anywhere; }
+
+  /* Worker profile / review page: one column in source order (header, review form, details; or
+     header, details, "About this profile"), with even spacing. */
+  .profile-layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: none; }
+  .profile-layout > * { grid-area: auto; }
+  .profile-layout > .profile-layout__details { margin-top: 0; }
+
+  .chip { overflow-wrap: anywhere; }
+
+  /* Registration steps: fields, then Continue / Back, then the supplementary side panel. */
+  .reg-step__main, .reg-step__side, .reg-step__grid > .step-nav { grid-column: auto; grid-row: auto; }
+
+  /* Landing: one feature per row, icon beside its text (three ~150px columns were cramped). */
+  .features { grid-template-columns: minmax(0, 1fr); }
+  .feature { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 1rem; align-items: start; }
+  .feature__icon { grid-row: span 2; margin-bottom: 0; }
+
+  /* Dashboards: stacked cards are spaced by the stack's gap alone (not gap + ".card + .card" margin). */
+  .stack > .card + .card { margin-top: 0; }
 }
-@media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
-@media (max-width: 760px) {
-  .features, .steps, .audience, .grid-2, .role-cards, .field-pair { grid-template-columns: 1fr; }
-  .worker-card { grid-template-columns: 1fr; }
+
+/* Touch screens (any width) and narrow viewports: ~44px targets for small controls whose desktop
+   (mouse) size is unchanged. */
+@media (max-width: 1023px), (pointer: coarse) {
+  .score-details summary { padding: 0.7rem 0; }
+  .score-details[open] summary { margin-bottom: 0; }
+  .star-rating__options { gap: 0.35rem; }
+  .star-rating__options label {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: var(--tap); min-height: var(--tap); border-radius: var(--radius-sm);
+  }
+  /* Form controls (text-like inputs and selects; radios and checkboxes sit inside larger labels). */
+  input:not([type="radio"]):not([type="checkbox"]):not([type="hidden"]), select { min-height: var(--tap); }
+  .step-nav .button--link { min-height: var(--tap); }
+  /* All buttons and button-styled links (desktop mouse size ~40px is unchanged). */
+  .button { min-height: var(--tap); }
+  /* While the Research Demo's worker dialog is open, touch-dragging the backdrop must not scroll the page
+     behind it. (Not applied to mouse desktops, where hiding the page scrollbar would shift the layout.) */
+  html:has(.worker-dialog[open]) { overflow: hidden; }
+}
+
+@media (max-width: 767px) {
+  :root { --gutter: 1rem; --card-pad: 1rem 1.25rem; --panel-pad: 1rem 1.1rem; }
+  .features, .steps, .audience, .grid-2, .role-cards, .field-pair { grid-template-columns: minmax(0, 1fr); }
   .avatar { width: 4.5rem; height: 4.5rem; }
-  .site-header__inner { gap: 0.75rem; }
-  .header-actions { margin-left: 0; }
-  .site-main { padding: 1.25rem 1rem 2rem; }
+
+  /* Recommended-worker cards: a small avatar beside the worker's details (the tablet two-column
+     grid), explanation and score breakdown full width below, and full-width ~44px actions. */
+  .worker-card { gap: 0.85rem 0.9rem; }
+  .worker-card .avatar { width: 3rem; height: 3rem; }
+  .worker-card .avatar .icon { width: 1.5rem; height: 1.5rem; }
+  .worker-card__name { font-size: 1.2rem; }
+  .why { padding: 0.85rem 1rem; }
+  .contribution-table th { white-space: normal; padding-right: 0.5rem; }
+  .contribution-meter { min-width: 3.5rem; }
+  .worker-card__actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 0.6rem; }
+  .worker-card__actions .inline-form { display: block; }
+  .worker-card__actions .button { width: 100%; min-height: var(--tap); }
+
+  /* Profile headers: the text column takes the remaining width beside the avatar. */
+  .profile-head { gap: 1rem; }
+  .profile-head > div:not(.avatar) { flex: 1 1 12rem; min-width: 0; }
+  /* The small avatar stays small (the phone ".avatar" size above would otherwise enlarge it). */
+  .avatar.avatar--sm { width: 3rem; height: 3rem; }
+  .avatar--sm .icon { width: 1.5rem; height: 1.5rem; }
+  /* Worker dashboard: the profile header card nested in the profile card gets lighter padding. */
+  .card > .profile-head.card { padding: 0.9rem 1rem; box-shadow: none; margin-bottom: 1rem; }
+
+  /* Landing: tighter section spacing. Page and list actions: full width, easy to reach. */
+  .hero, .landing-section { margin-bottom: 2rem; }
+  .page-head__cta { width: 100%; }
+  .item > .button { flex: 1 1 100%; }
+  .site-main { padding: 1.25rem var(--gutter) 2rem; }
   .step-nav .button { min-width: 0; width: 100%; }
+
+  /* Forms: full-width primary submit buttons and compact role cards. */
+  .form-grid > .button { width: 100%; }
+  .role-card { padding: 1.25rem 1rem; }
+  .auth__head { margin-bottom: 1.1rem; }
+
+  /* Header: brand and menu toggle share the first row; the menu is a full-width row below.
+     Without JavaScript the menu row is always shown (nothing collapses). */
+  .site-header__inner { gap: 0.5rem 0.75rem; padding-top: 0.5rem; padding-bottom: 0.5rem; }
+  .brand { min-height: var(--tap); }
+  .brand__logo { width: 1.9rem; height: 1.9rem; }
+  .brand__name { font-size: 1.35rem; }
+
+  .nav-enhanced .nav-toggle {
+    display: inline-flex; align-items: center; gap: 0.55rem; margin-left: auto; min-height: var(--tap); min-width: var(--tap);
+    padding: 0 0.85rem; font: inherit; font-weight: 600; color: var(--text); cursor: pointer;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  }
+  .nav-toggle[aria-expanded="true"] { border-color: var(--accent); background: var(--surface-tint); color: var(--accent-strong); }
+  .nav-toggle__bars, .nav-toggle__bars::before, .nav-toggle__bars::after {
+    display: block; width: 1.1rem; height: 2px; border-radius: 1px; background: currentColor;
+  }
+  .nav-toggle__bars { position: relative; }
+  .nav-toggle__bars::before, .nav-toggle__bars::after { content: ""; position: absolute; left: 0; }
+  .nav-toggle__bars::before { top: -6px; }
+  .nav-toggle__bars::after { top: 6px; }
+  .nav-toggle[aria-expanded="true"] .nav-toggle__bars { background: transparent; }
+  .nav-toggle[aria-expanded="true"] .nav-toggle__bars::before { top: 0; transform: rotate(45deg); }
+  .nav-toggle[aria-expanded="true"] .nav-toggle__bars::after { top: 0; transform: rotate(-45deg); }
+
+  .site-menu {
+    flex: 1 1 100%; flex-direction: column; align-items: stretch; gap: 0.75rem;
+    padding: 0.5rem 0 0.25rem; border-top: 1px solid var(--border);
+  }
+  .nav-enhanced .site-menu:not(.is-open) { display: none; }
+  .site-nav { flex: none; }
+  .site-nav ul { flex-direction: column; align-items: stretch; gap: 0.25rem; }
+  .site-nav a { display: flex; min-height: var(--tap); padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); }
+  .site-nav a:hover { background: var(--surface-tint); }
+  .site-nav a[aria-current="page"] { background: var(--surface-tint); box-shadow: inset 3px 0 0 var(--accent); }
+
+  .header-actions { margin-left: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); gap: 0.75rem; }
+  .header-actions .button { min-height: var(--tap); }
+
+  /* Account menu: full-width row; the panel opens in the flow, so it can never leave the viewport. */
+  .account-menu summary { display: flex; width: 100%; min-height: var(--tap); border-radius: var(--radius-sm); }
+  .account-menu__name { flex: 1 1 auto; min-width: 0; max-width: none; }
+  .account-menu__panel { position: static; min-width: 0; max-width: none; margin-top: 0.5rem; box-shadow: none; }
+  .account-menu__panel .button { min-height: var(--tap); }
+}
+
+/* ---- Booking cards (phones) -------------------------------------------------------------------
+   The shared booking table (macros.html booking_table) shown as one card per booking. The markup
+   carries explicit ARIA table roles, so the table semantics survive these display changes; the
+   column headers stay in the accessibility tree (visually hidden), and the visible labels come
+   from each cell's data-label (marked as decorative alt text where supported, so screen readers
+   hear the real column header instead of the label twice). From 768px up nothing here applies. */
+@media (max-width: 767px) {
+  .booking-table-wrap { overflow: visible; }
+  .booking-table, .booking-table tbody, .booking-table td { display: block; }
+  .booking-table thead {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
+    clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0;
+  }
+  .booking-table tbody { display: grid; gap: 0.75rem; }
+  .booking-table .booking-row {
+    display: grid; grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "request" "status" "booking" "worker" "review" "actions";
+    padding: 0.25rem 1rem 0.85rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface);
+  }
+  .booking-table td {
+    position: relative; min-width: 0; padding: 0.35rem 0 0.35rem 5.75rem; border-bottom: 0; overflow-wrap: anywhere;
+  }
+  .booking-table td::before {
+    content: attr(data-label);
+    content: attr(data-label) / "";
+    position: absolute; left: 0; top: 0.35rem; width: 5.25rem;
+    color: var(--muted); font-size: 0.85rem; font-weight: 600; line-height: 1.6;
+  }
+  .booking-row__id { grid-area: booking; }
+  .booking-row__worker { grid-area: worker; }
+  .booking-row__status { grid-area: status; }
+  .booking-row__review { grid-area: review; }
+  /* The request title is the card's heading (its column header remains available to screen readers). */
+  .booking-table .booking-row__request {
+    grid-area: request; padding: 0.6rem 0; margin-bottom: 0.3rem; border-bottom: 1px solid var(--border);
+    font-weight: 700; font-size: 1.05rem; line-height: 1.35;
+  }
+  .booking-table .booking-row__request::before { content: none; }
+  /* Actions: full-width rows of comfortable buttons at the bottom of the card. */
+  .booking-table .booking-row__actions {
+    grid-area: actions; display: grid; grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); gap: 0.6rem;
+    margin-top: 0.5rem; padding: 0.75rem 0 0; border-top: 1px solid var(--border);
+  }
+  .booking-table .booking-row__actions::before { content: none; }
+  .booking-table .booking-row__actions--none { display: none; }
+  .booking-row__actions .inline-form { display: block; }
+  .booking-row__actions .button { width: 100%; min-height: var(--tap); }
+}
+
+@media (max-width: 479px) {
+  :root { --card-pad: 1rem; --panel-pad: 0.9rem 1rem; }
 }

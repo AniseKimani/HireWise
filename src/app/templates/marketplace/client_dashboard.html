@@ -8,7 +8,7 @@
     <h1>Welcome back, {{ current_user.display_name }}</h1>
     <p class="page-head__sub">Client dashboard</p>
   </div>
-  <a class="button button--lg" href="{{ url_for('marketplace.new_request') }}">{{ icon("plus") }} Post a new request</a>
+  <a class="button button--lg page-head__cta" href="{{ url_for('marketplace.new_request') }}">{{ icon("plus") }} Post a new request</a>
 </div>
 
 <div class="stats" role="group" aria-label="Booking status summary">

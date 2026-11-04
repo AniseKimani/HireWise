@@ -53,8 +53,11 @@
     <section class="reg-step" data-step="account" aria-labelledby="account-heading">
       <h2 id="account-heading">Create your <span data-role-label>HireWise</span> account</h2>
       <p class="muted">Tell us a bit about yourself to get started.</p>
+      {# Source order: fields, then the step actions, then the supplementary side panel. On desktop the
+         panel is placed beside the fields (style.css "reg-step"); on narrow screens it follows the actions
+         instead of separating the fields from Continue. #}
       <div class="reg-step__grid">
-        <div class="card">
+        <div class="card reg-step__main">
           <h3>Account details</h3>
           <div class="form-grid">
             <div class="field">
@@ -66,17 +69,23 @@
             <div class="field">
               <label for="password">Password</label>
               <input id="password" name="password" type="password" autocomplete="new-password" minlength="10" maxlength="128" required data-secret-entry
-                     aria-describedby="password-hint{% if errors.get('password') %} password-error{% endif %}">
+                     aria-describedby="password-hint{% if errors.get('password') %} password-error{% endif %}"{% if errors.get('password') %} aria-invalid="true"{% endif %}>
               <p class="field-hint" id="password-hint">At least 10 characters.</p>
               {{ field_error(errors, 'password') }}
             </div>
             <div class="field">
               <label for="confirm_password">Confirm password</label>
-              <input id="confirm_password" name="confirm_password" type="password" autocomplete="new-password" maxlength="128" required data-secret-confirm>
+              <input id="confirm_password" name="confirm_password" type="password" autocomplete="new-password" maxlength="128" required data-secret-confirm
+                     {% if errors.get('confirm_password') %}aria-describedby="confirm_password-error" aria-invalid="true"{% endif %}>
               {{ field_error(errors, 'confirm_password') }}
             </div>
           </div>
         </div>
+        <div class="step-nav js-only">
+          <button type="button" class="button button--lg" data-next="details">Continue</button>
+          <button type="button" class="button--link button back-link" data-back="role">{{ icon("arrow-left") }} Back to account type selection</button>
+        </div>
+        <div class="reg-step__side">
         <aside class="side-panel" data-role="client" aria-label="Client benefits">
           <h3>As a client you can:</h3>
           <ul class="checklist">
@@ -94,10 +103,7 @@
             <li>{{ icon("check") }} Build your reputation with reviews</li>
           </ul>
         </aside>
-      </div>
-      <div class="step-nav js-only">
-        <button type="button" class="button button--lg" data-next="details">Continue</button>
-        <button type="button" class="button--link button back-link" data-back="role">{{ icon("arrow-left") }} Back to account type selection</button>
+        </div>
       </div>
     </section>
 
@@ -107,11 +113,12 @@
       <p class="muted" data-role="client">This information helps us tailor your experience.</p>
       <p class="muted" data-role="worker">This information is shown to clients and helps you get matched with relevant requests.</p>
       <div class="reg-step__grid">
-        <div class="card">
+        <div class="card reg-step__main">
           <div class="form-grid">
             <div class="field">
               <label for="display_name">Your name</label>
-              <input id="display_name" name="display_name" type="text" maxlength="80" required value="{{ form.get('display_name', '') }}">
+              <input id="display_name" name="display_name" type="text" maxlength="80" required autocomplete="name" value="{{ form.get('display_name', '') }}"
+                     {% if errors.get('display_name') %}aria-describedby="display_name-error" aria-invalid="true"{% endif %}>
               {{ field_error(errors, 'display_name') }}
             </div>
 
@@ -119,7 +126,7 @@
               <legend class="visually-hidden">Client details</legend>
               <div class="field">
                 <label for="client_country">Your location (optional)</label>
-                <select id="client_country" name="client_country">
+                <select id="client_country" name="client_country"{% if errors.get('client_country') %} aria-describedby="client_country-error" aria-invalid="true"{% endif %}>
                   <option value="">Prefer not to say</option>
                   {% for c in countries %}<option value="{{ c }}" {% if form.get('client_country') == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
                 </select>
@@ -131,7 +138,7 @@
               <legend class="visually-hidden">Worker details</legend>
               <div class="field">
                 <label for="worker_country">Location</label>
-                <select id="worker_country" name="worker_country" data-required>
+                <select id="worker_country" name="worker_country" data-required{% if errors.get('worker_country') %} aria-describedby="worker_country-error" aria-invalid="true"{% endif %}>
                   <option value="">Select a country</option>
                   {% for c in countries %}<option value="{{ c }}" {% if form.get('worker_country') == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
                 </select>
@@ -139,7 +146,7 @@
               </div>
               <div class="field">
                 <label for="primary_category">Primary category</label>
-                <select id="primary_category" name="primary_category" data-required>
+                <select id="primary_category" name="primary_category" data-required{% if errors.get('primary_category') %} aria-describedby="primary_category-error" aria-invalid="true"{% endif %}>
                   <option value="">Select a category</option>
                   {% for c in categories %}<option value="{{ c }}" {% if form.get('primary_category') == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
                 </select>
@@ -148,7 +155,7 @@
               <div class="field-pair">
                 <div class="field">
                   <label for="experience_level">Experience level</label>
-                  <select id="experience_level" name="experience_level" data-required>
+                  <select id="experience_level" name="experience_level" data-required{% if errors.get('experience_level') %} aria-describedby="experience_level-error" aria-invalid="true"{% endif %}>
                     <option value="">Select a level</option>
                     {% for level in ('entry', 'intermediate', 'expert') %}<option value="{{ level }}" {% if form.get('experience_level') == level %}selected{% endif %}>{{ level|capitalize }}</option>{% endfor %}
                   </select>
@@ -156,26 +163,32 @@
                 </div>
                 <div class="field">
                   <label for="experience_years">Years of experience</label>
-                  <input id="experience_years" name="experience_years" type="number" min="0" max="60" step="0.5" data-required
-                         value="{{ form.get('experience_years', '') }}">
+                  <input id="experience_years" name="experience_years" type="number" inputmode="decimal" min="0" max="60" step="0.5" data-required
+                         value="{{ form.get('experience_years', '') }}"{% if errors.get('experience_years') %} aria-describedby="experience_years-error" aria-invalid="true"{% endif %}>
                   {{ field_error(errors, 'experience_years') }}
                 </div>
               </div>
               <div class="field">
                 <label for="rate">Rate</label>
-                <input id="rate" name="rate" type="number" min="0.01" step="0.01" placeholder="e.g. 25" data-required value="{{ form.get('rate', '') }}">
+                <input id="rate" name="rate" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="e.g. 25" data-required value="{{ form.get('rate', '') }}"{% if errors.get('rate') %} aria-describedby="rate-error" aria-invalid="true"{% endif %}>
                 {{ field_error(errors, 'rate') }}
               </div>
               <div class="field">
                 <label for="skills">Skills (comma separated)</label>
-                <input id="skills" name="skills" type="text" list="skill-list" maxlength="2000" data-required
-                       aria-describedby="skills-hint" value="{{ form.get('skills', '') }}">
+                <input id="skills" name="skills" type="text" list="skill-list" maxlength="2000" data-required autocorrect="off" spellcheck="false"
+                       aria-describedby="skills-hint{% if errors.get('skills') %} skills-error{% endif %}"{% if errors.get('skills') %} aria-invalid="true"{% endif %} value="{{ form.get('skills', '') }}">
                 <p class="field-hint" id="skills-hint">Use names from the HireWise skill list, e.g. Python, Logo Design, Data Analysis.</p>
                 {{ field_error(errors, 'skills') }}
               </div>
             </fieldset>
           </div>
         </div>
+        <div class="step-nav">
+          <button type="submit" class="button button--lg">Create account</button>
+          <button type="button" class="button--link button back-link js-only" data-back="account">{{ icon("arrow-left") }} Back to account details</button>
+          <p class="no-js-only">Already have an account? <a href="{{ url_for('marketplace.login') }}">Log in</a></p>
+        </div>
+        <div class="reg-step__side">
         <aside class="side-panel" data-role="client" aria-label="Almost there">
           <h3>You're almost there!</h3>
           <p>After creating your account you can post your first service request and see recommended workers straight away.</p>
@@ -188,11 +201,7 @@
             <li>{{ icon("check") }} Set a fair rate</li>
           </ul>
         </aside>
-      </div>
-      <div class="step-nav">
-        <button type="submit" class="button button--lg">Create account</button>
-        <button type="button" class="button--link button back-link js-only" data-back="account">{{ icon("arrow-left") }} Back to account details</button>
-        <p class="no-js-only">Already have an account? <a href="{{ url_for('marketplace.login') }}">Log in</a></p>
+        </div>
       </div>
     </section>
     <datalist id="skill-list">{% for s in skills %}<option value="{{ s }}">{% endfor %}</datalist>

@@ -8,7 +8,7 @@
     <h1>Welcome back, {{ current_user.display_name }}</h1>
     <p class="page-head__sub">Worker dashboard</p>
   </div>
-  <a class="button button--secondary" href="{{ url_for('marketplace.profile') }}">{{ icon("user") }} View profile</a>
+  <a class="button button--secondary page-head__cta" href="{{ url_for('marketplace.profile') }}">{{ icon("user") }} View profile</a>
 </div>
 
 <div class="stats" role="group" aria-label="Booking status summary">

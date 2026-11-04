@@ -191,6 +191,137 @@ class TestRedesignedPages(unittest.TestCase):
         self.register(other, self.client_form("other.client@example.com"))
         self.assertEqual(other.get(f"/bookings/{booking_id}/review").status_code, 404)
 
+    def test_booking_table_markup_supports_phone_cards_without_changing_forms(self):
+        """Mobile responsiveness, Milestone 2: the shared booking table carries the hooks its phone
+        card layout needs (cell labels, explicit ARIA table roles) while each context still has exactly
+        one form per allowed action, posting CSRF + return_to to the unchanged endpoint."""
+        c = self.app.test_client()
+        self.register(c, self.client_form("cards.client@example.com"))
+        request_id = self.create_request(c)
+        self.post(c, f"/client/requests/{request_id}/book", {"worker_id": "W001674"}, token_path="/dashboard")
+        booking_id = self.repo.list_bookings(request_id=request_id)[0]["booking_id"]
+        self.repo.create_user("cards.worker@example.com", hash_password(PASSWORD), "worker", "W", worker_id="W001674")
+        worker = self.app.test_client()
+        self.post(worker, "/login", {"email": "cards.worker@example.com", "password": PASSWORD})
+
+        contexts = [(c, "/dashboard", "/dashboard", ["cancel"]),
+                    (c, "/bookings", "/bookings", ["cancel"]),
+                    (c, f"/client/requests/{request_id}", f"/client/requests/{request_id}", ["cancel"]),
+                    (worker, "/dashboard", "/dashboard", ["accept", "decline"]),
+                    (worker, "/bookings", "/bookings", ["accept", "decline"])]
+        for user, path, return_to, expected_actions in contexts:
+            page = self.html(user, path)
+            tables = re.findall(r'<table class="data-table booking-table" role="table">(.*?)</table>', page, re.S)
+            self.assertEqual(len(tables), 1, path)
+            table = tables[0]
+            self.assertEqual(table.count('role="columnheader"'), 6, path)
+            for label in ("Booking", "Request", "Worker", "Status", "Review", "Actions"):
+                self.assertIn(f'data-label="{label}"', table, path)
+            row = re.search(r'<tr role="row" class="booking-row">(.*?)</tr>', table, re.S).group(1)
+            self.assertEqual(row.count('role="cell"'), 6, path)
+            forms = re.findall(r"<form (.*?)</form>", table, re.S)
+            actions = [re.search(r'action="/bookings/(\d+)/(\w+)"', f).groups() for f in forms]
+            self.assertEqual(actions, [(str(booking_id), a) for a in expected_actions], path)  # one form per action, no duplicates
+            for form in forms:
+                self.assertIn('method="post"', form)
+                self.assertEqual(len(TOKEN.findall(form)), 1, path)
+                self.assertIn(f'<input type="hidden" name="return_to" value="{return_to}">', form, path)
+                self.assertRegex(form, rf'<button type="submit" class="button[^"]*">\w+<span class="visually-hidden"> booking #{booking_id}</span></button>')
+        for selector in (".booking-table td::before", "content: attr(data-label)", ".booking-row__actions .button"):
+            self.assertIn(selector, CSS)
+
+        empty = self.app.test_client()
+        self.register(empty, self.client_form("cards.empty@example.com"))
+        page = self.html(empty, "/bookings")
+        self.assertIn('<p class="empty-state">No bookings yet.</p>', page)
+        self.assertNotIn("booking-table", page)
+
+    def test_review_and_profile_pages_put_primary_content_first_in_source_order(self):
+        """Mobile responsiveness, Milestone 3: on the review page the form follows the worker's header in
+        the source (so phones and keyboard / screen-reader users reach it before the long details), while
+        the informational "About this profile" stays last; the review form itself is unchanged."""
+        c = self.app.test_client()
+        self.register(c, self.client_form("order.client@example.com"))
+        request_id = self.create_request(c)
+        self.assertIn('class="grid-2 request-overview"', self.html(c, f"/client/requests/{request_id}"))
+        profile = self.html(c, f"/workers/W001674?request={request_id}")
+        self.assertLess(profile.index('id="worker-heading"'), profile.index('id="skills-heading"'))
+        self.assertLess(profile.index('id="skills-heading"'), profile.index("About this profile"))
+
+        self.post(c, f"/client/requests/{request_id}/book", {"worker_id": "W001674"}, token_path="/dashboard")
+        booking_id = self.repo.list_bookings(request_id=request_id)[0]["booking_id"]
+        self.repo.create_user("order.worker@example.com", hash_password(PASSWORD), "worker", "W", worker_id="W001674")
+        worker = self.app.test_client()
+        self.post(worker, "/login", {"email": "order.worker@example.com", "password": PASSWORD})
+        self.post(worker, f"/bookings/{booking_id}/accept", {}, token_path="/dashboard")
+        self.post(c, f"/bookings/{booking_id}/complete", {}, token_path="/dashboard")
+        page = self.html(c, f"/bookings/{booking_id}/review")
+        order = [page.index(marker) for marker in ('id="worker-heading"', "Submit Rating &amp; Review", 'id="skills-heading"')]
+        self.assertEqual(order, sorted(order))
+        form = re.search(r'<form method="post" action="/bookings/%d/review" class="form-grid">(.*?)</form>' % booking_id, page, re.S).group(1)
+        self.assertEqual(len(TOKEN.findall(form)), 1)
+        self.assertEqual(re.findall(r'name="(\w+)"', form), ["csrf_token"] + ["rating"] * 5 + ["review_text"])
+
+        self.assertIn(".request-overview { grid-template-columns: minmax(0, 1fr); }", CSS)
+        hover_rule = ".star-rating__options label:hover, .star-rating__options label:hover ~ label { color: var(--star); }"
+        self.assertEqual(CSS.count(hover_rule), 1)
+        self.assertLess(CSS.index("@media (hover: hover) and (pointer: fine)"), CSS.index(hover_rule))
+
+    def test_forms_associate_errors_and_keep_their_fields(self):
+        """Mobile responsiveness, Milestone 4: server errors are linked to their fields, money fields ask
+        for a decimal keypad, the submitted field names are unchanged, and a corrected password
+        confirmation can no longer stay blocked by a stale mismatch message."""
+        long_skill = "Supercalifragilisticexpialidociouslylongunknownskillname"
+        page = self.register(self.app.test_client(), self.worker_form("errors.worker@example.com", rate="", skills=long_skill)).get_data(as_text=True)
+        for name in ("rate", "skills"):
+            self.assertRegex(page, rf'id="{name}"[^>]*aria-describedby="[^"]*\b{name}-error\b[^"]*"[^>]*aria-invalid="true"', name)
+            self.assertIn(f'id="{name}-error"', page)
+        for name in ("rate", "experience_years"):
+            self.assertRegex(page, rf'id="{name}" name="{name}" type="number" inputmode="decimal"')
+        self.assertEqual(sorted(set(re.findall(r'<(?:input|select)[^>]*\sname="(\w+)"', page))),
+                         sorted({"csrf_token", "role", "email", "password", "confirm_password", "display_name", "client_country",
+                                 "worker_country", "primary_category", "experience_level", "experience_years", "rate", "skills"}))
+
+        c = self.app.test_client()
+        self.register(c, self.client_form("errors.client@example.com"))
+        r = self.post(c, "/client/requests/new", {"title": "x", "category": "", "skills": long_skill, "pay_type": "hourly",
+                                                  "hourly_low": "50", "hourly_high": "10"}, token_path="/client/requests/new")
+        self.assertEqual(r.status_code, 400)
+        page = r.get_data(as_text=True)
+        for name in ("title", "category", "skills", "hourly_high"):
+            self.assertRegex(page, rf'id="{name}"[^>]*aria-describedby="{name}-error" aria-invalid="true"', name)
+        for name in ("budget", "hourly_low", "hourly_high"):
+            self.assertRegex(page, rf'id="{name}" name="{name}" type="number" inputmode="decimal"')
+        form = re.search(r'<form method="post" action="/client/requests/new" class="form-grid" novalidate>(.*?)</form>', page, re.S).group(1)
+        self.assertEqual(re.findall(r'<(?:input|select)[^>]*\sname="(\w+)"', form),
+                         ["csrf_token", "title", "category", "skills", "pay_type", "budget", "hourly_low", "hourly_high", "location_requirement"])
+
+        check = REGISTER_JS.index('confirm.setCustomValidity(first.value === confirm.value')
+        self.assertLess(check, REGISTER_JS.index("for (var i = 0; i < fields.length; i++)"))
+        self.assertIn(".has-js .js-only[hidden] { display: none; }", CSS)
+        # JavaScript-only controls keep their own layout (no "display: revert", which flattened the stepper
+        # and left the account step's actions uncentred).
+        self.assertIn("html:not(.has-js) .js-only { display: none; }", CSS)
+        self.assertNotIn(".js-only { display: revert; }", CSS)
+
+    def test_landing_and_dashboard_layout_hooks(self):
+        """Mobile responsiveness, Milestone 5: the hero illustration rule no longer enlarges the badge icons,
+        side-by-side landing cards line up, and the page-level calls to action keep their destinations."""
+        self.assertIn(".hero__visual > svg { width: 70%; height: auto; }", CSS)
+        self.assertNotIn(".hero__visual svg {", CSS)
+        self.assertIn(".features > .card + .card, .audience > .card + .card { margin-top: 0; }", CSS)
+        landing = self.html(self.app.test_client(), "/")
+        badges = re.search(r'<ul class="hero__badges">(.*?)</ul>', landing, re.S).group(1)
+        self.assertEqual(badges.count('<li><svg class="icon"'), 3)  # the three hero badges keep their small icons
+        c = self.app.test_client()
+        self.register(c, self.client_form("hooks.client@example.com"))
+        for path in ("/dashboard", "/client/requests"):
+            self.assertRegex(self.html(c, path), r'<a class="button[^"]* page-head__cta" href="/client/requests/new">')
+        self.repo.create_user("hooks.worker@example.com", hash_password(PASSWORD), "worker", "W", worker_id="W000001")
+        w = self.app.test_client()
+        self.post(w, "/login", {"email": "hooks.worker@example.com", "password": PASSWORD})
+        self.assertIn('<a class="button button--secondary page-head__cta" href="/profile">', self.html(w, "/dashboard"))
+
     def test_dashboards_show_documented_sections(self):
         c = self.app.test_client()
         self.register(c, self.client_form("dash.client@example.com"))
