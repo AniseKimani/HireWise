@@ -6,6 +6,8 @@ No real email is sent: the file mail backend writes to a temporary directory out
 Checks:
   * schema v2 -> v3 migration on a realistic v2 database (imported data + two legacy accounts): column added,
     tables/constraints/indexes created, legacy accounts verified, records preserved, repeat run is a no-op;
+    then (Milestone 2) the v3 -> v4 step to the schema the application now requires: user_identities created,
+    every v3 structure still verified, no account touched, repeat run a no-op;
   * registration through the app with the PostgreSQL repository: unverified account, emailed absolute link,
     only the SHA-256 hash in auth_tokens (direct SQL), no auto-login, protected actions refused until verified;
   * verification: GET does not consume, POST does; reuse refused; verified_at set (direct SQL);
@@ -40,7 +42,7 @@ from src.app.services import RecommendationService
 from src.db.database import TEST_DATABASE_ENV, load_postgres_settings, make_engine
 from src.db.loader import load
 from src.db.marketplace import PostgresMarketplaceRepository
-from src.db.migrations import migrate_to_v3, verify_v3
+from src.db.migrations import migrate_to_v3, migrate_to_v4, verify_v3, verify_v4
 from src.db.repositories import PostgresRepository
 from src.db.schema import metadata
 
@@ -81,6 +83,7 @@ def main() -> int:
     metadata.create_all(engine)
     load(engine)
     with engine.begin() as conn:
+        conn.execute(text("DROP TABLE user_identities"))  # schema v4 (Milestone 2) addition
         conn.execute(text("DROP TABLE auth_tokens"))
         conn.execute(text("DROP TABLE user_email_verification"))
         conn.execute(text("ALTER TABLE users DROP COLUMN auth_version"))
@@ -100,6 +103,20 @@ def main() -> int:
           [tuple(r) for r in legacy] == [("legacy-hash-1", 0, True), ("legacy-hash-2", 0, True)], str(legacy))
     again = migrate_to_v3(engine)
     check("repeat migration changes nothing", (again.added_auth_version, again.created_tables, again.grandfathered_users) == (False, [], 0))
+
+    # ---- schema v4 (Milestone 2): the version the application now requires ------------------------
+    v4 = migrate_to_v4(engine)
+    check("migration v3 -> v4 creates only user_identities and verifies no one",
+          (v4.version_before, v4.version_after, v4.steps_applied, v4.created_tables, v4.grandfathered_users)
+          == ("3", "4", ["3->4"], ["user_identities"], 0), str(v4.lines()))
+    checks_v4 = verify_v4(engine)
+    check("verify_v4: every structural check passes (all v3 checks included)", all(checks_v4.values()), str(checks_v4))
+    with engine.connect() as conn:
+        after_v4 = conn.execute(text("SELECT u.password_hash, u.auth_version, v.verified_at IS NOT NULL FROM users u "
+                                     "JOIN user_email_verification v USING (user_id) ORDER BY u.email")).all()
+    check("legacy accounts unchanged by the v4 step", [tuple(r) for r in after_v4] == [tuple(r) for r in legacy])
+    again_v4 = migrate_to_v4(engine)
+    check("repeat v4 migration changes nothing", (again_v4.steps_applied, again_v4.created_tables) == ([], []))
 
     # ---- the application on the migrated database --------------------------------------------
     service = RecommendationService.build(repository=PostgresRepository(engine))
@@ -209,7 +226,7 @@ def main() -> int:
     # ---- clean up the test database's runtime rows; confirm the main database is unchanged --------------
     with engine.begin() as conn:
         for name in ("app_reviews", "bookings", "runtime_request_skills", "runtime_requests", "runtime_worker_skills",
-                     "runtime_worker_profiles", "auth_tokens", "user_email_verification", "users"):
+                     "runtime_worker_profiles", "user_identities", "auth_tokens", "user_email_verification", "users"):
             conn.execute(text(f"DELETE FROM {name}"))
     check("main database unchanged (runtime row counts, schema version, tables)", main_database_snapshot() == main_before)
     print(f"\n{'ALL CHECKS PASSED' if not FAILURES else f'{len(FAILURES)} CHECK(S) FAILED'}")

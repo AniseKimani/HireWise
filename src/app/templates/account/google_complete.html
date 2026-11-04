@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% from "marketplace/macros.html" import field_error, csrf_field %}
+{% from "_icons.html" import icon %}
+{% block title %}Finish signing up · HireWise{% endblock %}
+{% set role = form.get('role') %}
+{% block content %}
+{# Continue with Google, new account: the Google-verified identity waits in the session; nothing is stored until this
+   form is submitted (src/app/marketplace/google_auth.py). The email address is fixed -- it is the one Google verified. #}
+<div class="auth">
+  <section class="card auth-card google-complete" aria-labelledby="complete-heading">
+    <div class="auth__head">
+      <h1 id="complete-heading">Finish creating your account</h1>
+      <p>You're signing up with Google. Choose how you'll use HireWise and add a few details.</p>
+    </div>
+    {% if errors %}
+    <div class="form-alert form-alert--danger" role="alert">
+      {{ icon("x-circle", "icon form-alert__icon") }}
+      <div>
+        <p><strong>Please correct the highlighted fields.</strong></p>
+        {% if errors.get('role') %}<p class="field-error">{{ errors['role'] }}</p>{% endif %}
+      </div>
+    </div>
+    {% endif %}
+    <form id="google-complete-form" method="post" action="{{ url_for('google_auth.complete') }}" class="form-grid" novalidate>
+      {{ csrf_field() }}
+      <div class="field">
+        <label for="google-email">Email address</label>
+        <input id="google-email" type="email" value="{{ email }}" readonly aria-describedby="google-email-hint">
+        <p class="field-hint" id="google-email-hint">{{ icon("check") }} Verified by Google. This is your HireWise login address.</p>
+      </div>
+      <fieldset class="role-cards role-cards--compact">
+        <legend>I want to</legend>
+        <label class="role-card role-card--client" for="role-client">
+          <span class="role-card__icon">{{ icon("briefcase") }}</span>
+          <strong>Hire a worker</strong>
+          <span>Post service requests and book recommended workers.</span>
+          <input type="radio" id="role-client" name="role" value="client" required {% if role == 'client' %}checked{% endif %}>
+        </label>
+        <label class="role-card role-card--worker" for="role-worker">
+          <span class="role-card__icon">{{ icon("tools") }}</span>
+          <strong>Offer services</strong>
+          <span>Showcase your skills and receive booking requests.</span>
+          <input type="radio" id="role-worker" name="role" value="worker" {% if role == 'worker' %}checked{% endif %}>
+        </label>
+      </fieldset>
+      <div class="field">
+        <label for="display_name">Your name</label>
+        <input id="display_name" name="display_name" type="text" maxlength="80" required autocomplete="name" value="{{ form.get('display_name', '') }}"
+               {% if errors.get('display_name') %}aria-describedby="display_name-error" aria-invalid="true"{% endif %}>
+        {{ field_error(errors, 'display_name') }}
+      </div>
+      {% include "marketplace/_role_details.html" %}
+      <button type="submit" class="button button--lg button--block">Create account</button>
+    </form>
+    <p class="auth-card__switch">Prefer an email and password? <a href="{{ url_for('marketplace.register') }}">Register instead</a></p>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/role-fields.js') }}" defer></script>
+{% endblock %}

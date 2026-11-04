@@ -38,6 +38,8 @@ RUNTIME_COLUMNS = {
               "auth_version"},
     "user_email_verification": {"user_id", "verified_at"},
     "auth_tokens": {"token_id", "user_id", "purpose", "token_hash", "created_at", "expires_at", "used_at"},
+    # schema v4 (Milestone 2) adds linked external sign-in identities (Continue with Google)
+    "user_identities": {"identity_id", "user_id", "provider", "subject", "email_at_link", "created_at", "last_login_at"},
     "runtime_worker_profiles": {"user_id", "primary_category", "experience_level", "experience_years", "rate", "country"},
     "runtime_worker_skills": {"user_id", "skill"},
     "runtime_requests": {"request_id", "client_user_id", "title", "category", "pay_type", "budget", "hourly_low",
@@ -59,7 +61,20 @@ class TestSchema(unittest.TestCase):
         self.assertEqual(set(schema.TABLE_LOAD_ORDER) | {"load_metadata"}, set(EXPECTED_COLUMNS))
         self.assertEqual(set(schema.RUNTIME_TABLES), set(RUNTIME_COLUMNS))
         self.assertFalse(set(schema.RUNTIME_TABLES) & set(schema.TABLE_LOAD_ORDER))
-        self.assertEqual(schema.SCHEMA_VERSION, "3")
+        self.assertEqual(schema.SCHEMA_VERSION, "4")
+
+    def test_user_identities_constraints(self):
+        table = schema.metadata.tables["user_identities"]
+        uniques = {c.name: [col.name for col in c.columns] for c in table.constraints
+                   if c.__class__.__name__ == "UniqueConstraint"}
+        self.assertEqual(uniques, {"uq_user_identities_provider_subject": ["provider", "subject"],
+                                   "uq_user_identities_user_provider": ["user_id", "provider"]})
+        checks = {c.name for c in table.constraints if c.__class__.__name__ == "CheckConstraint"}
+        self.assertEqual(checks, {"ck_user_identities_provider", "ck_user_identities_subject", "ck_user_identities_email"})
+        self.assertEqual([fk.column.table.name for fk in table.foreign_keys], ["users"])
+        self.assertFalse(table.c.user_id.nullable or table.c.subject.nullable or table.c.provider.nullable)
+        # children follow "users", so clearing runtime tables in reverse order removes identities first
+        self.assertLess(schema.RUNTIME_TABLES.index("users"), schema.RUNTIME_TABLES.index("user_identities"))
 
     def test_no_private_or_outcome_columns(self):
         for table in schema.metadata.tables.values():

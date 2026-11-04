@@ -63,25 +63,21 @@ CLIENT_ONLY_FIELDS = ("client_country",)
 WORKER_ONLY_FIELDS = ("worker_country", "primary_category", "experience_level", "experience_years", "rate", "skills")
 
 
-def validate_registration(form, categories: set[str], vocabulary: dict[str, str], countries: list[str]) -> tuple[dict, dict]:
-    """Role-specific fields have distinct names. The server enforces the
-    selected role: fields belonging to the OTHER role are rejected, so
-    correctness never depends on the browser hiding them."""
-    errors: dict[str, str] = {}
+def validate_account_details(form, categories: set[str], vocabulary: dict[str, str], countries: list[str],
+                             errors: dict) -> dict:
+    """Role, display name, country and (for workers) the worker profile: everything an account needs apart
+    from its sign-in method. Shared by password registration and the Continue-with-Google completion form
+    (Milestone 2), so both apply exactly the same rules and messages.
+
+    Role-specific fields have distinct names. The server enforces the selected role: fields belonging to the
+    OTHER role are rejected, so correctness never depends on the browser hiding them."""
     role = _text(form, "role")
     other_role_fields = WORKER_ONLY_FIELDS if role == "client" else CLIENT_ONLY_FIELDS if role == "worker" else ()
     if any(_text(form, f) for f in other_role_fields):
         errors["role"] = ("Details for the other account type were submitted. Choose the account type again "
                           "and fill in only its fields.")
     country_field = "worker_country" if role == "worker" else "client_country"
-    data = {"email": validate_email(_text(form, "email"), errors), "role": role,
-            "display_name": _text(form, "display_name"), "country": _text(form, country_field) or None}
-    password = form.get("password") or ""
-    if not MIN_PASSWORD_LENGTH <= len(password) <= MAX_PASSWORD_LENGTH:
-        errors["password"] = f"Password must be {MIN_PASSWORD_LENGTH}-{MAX_PASSWORD_LENGTH} characters."
-    elif password != (form.get("confirm_password") or ""):
-        errors["confirm_password"] = "Passwords do not match."
-    data["password"] = password
+    data = {"role": role, "display_name": _text(form, "display_name"), "country": _text(form, country_field) or None}
     if data["role"] not in ("client", "worker"):
         errors["role"] = "Choose client or worker."
     if not 1 <= len(data["display_name"]) <= 80:
@@ -106,6 +102,17 @@ def validate_registration(form, categories: set[str], vocabulary: dict[str, str]
             errors["rate"] = "Enter your rate."
         profile["skills"] = parse_skills(_text(form, "skills"), vocabulary, errors)
         data["worker_profile"] = profile
+    return data
+
+
+def validate_registration(form, categories: set[str], vocabulary: dict[str, str], countries: list[str]) -> tuple[dict, dict]:
+    """Password registration: email and password, plus the shared account details."""
+    errors: dict[str, str] = {}
+    email = validate_email(_text(form, "email"), errors)
+    password, password_errors = validate_new_password(form)
+    errors.update(password_errors)
+    data = {"email": email, "password": password}
+    data.update(validate_account_details(form, categories, vocabulary, countries, errors))
     return data, errors
 
 

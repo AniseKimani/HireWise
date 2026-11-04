@@ -4,7 +4,7 @@
 - Mailer backends and configuration validation (no real email is ever sent: SMTP is mocked).
 - Registration / verification / unverified-user restrictions / password reset / session invalidation, end to
   end through the Flask test client with the in-memory repository and the memory mail backend.
-- Schema v2 -> v3 migration (opt-in, POSTGRES_TEST_DB only).
+- Schema migrations 2 -> 3, 2 -> 3 -> 4 and 3 -> 4 (opt-in, POSTGRES_TEST_DB only).
 """
 import hashlib
 import io
@@ -150,7 +150,7 @@ class InMemoryTokenTests(TokenRepositoryBehaviour, unittest.TestCase):
 
 @unittest.skipUnless(RUN_PG, "opt-in live PostgreSQL test: set HIREWISE_RUN_POSTGRES_TESTS=1")
 class PostgresTokenTests(TokenRepositoryBehaviour, unittest.TestCase):
-    """POSTGRES_TEST_DB only (never POSTGRES_DB): a fresh schema v3 per class, dropped afterwards."""
+    """POSTGRES_TEST_DB only (never POSTGRES_DB): a fresh current schema per class, dropped afterwards."""
 
     @classmethod
     def setUpClass(cls):
@@ -768,12 +768,12 @@ class AccountFlowTests(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Migration (opt-in, POSTGRES_TEST_DB only)
+# Migrations (opt-in, POSTGRES_TEST_DB only)
 # ---------------------------------------------------------------------------
 @unittest.skipUnless(RUN_PG, "opt-in live PostgreSQL test: set HIREWISE_RUN_POSTGRES_TESTS=1")
-class MigrationV3Tests(unittest.TestCase):
-    """Builds a schema-v2 database on POSTGRES_TEST_DB (by removing the v3 additions from a fresh schema),
-    then upgrades it. Never touches POSTGRES_DB."""
+class MigrationTests(unittest.TestCase):
+    """Builds a schema-v2 database on POSTGRES_TEST_DB (by removing the v3 and v4 additions from a fresh schema),
+    then upgrades it: 2 -> 3 (Milestone 1), 2 -> 3 -> 4 and 3 -> 4 (Milestone 2). Never touches POSTGRES_DB."""
 
     @classmethod
     def setUpClass(cls):
@@ -799,6 +799,7 @@ class MigrationV3Tests(unittest.TestCase):
         metadata.drop_all(self.engine)
         metadata.create_all(self.engine)
         with self.engine.begin() as conn:  # schema version 2, with two existing accounts
+            conn.execute(text("DROP TABLE user_identities"))
             conn.execute(text("DROP TABLE auth_tokens"))
             conn.execute(text("DROP TABLE user_email_verification"))
             conn.execute(text("ALTER TABLE users DROP COLUMN auth_version"))
@@ -806,7 +807,21 @@ class MigrationV3Tests(unittest.TestCase):
             conn.execute(text("INSERT INTO users (email, password_hash, role, display_name) VALUES "
                               "('demo.client@example.com', 'h1', 'client', 'Demo C'), ('demo.worker@example.com', 'h2', 'worker', 'Demo W')"))
 
+    def tables(self):
+        from sqlalchemy import inspect
+
+        return set(inspect(self.engine).get_table_names())
+
+    def assert_existing_accounts_preserved(self, repo):
+        for email, password_hash in (("demo.client@example.com", "h1"), ("demo.worker@example.com", "h2")):
+            user_id, stored = repo.get_credentials(email)
+            self.assertEqual(stored, password_hash)  # records preserved
+            user = repo.get_user(user_id)
+            self.assertIsNotNone(user["email_verified_at"])
+            self.assertEqual(user["auth_version"], 0)
+
     def test_upgrade_grandfathers_existing_accounts_and_is_repeatable(self):
+        """The Milestone 1 step on its own (2 -> 3), preserved."""
         from sqlalchemy import text
         from src.db.marketplace import PostgresMarketplaceRepository
         from src.db.migrations import migrate_to_v3, verify_v3
@@ -814,53 +829,131 @@ class MigrationV3Tests(unittest.TestCase):
         report = migrate_to_v3(self.engine)
         self.assertEqual((report.version_before, report.version_after, report.added_auth_version, report.grandfathered_users),
                          ("2", "3", True, 2))
+        self.assertEqual(report.steps_applied, ["2->3"])
         self.assertEqual(sorted(report.created_tables), ["auth_tokens", "user_email_verification"])
+        self.assertNotIn("user_identities", self.tables())  # stops at version 3
         self.assertTrue(all(verify_v3(self.engine).values()), verify_v3(self.engine))
         repo = PostgresMarketplaceRepository(self.engine)
-        for email, password_hash in (("demo.client@example.com", "h1"), ("demo.worker@example.com", "h2")):
-            user_id, stored = repo.get_credentials(email)
-            self.assertEqual(stored, password_hash)  # records preserved
-            user = repo.get_user(user_id)
-            self.assertIsNotNone(user["email_verified_at"])
-            self.assertEqual(user["auth_version"], 0)
+        self.assert_existing_accounts_preserved(repo)
         new_id = repo.create_user("after.upgrade@example.com", "h3", "client", "New", verified=False)
         again = migrate_to_v3(self.engine)
         self.assertEqual((again.version_before, again.added_auth_version, again.created_tables, again.grandfathered_users),
                          ("3", False, [], 0))
+        self.assertEqual(again.steps_applied, [])
         self.assertIsNone(repo.get_user(new_id)["email_verified_at"])  # a repeat run never verifies new accounts
         with self.engine.connect() as conn:
             self.assertEqual(conn.execute(text("SELECT count(*) FROM users")).scalar(), 3)
 
+    def test_upgrade_v2_to_v4_in_one_run(self):
+        from sqlalchemy import text
+        from src.db.marketplace import PostgresMarketplaceRepository
+        from src.db.migrations import migrate_to_v4, verify_v4
+
+        report = migrate_to_v4(self.engine)
+        self.assertEqual((report.version_before, report.version_after, report.steps_applied),
+                         ("2", "4", ["2->3", "3->4"]))
+        self.assertEqual(sorted(report.created_tables), ["auth_tokens", "user_email_verification", "user_identities"])
+        self.assertEqual((report.added_auth_version, report.grandfathered_users), (True, 2))
+        checks = verify_v4(self.engine)
+        self.assertTrue(all(checks.values()), checks)
+        self.assertIn("user_identities constraints present", checks)
+        repo = PostgresMarketplaceRepository(self.engine)
+        self.assert_existing_accounts_preserved(repo)
+        again = migrate_to_v4(self.engine)
+        self.assertEqual((again.version_before, again.steps_applied, again.created_tables, again.grandfathered_users),
+                         ("4", [], [], 0))
+        with self.engine.connect() as conn:
+            self.assertEqual(conn.execute(text("SELECT count(*) FROM users")).scalar(), 2)
+            self.assertEqual(conn.execute(text("SELECT count(*) FROM user_identities")).scalar(), 0)
+
+    def test_upgrade_v3_to_v4_touches_no_existing_row(self):
+        from src.db.marketplace import IdentityAlreadyLinked, PostgresMarketplaceRepository, UserAlreadyHasIdentity
+        from src.db.migrations import migrate_to_v3, migrate_to_v4, verify_v3, verify_v4
+
+        migrate_to_v3(self.engine)
+        repo = PostgresMarketplaceRepository(self.engine)
+        unverified = repo.create_user("pending@example.com", "h3", "client", "Pending", verified=False)
+        auth_tokens.issue(repo, unverified, auth_tokens.VERIFY_EMAIL, timedelta(hours=1))
+        report = migrate_to_v4(self.engine)
+        self.assertEqual((report.version_before, report.version_after, report.steps_applied, report.created_tables,
+                          report.grandfathered_users, report.added_auth_version),
+                         ("3", "4", ["3->4"], ["user_identities"], 0, False))
+        self.assertTrue(all(verify_v4(self.engine).values()), verify_v4(self.engine))
+        self.assertFalse(verify_v3(self.engine)["schema_version is 3"])
+        self.assertIsNone(repo.get_user(unverified)["email_verified_at"])  # the upgrade verifies nobody
+        self.assert_existing_accounts_preserved(repo)
+        # the new table's constraints hold in the database
+        now = auth_tokens.utcnow()
+        client_id = repo.get_credentials("demo.client@example.com")[0]
+        repo.link_identity(client_id, "google", "sub-1", "demo.client@example.com", now)
+        with self.assertRaises(IdentityAlreadyLinked):
+            repo.link_identity(unverified, "google", "sub-1", "pending@example.com", now)
+        with self.assertRaises(UserAlreadyHasIdentity):
+            repo.link_identity(client_id, "google", "sub-2", "demo.client@example.com", now)
+
     def test_unexpected_states_are_refused_without_changes(self):
         from sqlalchemy import inspect, text
-        from src.db.migrations import MigrationError, migrate_to_v3
+        from src.db.migrations import MigrationError, migrate, migrate_to_v3, migrate_to_v4
 
         with self.engine.begin() as conn:
             conn.execute(text("UPDATE load_metadata SET value = '1' WHERE key = 'schema_version'"))
-        with self.assertRaises(MigrationError):
-            migrate_to_v3(self.engine)
+        for upgrade in (migrate_to_v3, migrate_to_v4):
+            with self.assertRaises(MigrationError):
+                upgrade(self.engine)
         self.assertNotIn("auth_version", {c["name"] for c in inspect(self.engine).get_columns("users")})
-        self.assertNotIn("auth_tokens", inspect(self.engine).get_table_names())
+        self.assertFalse({"auth_tokens", "user_identities"} & self.tables())
         with self.engine.begin() as conn:
             conn.execute(text("UPDATE load_metadata SET value = '2' WHERE key = 'schema_version'"))
             conn.execute(text("ALTER TABLE users ADD COLUMN auth_version TEXT"))
+        with self.assertRaises(MigrationError):  # an unrecognised auth_version column
+            migrate_to_v4(self.engine)
+        self.assertFalse({"auth_tokens", "user_identities"} & self.tables())  # one transaction: nothing changed
         with self.assertRaises(MigrationError):
+            migrate(self.engine, target="5")
+
+    def test_inconsistent_or_newer_databases_are_refused(self):
+        from sqlalchemy import text
+        from src.db.migrations import MigrationError, migrate_to_v3, migrate_to_v4
+
+        with self.engine.begin() as conn:  # claims version 3 but has none of its tables
+            conn.execute(text("UPDATE load_metadata SET value = '3' WHERE key = 'schema_version'"))
+        with self.assertRaises(MigrationError):
+            migrate_to_v4(self.engine)
+        self.assertNotIn("user_identities", self.tables())
+        with self.engine.begin() as conn:
+            conn.execute(text("UPDATE load_metadata SET value = '2' WHERE key = 'schema_version'"))
+        migrate_to_v4(self.engine)
+        with self.assertRaises(MigrationError):  # never "downgrade" a version 4 database to 3
             migrate_to_v3(self.engine)
 
-    def test_init_script_refuses_a_v2_database_and_migration_script_upgrades_it(self):
+    def test_init_script_refuses_older_databases_and_migration_scripts_upgrade_them(self):
         env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
-        init = subprocess.run([sys.executable, "scripts/init_postgres.py", "--test-db"], cwd=REPO_ROOT, env=env,
-                              capture_output=True, text=True, timeout=120)
+
+        def run(*args):
+            return subprocess.run([sys.executable, *args], cwd=REPO_ROOT, env=env, capture_output=True, text=True,
+                                  timeout=120)
+
+        init = run("scripts/init_postgres.py", "--test-db")
         self.assertEqual(init.returncode, 1, init.stdout)
-        self.assertIn("migrate_schema_v3.py --test-db", init.stdout)
-        migrate = subprocess.run([sys.executable, "scripts/migrate_schema_v3.py", "--test-db"], cwd=REPO_ROOT, env=env,
-                                 capture_output=True, text=True, timeout=120)
+        self.assertIn("migrate_schema_v4.py --test-db", init.stdout)
+        self.assertNotIn("user_identities", self.tables())  # refused: nothing created
+        v3 = run("scripts/migrate_schema_v3.py", "--test-db")  # the Milestone 1 script still works on its own
+        self.assertEqual(v3.returncode, 0, v3.stdout)
+        self.assertIn("existing accounts marked verified: 2", v3.stdout)
+        init = run("scripts/init_postgres.py", "--test-db")  # a version 3 database is refused too
+        self.assertEqual(init.returncode, 1, init.stdout)
+        self.assertIn("schema version 3", init.stdout)
+        migrate = run("scripts/migrate_schema_v4.py", "--test-db")
         self.assertEqual(migrate.returncode, 0, migrate.stdout)
-        self.assertIn("existing accounts marked verified: 2", migrate.stdout)
-        self.assertNotIn(self.settings.password, migrate.stdout + migrate.stderr)
-        verify = subprocess.run([sys.executable, "scripts/migrate_schema_v3.py", "--test-db", "--verify"], cwd=REPO_ROOT, env=env,
-                                capture_output=True, text=True, timeout=120)
+        self.assertIn("steps applied: 3->4", migrate.stdout)
+        self.assertIn("tables created: user_identities", migrate.stdout)
+        for output in (v3, migrate):
+            self.assertNotIn(self.settings.password, output.stdout + output.stderr)
+        verify = run("scripts/migrate_schema_v4.py", "--test-db", "--verify")
         self.assertEqual(verify.returncode, 0, verify.stdout)
+        self.assertNotIn("FAIL", verify.stdout)
+        init = run("scripts/init_postgres.py", "--test-db")  # now current: init only re-checks it
+        self.assertEqual(init.returncode, 0, init.stdout)
 
 
 if __name__ == "__main__":

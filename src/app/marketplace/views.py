@@ -10,10 +10,11 @@ from __future__ import annotations
 
 import re
 
-from flask import Blueprint, abort, current_app, flash, g, redirect, render_template, request, url_for
+from flask import Blueprint, abort, current_app, flash, g, redirect, render_template, request, session, url_for
 
 from src.app.marketplace import rules
 from src.app.marketplace.account import send_verification
+from src.app.marketplace.google_auth import LINK_SESSION_KEY, complete_pending_link, take_pending_link
 from src.app.marketplace.runtime import RuntimeRequest
 from src.app.marketplace.security import (
     hash_password, login_required, login_user, logout_user, role_required, safe_next_url, verified_required, verify_password,
@@ -125,7 +126,10 @@ def login():
         return redirect(url_for("marketplace.dashboard"))
     next_url = safe_next_url(request.values.get("next"))
     if request.method == "GET":
-        return render_template("marketplace/login.html", email="", error=None, next_url=next_url)
+        # A Google sign-in waiting to be linked pre-fills its (Google-verified) address.
+        pending = session.get(LINK_SESSION_KEY)
+        email = pending.get("email", "") if isinstance(pending, dict) else ""
+        return render_template("marketplace/login.html", email=email, error=None, next_url=next_url)
     data, errors = validate_login(request.form)
     limiter = current_app.extensions["hirewise_login_limiter"]
     address = request.remote_addr or "unknown"
@@ -138,7 +142,10 @@ def login():
         return render_template("marketplace/login.html", email=data["email"], next_url=next_url,
                                error="Invalid email or password."), 401
     limiter.reset(address, data["email"])
-    login_user(credentials[0], _repo().get_user(credentials[0])["auth_version"])
+    pending_link = take_pending_link()  # read before login_user clears the session
+    user = _repo().get_user(credentials[0])
+    login_user(credentials[0], user["auth_version"])
+    complete_pending_link(pending_link, credentials[0], user["email"])  # never blocks this login
     return redirect(next_url or url_for("marketplace.dashboard"))
 
 

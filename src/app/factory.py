@@ -33,6 +33,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from src.app.config import resolve_config
 from src.app.errors import register_error_handlers
 from src.app.marketplace.account import account
+from src.app.marketplace.google_auth import GoogleConfigError, configure_google, google_auth, google_enabled
 from src.app.marketplace.mailer import MailConfigError, build_mailer, resolve_settings
 from src.app.marketplace.runtime import RuntimeRecommender
 from src.app.marketplace.security import LoginRateLimiter, csrf_token, load_current_user, protect_against_csrf
@@ -57,16 +58,23 @@ class MissingMailConfig(MailConfigError):
     """Production marketplace started without a usable email configuration."""
 
 
-# Email links carry single-use tokens in their path (/verify-email/confirm/<token>, /reset-password/<token>).
-# The development server logs request lines, so those tokens are redacted from its log records.
+class InvalidGoogleConfig(GoogleConfigError):
+    """Continue with Google is partly or wrongly configured (exactly one credential set, or no valid base URL)."""
+
+
+# Email links carry single-use tokens in their path (/verify-email/confirm/<token>, /reset-password/<token>), and
+# Google's redirect carries the authorization code and state in the callback's query string. The development server
+# logs request lines, so those values are redacted from its log records.
 _TOKEN_IN_PATH = re.compile(r"(/(?:verify-email/confirm|reset-password)/)[A-Za-z0-9_-]+")
+_OAUTH_CALLBACK_QUERY = re.compile(r"(/auth/google/callback)\?[^\s\"]*")
 
 
 class RedactTokenPaths(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
         message = record.getMessage()
-        if _TOKEN_IN_PATH.search(message):
-            record.msg, record.args = _TOKEN_IN_PATH.sub(r"\1[redacted]", message), ()
+        if _TOKEN_IN_PATH.search(message) or _OAUTH_CALLBACK_QUERY.search(message):
+            message = _TOKEN_IN_PATH.sub(r"\1[redacted]", message)
+            record.msg, record.args = _OAUTH_CALLBACK_QUERY.sub(r"\1?[redacted]", message), ()
         return True
 
 
@@ -141,6 +149,10 @@ def create_app(config=None, service: RecommendationService | None = None, neo4j_
         getattr(getattr(service, "repository", None), "engine", None) is not None
         if service is not None else app.config["LOAD_RECOMMENDER_ON_STARTUP"]))
     _configure_mailer(app, marketplace_expected)  # likewise fails fast in production
+    try:
+        configure_google(app)  # optional; a partial configuration stops start-up in every environment
+    except GoogleConfigError as exc:
+        raise InvalidGoogleConfig(str(exc)) from None
     _install_token_redaction()
     proxies = int(app.config.get("TRUSTED_PROXY_COUNT") or 0)
     if proxies > 0:  # trust X-Forwarded-For/-Proto from exactly this many proxies (client address for rate limits)
@@ -187,7 +199,8 @@ def create_app(config=None, service: RecommendationService | None = None, neo4j_
         app.extensions["hirewise_runtime_recommender"] = runtime_recommender
     app.extensions["hirewise_login_limiter"] = LoginRateLimiter(app.config["LOGIN_MAX_FAILURES"],
                                                                 app.config["LOGIN_FAILURE_WINDOW_SECONDS"])
-    for name in ("VERIFY_RESEND_LIMIT", "RESET_REQUEST_LIMIT", "RESET_REQUEST_ADDRESS_LIMIT", "RESET_ATTEMPT_LIMIT"):
+    for name in ("VERIFY_RESEND_LIMIT", "RESET_REQUEST_LIMIT", "RESET_REQUEST_ADDRESS_LIMIT", "RESET_ATTEMPT_LIMIT",
+                 "GOOGLE_CALLBACK_LIMIT"):
         app.extensions[f"hirewise_{name.lower()}"] = LoginRateLimiter(*app.config[name])
     app.before_request(protect_against_csrf)
     app.before_request(load_current_user)
@@ -196,13 +209,14 @@ def create_app(config=None, service: RecommendationService | None = None, neo4j_
 
     @app.context_processor
     def template_context():
-        return {"current_user": g.get("user")}
+        return {"current_user": g.get("user"), "google_enabled": google_enabled()}
 
     register_error_handlers(app)
     app.register_blueprint(api)
     app.register_blueprint(pages)
     app.register_blueprint(marketplace)
     app.register_blueprint(account)
+    app.register_blueprint(google_auth)
 
     @app.after_request
     def security_headers(response):

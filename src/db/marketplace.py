@@ -25,8 +25,9 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from src.db.repositories import DatabaseUnavailable
 from src.db.schema import (
-    ACTIVE_BOOKING_STATUSES, TOKEN_PURPOSES, app_reviews, auth_tokens, bookings, categories, clients, runtime_request_skills,
-    runtime_requests, runtime_worker_profiles, runtime_worker_skills, skills, user_email_verification, users, workers,
+    ACTIVE_BOOKING_STATUSES, IDENTITY_PROVIDERS, TOKEN_PURPOSES, app_reviews, auth_tokens, bookings, categories, clients, runtime_request_skills,
+    runtime_requests, runtime_worker_profiles, runtime_worker_skills, skills, user_email_verification, user_identities, users,
+    workers,
 )
 
 # Outcomes of looking up / consuming an auth token (src/app/marketplace/auth_tokens.py).
@@ -64,6 +65,14 @@ class StaleBookingState(RuntimeError):
     """The booking changed since it was read (or never existed)."""
 
 
+class IdentityAlreadyLinked(ValueError):
+    """This external identity (provider, subject) already belongs to an account."""
+
+
+class UserAlreadyHasIdentity(ValueError):
+    """The account already has a (different) identity from this provider."""
+
+
 USER_FIELDS = ("user_id", "email", "role", "display_name", "country", "client_id", "worker_id", "created_at", "auth_version")
 REQUEST_FIELDS = ("request_id", "client_user_id", "title", "category", "pay_type", "budget", "hourly_low", "hourly_high",
                   "price_tier", "location_requirement", "created_at")
@@ -75,7 +84,11 @@ _CONSTRAINT_ERRORS = {
     "users_worker_id_key": ProfileAlreadyLinked,
     "uq_bookings_one_active_per_request": ActiveBookingExists,
     "app_reviews_pkey": DuplicateReview,
+    "uq_user_identities_provider_subject": IdentityAlreadyLinked,
+    "uq_user_identities_user_provider": UserAlreadyHasIdentity,
 }
+IDENTITY_FIELDS = ("identity_id", "user_id", "provider", "subject", "email_at_link", "created_at", "last_login_at")
+WORKER_PROFILE_COLUMNS = ("primary_category", "experience_level", "experience_years", "rate", "country")
 
 
 def _guard(method):
@@ -127,16 +140,21 @@ class PostgresMarketplaceRepository:
         operator (scripts/create_demo_account.py) or test fixtures default to verified. The verification row is
         written in the same transaction as the user."""
         with self.engine.begin() as conn:
-            user_id = conn.execute(insert(users).values(
-                email=email, password_hash=password_hash, role=role, display_name=display_name, country=country,
-                client_id=client_id, worker_id=worker_id).returning(users.c.user_id)).scalar_one()
-            conn.execute(insert(user_email_verification).values(user_id=user_id, verified_at=func.now() if verified else None))
-            if worker_profile is not None:
-                conn.execute(insert(runtime_worker_profiles).values(
-                    user_id=user_id, **{k: worker_profile[k] for k in
-                                        ("primary_category", "experience_level", "experience_years", "rate", "country")}))
-                if worker_profile["skills"]:
-                    conn.execute(insert(runtime_worker_skills), [{"user_id": user_id, "skill": s} for s in worker_profile["skills"]])
+            return self._insert_user(conn, email, password_hash, role, display_name, country, client_id, worker_id,
+                                     worker_profile, func.now() if verified else None)
+
+    @staticmethod
+    def _insert_user(conn, email, password_hash, role, display_name, country, client_id, worker_id, worker_profile,
+                     verified_at) -> int:
+        user_id = conn.execute(insert(users).values(
+            email=email, password_hash=password_hash, role=role, display_name=display_name, country=country,
+            client_id=client_id, worker_id=worker_id).returning(users.c.user_id)).scalar_one()
+        conn.execute(insert(user_email_verification).values(user_id=user_id, verified_at=verified_at))
+        if worker_profile is not None:
+            conn.execute(insert(runtime_worker_profiles).values(
+                user_id=user_id, **{k: worker_profile[k] for k in WORKER_PROFILE_COLUMNS}))
+            if worker_profile["skills"]:
+                conn.execute(insert(runtime_worker_skills), [{"user_id": user_id, "skill": s} for s in worker_profile["skills"]])
         return user_id
 
     @_guard
@@ -214,6 +232,51 @@ class PostgresMarketplaceRepository:
                                                         auth_tokens.c.used_at.is_(None))).values(used_at=now))
             self._mark_verified(conn, user_id, now)
             return state, user_id
+
+    # ---- external sign-in identities (schema v4) ------------------------------------
+    @_guard
+    def get_user_by_identity(self, provider: str, subject: str) -> dict | None:
+        """The account linked to this external identity (the provider's stable subject, never the email)."""
+        with self.engine.connect() as conn:
+            user_id = conn.execute(select(user_identities.c.user_id).where(and_(
+                user_identities.c.provider == provider, user_identities.c.subject == subject))).scalar()
+        return self.get_user(user_id) if user_id is not None else None
+
+    @_guard
+    def get_identity_for_user(self, user_id: int, provider: str) -> dict | None:
+        with self.engine.connect() as conn:
+            row = conn.execute(select(*[user_identities.c[f] for f in IDENTITY_FIELDS]).where(and_(
+                user_identities.c.user_id == user_id, user_identities.c.provider == provider))).first()
+        return dict(row._mapping) if row else None
+
+    @_guard
+    def create_user_with_identity(self, email, password_hash, role, display_name, country, worker_profile, provider: str,
+                                  subject: str, now: datetime) -> int:
+        """A new account whose email the identity provider verified: the user, its verification row (verified
+        now), the worker profile and the identity link are written in ONE transaction -- if any part fails
+        (DuplicateEmail, IdentityAlreadyLinked, ...) nothing is created."""
+        with self.engine.begin() as conn:
+            user_id = self._insert_user(conn, email, password_hash, role, display_name, country, None, None,
+                                        worker_profile, now)
+            conn.execute(insert(user_identities).values(user_id=user_id, provider=provider, subject=subject,
+                                                        email_at_link=email, created_at=now, last_login_at=now))
+        return user_id
+
+    @_guard
+    def link_identity(self, user_id: int, provider: str, subject: str, email: str, now: datetime) -> None:
+        """Link an identity to an existing account (after the owner proved the password) and, since the provider
+        verified the same address, mark the account's email verified. One transaction; raises
+        IdentityAlreadyLinked / UserAlreadyHasIdentity without changing anything."""
+        with self.engine.begin() as conn:
+            conn.execute(insert(user_identities).values(user_id=user_id, provider=provider, subject=subject,
+                                                        email_at_link=email, created_at=now, last_login_at=now))
+            self._mark_verified(conn, user_id, now)
+
+    @_guard
+    def record_identity_login(self, provider: str, subject: str, now: datetime) -> None:
+        with self.engine.begin() as conn:
+            conn.execute(update(user_identities).where(and_(
+                user_identities.c.provider == provider, user_identities.c.subject == subject)).values(last_login_at=now))
 
     @_guard
     def get_runtime_worker_profile(self, user_id: int) -> dict | None:
@@ -329,8 +392,9 @@ class InMemoryMarketplaceRepository:
         self._reviews: dict[int, dict] = {}
         self._verification: dict[int, datetime | None] = {}   # user_email_verification
         self._tokens: dict[str, dict] = {}                      # auth_tokens, keyed by token_hash (unique)
+        self._identities: dict[tuple[str, str], dict] = {}     # user_identities, keyed by (provider, subject)
         self._lock = threading.RLock()                          # makes token consumption atomic, like the database
-        self._ids = {name: itertools.count(1) for name in ("user", "request", "booking", "token")}
+        self._ids = {name: itertools.count(1) for name in ("user", "request", "booking", "token", "identity")}
 
     @classmethod
     def from_artifacts(cls) -> "InMemoryMarketplaceRepository":
@@ -362,7 +426,8 @@ class InMemoryMarketplaceRepository:
             return self._create_user(email, password_hash, role, display_name, country, client_id, worker_id,
                                      worker_profile, verified)
 
-    def _create_user(self, email, password_hash, role, display_name, country, client_id, worker_id, worker_profile, verified):
+    def _create_user(self, email, password_hash, role, display_name, country, client_id, worker_id, worker_profile, verified,
+                     now=None):
         if role not in ("client", "worker") or email != email.lower() or "@" not in email[1:]:
             raise ValueError("constraint violated")
         if (role != "client" and client_id) or (role != "worker" and worker_id):
@@ -380,11 +445,10 @@ class InMemoryMarketplaceRepository:
         self._users[user_id] = {"user_id": user_id, "email": email, "password_hash": password_hash, "role": role,
                                 "display_name": display_name, "country": country, "client_id": client_id,
                                 "worker_id": worker_id, "created_at": self._now(), "auth_version": 0}
-        self._verification[user_id] = self._now() if verified else None
+        self._verification[user_id] = (now or self._now()) if verified else None
         if worker_profile is not None:
-            self._worker_profiles[user_id] = {"user_id": user_id, **{k: worker_profile[k] for k in (
-                "primary_category", "experience_level", "experience_years", "rate", "country")},
-                "skills": sorted(set(worker_profile["skills"]))}
+            self._worker_profiles[user_id] = {"user_id": user_id, **{k: worker_profile[k] for k in WORKER_PROFILE_COLUMNS},
+                                              "skills": sorted(set(worker_profile["skills"]))}
         return user_id
 
     def get_credentials(self, email):
@@ -439,6 +503,53 @@ class InMemoryMarketplaceRepository:
             if self._verification.get(user_id) is None:
                 self._verification[user_id] = now
             return state, user_id
+
+    # ---- external sign-in identities (schema v4) ------------------------------------
+    def _check_identity(self, user_id, provider, subject, email):
+        """The user_identities constraints, checked before anything is written."""
+        if provider not in IDENTITY_PROVIDERS or not 1 <= len(subject or "") <= 255 or email != email.lower():
+            raise ValueError("constraint violated")
+        if (provider, subject) in self._identities:
+            raise IdentityAlreadyLinked("uq_user_identities_provider_subject")
+        if any(i["user_id"] == user_id and i["provider"] == provider for i in self._identities.values()):
+            raise UserAlreadyHasIdentity("uq_user_identities_user_provider")
+
+    def _add_identity(self, user_id, provider, subject, email, now):
+        self._identities[(provider, subject)] = {
+            "identity_id": next(self._ids["identity"]), "user_id": user_id, "provider": provider, "subject": subject,
+            "email_at_link": email, "created_at": now, "last_login_at": now}
+
+    def get_user_by_identity(self, provider, subject):
+        identity = self._identities.get((provider, subject))
+        return self.get_user(identity["user_id"]) if identity else None
+
+    def get_identity_for_user(self, user_id, provider):
+        return next((dict(i) for i in self._identities.values() if i["user_id"] == user_id and i["provider"] == provider),
+                    None)
+
+    def create_user_with_identity(self, email, password_hash, role, display_name, country, worker_profile, provider,
+                                  subject, now):
+        with self._lock:  # every check first, then the writes: nothing is created if any part would fail
+            self._check_identity(None, provider, subject, email)
+            user_id = self._create_user(email, password_hash, role, display_name, country, None, None, worker_profile,
+                                        True, now)
+            self._add_identity(user_id, provider, subject, email, now)
+            return user_id
+
+    def link_identity(self, user_id, provider, subject, email, now):
+        with self._lock:
+            if user_id not in self._users:
+                raise ValueError("constraint violated")
+            self._check_identity(user_id, provider, subject, email)
+            self._add_identity(user_id, provider, subject, email, now)
+            if self._verification.get(user_id) is None:
+                self._verification[user_id] = now
+
+    def record_identity_login(self, provider, subject, now):
+        with self._lock:
+            identity = self._identities.get((provider, subject))
+            if identity is not None:
+                identity["last_login_at"] = now
 
     def get_runtime_worker_profile(self, user_id):
         p = self._worker_profiles.get(user_id)

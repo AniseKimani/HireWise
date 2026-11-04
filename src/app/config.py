@@ -82,6 +82,21 @@ class BaseConfig:
     # 0 (default) trusts none. Set HIREWISE_TRUSTED_PROXIES=1 only when exactly one proxy you control sets them.
     TRUSTED_PROXY_COUNT = int(os.environ.get("HIREWISE_TRUSTED_PROXIES", "0") or 0)
 
+    # ---- Continue with Google (pre-deployment Milestone 2) ----------------------------------
+    # OAuth 2.0 / OpenID Connect client credentials come from the environment / git-ignored .env
+    # (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET). Google sign-in is optional: with neither set the button is
+    # hidden; setting exactly one stops start-up. A value set here (e.g. by a config override) wins.
+    GOOGLE_CLIENT_ID = None
+    GOOGLE_CLIENT_SECRET = None
+    GOOGLE_DISCOVERY_URL = "https://accounts.google.com/.well-known/openid-configuration"
+    # Google ID tokens carry either form of the issuer (OpenID Connect discovery names the https form).
+    GOOGLE_ISSUERS = ("https://accounts.google.com", "accounts.google.com")
+    GOOGLE_HTTP_TIMEOUT_SECONDS = 10     # discovery, token exchange and key download
+    # A new Google user chooses a role before the account exists; the verified Google identity waits in the
+    # signed session for at most this long.
+    PENDING_GOOGLE_SIGNUP_TTL = timedelta(minutes=15)
+    GOOGLE_CALLBACK_LIMIT = (20, 15 * 60)         # callback requests per client address
+
 
 class DevelopmentConfig(BaseConfig):
     DEBUG = True
@@ -102,6 +117,9 @@ class TestingConfig(BaseConfig):
     MAIL_BACKEND = "memory"
     APP_BASE_URL = "http://localhost"
     MAIL_SEND_ASYNC = False
+    # Google sign-in is off in tests unless a test configures it explicitly (never from the environment).
+    GOOGLE_CLIENT_ID = ""
+    GOOGLE_CLIENT_SECRET = ""
 
 
 class ProductionConfig(BaseConfig):

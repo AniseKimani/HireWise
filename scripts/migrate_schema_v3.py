@@ -12,7 +12,9 @@ schema_version 3 -- all in one transaction. Nothing is dropped or rewritten; a s
 Back up the database before running it on data you care about. Connection settings come from POSTGRES_* in
 the local .env; no credential is printed.
 
-A NEW, empty database does not need this script: scripts/init_postgres.py creates schema version 3 directly.
+This script stops at version 3. The current application (Milestone 2) needs schema version 4: use
+scripts/migrate_schema_v4.py, which applies this same step and then 3 -> 4. A NEW, empty database needs
+neither script: scripts/init_postgres.py creates the current version directly.
 """
 from __future__ import annotations
 

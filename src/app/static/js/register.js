@@ -71,9 +71,20 @@
     return true;
   }
 
+  // Continue with Google (shown only when configured): carry the chosen account type into the flow as a
+  // preselection. The server accepts only client/worker and the completion page lets the user change it.
+  function updateGoogleLink(role) {
+    var link = form.querySelector("[data-google-start]");
+    if (!link) return;
+    var url = new URL(link.href, window.location.href);
+    if (role) { url.searchParams.set("role", role); } else { url.searchParams.delete("role"); }
+    link.href = url.pathname + url.search;
+  }
+
   form.addEventListener("change", function (event) {
     if (event.target.name === "role") {
       applyRole(event.target.value, true);
+      updateGoogleLink(event.target.value);
       form.querySelector("#role-missing").hidden = true;
     }
   });
@@ -92,6 +103,7 @@
 
   // Initial state: keep server-side values; open the first step with an error.
   applyRole(selectedRole(), false);
+  updateGoogleLink(selectedRole());
   var firstError = form.querySelector(".field-error:not(.js-only)");
   var errorStep = firstError ? firstError.closest("[data-step]") : null;
   if (!selectedRole()) { showStep("role", false); }

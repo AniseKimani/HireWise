@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "marketplace/macros.html" import csrf_field %}
+{% from "marketplace/macros.html" import csrf_field, google_button %}
 {% from "_icons.html" import icon %}
 {% block title %}Log in · HireWise{% endblock %}
 {% block content %}
@@ -24,6 +24,7 @@
       </div>
       <button type="submit" class="button button--lg button--block">Log in</button>
     </form>
+    {% if google_enabled %}{{ google_button(url_for('google_auth.start', next=next_url) if next_url else url_for('google_auth.start')) }}{% endif %}
     <p class="auth-card__switch">New to HireWise? <a href="{{ url_for('marketplace.register') }}">Create an account</a></p>
   </section>
   <aside class="auth-aside" aria-label="What you can do after logging in">

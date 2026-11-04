@@ -1,4 +1,4 @@
-"""Create the HireWise relational schema in PostgreSQL (Day 11; schema v2 since Day 12).
+"""Create the HireWise relational schema in PostgreSQL (Day 11; schema v4 since Milestone 2).
 
 Usage (from repository root):
 
@@ -20,7 +20,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
-from sqlalchemy import inspect
+from sqlalchemy import inspect, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from src.db.database import MAIN_DATABASE_ENV, TEST_DATABASE_ENV, PostgresConfigError, make_engine
@@ -34,11 +34,19 @@ def main() -> int:
     try:
         engine = make_engine(database_env=TEST_DATABASE_ENV if args.test_db else MAIN_DATABASE_ENV)
         before = set(inspect(engine).get_table_names())
-        # An existing schema-v2 users table cannot be upgraded by create_all (it never alters tables):
-        # refuse rather than record version 3 over an incomplete schema.
-        if "users" in before and "auth_version" not in {c["name"] for c in inspect(engine).get_columns("users")}:
-            print("Existing schema version 2 detected (users.auth_version is missing). Nothing was changed.\n"
-                  "Upgrade it with: python scripts/migrate_schema_v3.py" + (" --test-db" if args.test_db else ""))
+        # An existing database at an older schema version is upgraded only by the explicit, versioned
+        # migration (create_all never alters tables): refuse rather than record the current version over it.
+        recorded = None
+        if "load_metadata" in before:
+            with engine.connect() as conn:
+                recorded = conn.execute(select(load_metadata.c.value)
+                                        .where(load_metadata.c.key == "schema_version")).scalar()
+        legacy_users = "users" in before and "auth_version" not in {c["name"] for c in inspect(engine).get_columns("users")}
+        if legacy_users or (recorded is not None and recorded != SCHEMA_VERSION):
+            found = "2 (users.auth_version is missing)" if legacy_users else recorded
+            print(f"Existing schema version {found} detected; this code needs version {SCHEMA_VERSION}. "
+                  "Nothing was changed.\n"
+                  "Upgrade it with: python scripts/migrate_schema_v4.py" + (" --test-db" if args.test_db else ""))
             return 1
         metadata.create_all(engine, checkfirst=True)
         with engine.begin() as conn:  # record the schema version (upsert; never drops or alters)

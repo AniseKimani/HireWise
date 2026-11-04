@@ -33,6 +33,15 @@ tokens -- raw tokens are never stored). An existing version 2 database is
 upgraded by scripts/migrate_schema_v3.py (src/db/migrations.py), which also
 marks every existing account as verified; `metadata.create_all` alone
 cannot add the new users column.
+
+Schema version 4 (pre-deployment Milestone 2) adds `user_identities`: an
+external sign-in identity (currently only Google) linked to a user. The
+identity is keyed by the provider's stable subject identifier (`sub`),
+never by email; one identity belongs to one user, and a user has at most
+one identity per provider. Accounts created through Google carry an
+unusable random password hash until the owner sets a password through the
+password-reset flow. scripts/migrate_schema_v4.py upgrades a version 2 or
+3 database step by step (src/db/migrations.py).
 """
 from __future__ import annotations
 
@@ -41,7 +50,7 @@ from sqlalchemy import (
     Integer, MetaData, PrimaryKeyConstraint, SmallInteger, Table, Text, UniqueConstraint, func, text,
 )
 
-SCHEMA_VERSION = "3"
+SCHEMA_VERSION = "4"
 metadata = MetaData()
 
 
@@ -319,9 +328,34 @@ Index("ix_auth_tokens_expires_at", auth_tokens.c.expires_at)                    
 
 ACCOUNT_SECURITY_TABLES = ("user_email_verification", "auth_tokens")
 
+# ---------------------------------------------------------------------------
+# External sign-in identities (schema version 4)
+# ---------------------------------------------------------------------------
+IDENTITY_PROVIDERS = ("google",)
+
+user_identities = Table(
+    "user_identities", metadata,
+    Column("identity_id", BigInteger, Identity(), primary_key=True),
+    Column("user_id", BigInteger, ForeignKey("users.user_id"), nullable=False),
+    Column("provider", Text, nullable=False),
+    # The provider's stable account identifier (OpenID Connect `sub`) -- the identity key; never the email.
+    Column("subject", Text, nullable=False),
+    # The provider-verified address when the identity was linked (informational; never used to match).
+    Column("email_at_link", Text, nullable=False),
+    _timestamp("created_at", nullable=False, server_default=func.now()),
+    _timestamp("last_login_at"),
+    CheckConstraint("provider IN ('google')", name="ck_user_identities_provider"),
+    CheckConstraint("char_length(subject) BETWEEN 1 AND 255", name="ck_user_identities_subject"),
+    CheckConstraint("email_at_link = lower(email_at_link)", name="ck_user_identities_email"),
+    UniqueConstraint("provider", "subject", name="uq_user_identities_provider_subject"),
+    UniqueConstraint("user_id", "provider", name="uq_user_identities_user_provider"),
+)
+
+IDENTITY_TABLES = ("user_identities",)
+
 # Dependent tables come after "users", so reversed(RUNTIME_TABLES) clears children first.
-RUNTIME_TABLES = ("users", "user_email_verification", "auth_tokens", "runtime_worker_profiles", "runtime_worker_skills",
-                  "runtime_requests", "runtime_request_skills", "bookings", "app_reviews")
+RUNTIME_TABLES = ("users", "user_email_verification", "auth_tokens", "user_identities", "runtime_worker_profiles",
+                  "runtime_worker_skills", "runtime_requests", "runtime_request_skills", "bookings", "app_reviews")
 
 # Load order respects foreign keys.
 TABLE_LOAD_ORDER = (

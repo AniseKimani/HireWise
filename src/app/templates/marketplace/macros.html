@@ -206,3 +206,16 @@
 {% macro skills_chips(skills, label) -%}
 <ul class="chips" aria-label="{{ label }}">{% for s in skills %}<li class="chip">{{ s }}</li>{% endfor %}</ul>
 {%- endmacro %}
+
+{# Continue with Google (Milestone 2). Rendered only when Google sign-in is configured. Follows Google's sign-in
+   branding (light theme: white fill, #747775 outline, #1F1F1F text, the official "G" mark, self-hosted). A plain
+   link (GET): the flow starts with a redirect, which the form-action CSP would not allow after a form POST. #}
+{% macro google_button(href, label="Continue with Google") -%}
+<div class="auth-alt">
+  <p class="auth-divider" role="separator" aria-label="or"><span aria-hidden="true">or</span></p>
+  <a class="gsi-button" href="{{ href }}" data-google-start>
+    <img class="gsi-button__logo" src="{{ url_for('static', filename='img/google-g.svg') }}" alt="" width="20" height="20">
+    <span class="gsi-button__label">{{ label }}</span>
+  </a>
+</div>
+{%- endmacro %}
