@@ -1,0 +1,9 @@
+# Development: the production runtime plus tests and research/data-processing tools.
+-r requirements-prod.txt
+# Tests
+pytest==9.1.1
+# Research / data processing (scripts/run_*.py figures; notebooks)
+matplotlib==3.11.2
+seaborn==0.13.2
+openpyxl==3.1.5
+jupyter==1.1.1

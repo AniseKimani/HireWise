@@ -31,3 +31,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Deployment runtime-data package (scripts/prepare_deployment_data.py): git-ignored derived data
+deployment/runtime-data/

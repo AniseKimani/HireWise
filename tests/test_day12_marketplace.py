@@ -532,7 +532,10 @@ class TestSecretKeyHandling(unittest.TestCase):
     def env_without_key(self, **extra):
         from unittest import mock
 
-        env = {k: v for k, v in os.environ.items() if k not in ("FLASK_SECRET_KEY", "HIREWISE_ENV")}
+        # Also drop the optional Google sign-in settings, so production start-up does not depend on the developer's
+        # .env (with them set, start-up additionally requires a valid APP_BASE_URL).
+        env = {k: v for k, v in os.environ.items()
+               if k not in ("FLASK_SECRET_KEY", "HIREWISE_ENV", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET")}
         return mock.patch.dict(os.environ, {**env, **extra}, clear=True)
 
     def test_production_without_key_fails_fast_and_clearly(self):

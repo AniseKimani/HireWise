@@ -1,0 +1,31 @@
+# Build context = an explicit allow-list (docs/deployment.md). Everything is excluded unless listed below, so .env,
+# .venv, .git, data/ (raw, processed, synthetic_private), tests, docs, notebooks, scripts, local databases, dumps
+# and scratch output can never reach the image.
+*
+
+!requirements-prod.lock
+!src/
+!config/data_config.yaml
+!config/cf_config.yaml
+!config/kg_config.yaml
+!config/hybrid_config.yaml
+!results/day4/selected_cbf_config.json
+!results/day5/selected_cf_config.json
+!results/day7/selected_kg_config.json
+!results/day7/graph_snapshot.json
+!results/day8/selected_hybrid_config.json
+!results/day8/day8_manifest.json
+!deployment/gunicorn.conf.py
+!deployment/runtime-data/runtime-data-manifest.json
+!deployment/runtime-data/data/
+
+# Never, even inside allowed directories.
+**/__pycache__
+**/*.py[cod]
+**/.env
+**/.env.*
+**/synthetic_private
+**/*.dump
+**/*.sql
+**/*.sqlite*
+**/*.db

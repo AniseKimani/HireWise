@@ -310,7 +310,10 @@ class TestMailer(unittest.TestCase):
     def test_production_start_up_requires_mail_configuration_when_the_marketplace_is_active(self):
         from src.app.factory import MissingMailConfig
 
-        env = {k: v for k, v in os.environ.items() if k not in MAIL_ENV and k != "HIREWISE_ENV"}
+        # Isolated from the developer's .env: optional Google sign-in settings would otherwise add their own
+        # start-up check (they need APP_BASE_URL, which this test deliberately removes with the mail settings).
+        env = {k: v for k, v in os.environ.items()
+               if k not in MAIL_ENV and k not in ("HIREWISE_ENV", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET")}
         repo = InMemoryMarketplaceRepository(["Logo Design"], ["Logo Design"], [], [])
         minimal = {"LOAD_RECOMMENDER_ON_STARTUP": False, "NEO4J_HEALTHCHECK_ENABLED": False, "POSTGRES_HEALTHCHECK_ENABLED": False,
                    "SECRET_KEY": "k" * 64}

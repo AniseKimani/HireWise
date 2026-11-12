@@ -1,0 +1,17 @@
+# Runtime dependencies of the HireWise Flask app and frozen recommender (production image).
+# Every version is the one installed and tested in the project environment, except gunicorn
+# (verified on PyPI: 26.2.0, Python >= 3.10, POSIX-only; first exercised in the Linux image).
+flask==3.1.3
+gunicorn==26.2.0
+pandas==3.0.5
+numpy==2.5.3
+scipy==1.18.1
+pyyaml==6.0.3
+SQLAlchemy==2.0.54
+psycopg[binary]==3.3.6
+neo4j==6.3.1
+python-dotenv==1.2.3
+Authlib==1.9.4
+joserfc==1.8.0
+cryptography==50.0.2
+requests==2.34.2
