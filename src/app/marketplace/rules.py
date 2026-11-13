@@ -10,6 +10,12 @@ Booking state machine (who may do what):
 
 declined, cancelled and completed are terminal. A completed booking can be
 reviewed once, by its client.
+
+Demo mode (Milestone 3): the demo operator -- a worker-role account with no
+linked catalogue profile -- may act in the WORKER role on bookings of
+catalogue workers that have no linked account ("unclaimed"). Never on a
+claimed worker's booking, and never in the client role. The caller passes
+both facts in, so this stays pure.
 """
 from __future__ import annotations
 
@@ -44,13 +50,18 @@ def allowed_actions(status: str, actor_role: str) -> list[str]:
     return [action for (state, action), (_, role) in TRANSITIONS.items() if state == status and role == actor_role]
 
 
-def check_booking_actor(booking: dict, user: dict) -> str:
+def check_booking_actor(booking: dict, user: dict, *, is_demo_operator: bool = False, worker_claimed: bool = True) -> str:
     """Role in which `user` may act on `booking`; raises NotAuthorized.
     A client acts only on bookings for their own requests; a worker only on
-    bookings of the imported profile their account is linked to."""
+    bookings of the imported profile their account is linked to. The demo
+    operator (`is_demo_operator`: demo mode is effectively on and `user` is
+    its account) acts as the worker only when the booked worker has no linked
+    account (`worker_claimed` False)."""
     if user["role"] == "client" and booking["client_user_id"] == user["user_id"]:
         return "client"
     if user["role"] == "worker" and user.get("worker_id") and booking["worker_id"] == user["worker_id"]:
+        return "worker"
+    if is_demo_operator and user["role"] == "worker" and not user.get("worker_id") and not worker_claimed:
         return "worker"
     raise NotAuthorized("not your booking")
 

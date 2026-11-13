@@ -20,10 +20,14 @@ function buildUrl(path, params) {
   return url;
 }
 
-async function getJson(path, params, { acceptErrorBody = false } = {}) {
+async function getJson(path, params, { acceptErrorBody = false, noStore = false } = {}) {
   let response;
   try {
-    response = await fetch(buildUrl(path, params), { headers: { Accept: "application/json" } });
+    response = await fetch(buildUrl(path, params), {
+      headers: { Accept: "application/json" },
+      credentials: "same-origin",
+      cache: noStore ? "no-store" : "default",
+    });
   } catch (networkError) {
     throw new ApiError(0, "network_error", "The HireWise server could not be reached.");
   }
@@ -49,4 +53,7 @@ export const api = {
   recommendations: (link, k) => getJson("/api/recommendations", { link, k }),
   worker: (workerId) => getJson(`/api/workers/${encodeURIComponent(workerId)}`),
   workerGraph: (workerId) => getJson(`/api/workers/${encodeURIComponent(workerId)}/graph`),
+  // Milestone 3: the header bell's unread count ({unread: n}). The path comes from the page (data-count-url);
+  // a signed-out session answers 401, raised as ApiError with status 401. Never served from a cache.
+  unreadNotifications: (path) => getJson(path, null, { noStore: true }),
 };

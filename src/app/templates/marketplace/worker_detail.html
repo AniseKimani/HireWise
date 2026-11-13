@@ -27,6 +27,7 @@
         <p class="worker-hero__rating">{{ rating_summary(profile.training_review_count, profile.training_mean_rating) }}{% if profile.training_review_count %} <span class="worker-card__source">research-period reviews</span>{% endif %}</p>
       </div>
     </div>
+    {% if simulated_note %}<p class="honesty-note">{{ icon("info", "icon honesty-note__icon") }}<span>{{ simulated_note }}</span></p>{% endif %}
     <dl class="worker-hero__facts">
       <div><dt>Specialisation</dt><dd>{{ profile.primary_category or 'not stated' }}</dd></div>
       <div><dt>Experience</dt><dd>{{ (profile.experience_level or 'not stated')|capitalize }}, {{ '%.1f'|format(profile.experience_years) }} years</dd></div>

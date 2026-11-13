@@ -1,6 +1,11 @@
 """Marketplace HTML routes (Day 12): register, login/logout, dashboards,
 client request creation with runtime recommendations, bookings, reviews.
 
+Milestone 3: every booking, booking transition and review stores its
+notification in the same transaction (src/app/marketplace/notify.py), and its
+email is queued only after that commit. In demo mode, the demo operator acts
+for unclaimed catalogue workers (rules.check_booking_actor).
+
 Every state change is a POST protected by the CSRF hook; every ownership
 and role rule is enforced here on the server (src/app/marketplace/rules.py),
 never by hidden fields or JavaScript. Templates are rendered with Jinja
@@ -12,7 +17,8 @@ import re
 
 from flask import Blueprint, abort, current_app, flash, g, redirect, render_template, request, session, url_for
 
-from src.app.marketplace import rules
+from src.app.marketplace import notifications as notification_rules
+from src.app.marketplace import notify, rules
 from src.app.marketplace.account import send_verification
 from src.app.marketplace.google_auth import LINK_SESSION_KEY, complete_pending_link, take_pending_link
 from src.app.marketplace.runtime import RuntimeRequest
@@ -159,6 +165,18 @@ def logout():
 # ---------------------------------------------------------------------------
 # Dashboards and profile
 # ---------------------------------------------------------------------------
+def _is_demo_operator(user: dict, operator: dict | None) -> bool:
+    return operator is not None and operator["user_id"] == user["user_id"]
+
+
+def _worker_bookings(repo, user: dict, operator: dict | None) -> list[dict]:
+    """Bookings a worker-role account handles: its linked catalogue worker's, or -- for the demo operator -- every
+    unclaimed catalogue worker's."""
+    if _is_demo_operator(user, operator):
+        return repo.list_unclaimed_worker_bookings()
+    return repo.list_bookings(worker_id=user["worker_id"]) if user.get("worker_id") else []
+
+
 @marketplace.get("/dashboard")
 @login_required
 def dashboard():
@@ -172,12 +190,19 @@ def dashboard():
         return render_template("marketplace/client_dashboard.html", requests_list=requests_list,
                                bookings_list=bookings_list, status_counts=_status_counts(bookings_list),
                                requests_in_progress=live, latest_request=latest, latest_recs=latest_recs, rules=rules)
+    operator = notify.demo_operator(repo)
+    if _is_demo_operator(g.user, operator):
+        bookings_list = repo.list_unclaimed_worker_bookings()
+        return render_template("marketplace/worker_dashboard.html", profile=None, profile_source="demo_operator",
+                               is_demo_operator=True, bookings_list=bookings_list,
+                               status_counts=_status_counts(bookings_list),
+                               reviews=[b for b in bookings_list if b["review_rating"] is not None], rules=rules)
     profile, source = _worker_profile(g.user)
-    bookings_list = repo.list_bookings(worker_id=g.user["worker_id"]) if g.user.get("worker_id") else []
+    bookings_list = _worker_bookings(repo, g.user, operator)
     reviews = [b for b in bookings_list if b["review_rating"] is not None]
     return render_template("marketplace/worker_dashboard.html", profile=profile, profile_source=source,
-                           bookings_list=bookings_list, status_counts=_status_counts(bookings_list), reviews=reviews,
-                           rules=rules)
+                           is_demo_operator=False, bookings_list=bookings_list,
+                           status_counts=_status_counts(bookings_list), reviews=reviews, rules=rules)
 
 
 def _status_counts(bookings_list: list[dict]) -> dict[str, int]:
@@ -214,7 +239,16 @@ def worker_detail(worker_id: str):
         if req is not None and req["client_user_id"] == g.user["user_id"]:
             back = url_for("marketplace.request_detail", request_id=req["request_id"])
     return render_template("marketplace/worker_detail.html", profile=_catalogue_profile(worker_id),
-                           reviews=_app_reviews_for(worker_id), back_url=back, booking=None, review=None)
+                           reviews=_app_reviews_for(worker_id), back_url=back, booking=None, review=None,
+                           simulated_note=_simulated_note(worker_id))
+
+
+def _simulated_note(worker_id: str) -> str | None:
+    """The honesty note for a catalogue worker with no linked account (None when the worker is claimed)."""
+    repo = _repo()
+    if repo.claimed_worker_ids([worker_id]):
+        return None
+    return notification_rules.honesty_note(notify.demo_active(repo))
 
 
 @marketplace.get("/bookings/<int:booking_id>/review")
@@ -228,7 +262,8 @@ def review_page(booking_id: int):
     return render_template("marketplace/worker_detail.html", profile=_catalogue_profile(booking["worker_id"]),
                            reviews=_app_reviews_for(booking["worker_id"]), back_url=url_for("marketplace.bookings_page"),
                            booking=booking, review=repo.get_review(booking_id),
-                           can_review=rules.can_review(booking, g.user, repo.get_review(booking_id)))
+                           can_review=rules.can_review(booking, g.user, repo.get_review(booking_id)),
+                           simulated_note=_simulated_note(booking["worker_id"]))
 
 
 # ---------------------------------------------------------------------------
@@ -263,11 +298,18 @@ def new_request():
 @role_required("client")
 def request_detail(request_id: int):
     req = _own_request(request_id)
-    request_bookings = _repo().list_bookings(request_id=request_id)
+    repo = _repo()
+    request_bookings = repo.list_bookings(request_id=request_id)
     active = next((b for b in request_bookings if b["status"] in ("pending", "accepted", "completed")), None)
     result = _runtime().recommend(_runtime_request(req), RUNTIME_K)
+    shown = {r["worker"]["worker_id"] for r in result["recommendations"]} | {b["worker_id"] for b in request_bookings}
+    claimed = repo.claimed_worker_ids(shown)
+    simulated = shown - claimed
+    bookings_note = (notification_rules.honesty_note(notify.demo_active(repo))
+                     if any(b["worker_id"] in simulated for b in request_bookings) else None)
     return render_template("marketplace/request_detail.html", req=req, result=result, request_bookings=request_bookings,
-                           active_booking=active, rules=rules)
+                           active_booking=active, rules=rules, simulated_workers=simulated,
+                           simulated_label=notification_rules.SIMULATED_LABEL, bookings_note=bookings_note)
 
 
 @marketplace.post("/client/requests/<int:request_id>/book")
@@ -284,12 +326,18 @@ def book_worker(request_id: int):
     recommended = {r["worker"]["worker_id"] for r in _runtime().recommend(_runtime_request(req), RUNTIME_K)["recommendations"]}
     if worker_id not in recommended:
         abort(400, description="worker not in this request's recommendations")
+    repo = _repo()
+    kind = notification_rules.BOOKING_REQUESTED
+    recipient, payload = notify.prepare(kind, repo, booking={"worker_id": worker_id, "client_user_id": g.user["user_id"]},
+                                        request_title=req["title"], actor_user_id=g.user["user_id"],
+                                        operator=notify.demo_operator(repo))
     try:
-        _repo().create_booking(request_id, g.user["user_id"], worker_id)
+        booking_id = repo.create_booking(request_id, g.user["user_id"], worker_id, notification=payload)
     except ActiveBookingExists:
         flash("This request already has an active booking. Cancel it before booking someone else.")
     else:
         flash(f"Booking request sent to worker {worker_id}.")
+        notify.email_after_commit(repo, kind, recipient, booking_id=booking_id, worker_id=worker_id)
     return redirect(url_for("marketplace.request_detail", request_id=request_id))
 
 
@@ -300,11 +348,14 @@ def book_worker(request_id: int):
 @login_required
 def bookings_page():
     repo = _repo()
+    is_operator = False
     if g.user["role"] == "client":
         items = repo.list_bookings(client_user_id=g.user["user_id"])
     else:
-        items = repo.list_bookings(worker_id=g.user["worker_id"]) if g.user.get("worker_id") else []
-    return render_template("marketplace/bookings.html", bookings_list=items, rules=rules)
+        operator = notify.demo_operator(repo)
+        is_operator = _is_demo_operator(g.user, operator)
+        items = _worker_bookings(repo, g.user, operator)
+    return render_template("marketplace/bookings.html", bookings_list=items, rules=rules, is_demo_operator=is_operator)
 
 
 @marketplace.post("/bookings/<int:booking_id>/<action>")
@@ -317,10 +368,20 @@ def booking_action(booking_id: int, action: str):
     booking = repo.get_booking(booking_id)
     if booking is None:
         abort(404)
+    operator = notify.demo_operator(repo)
+    is_operator = _is_demo_operator(g.user, operator)
+    # Only the operator's permission depends on whether the booked worker is claimed (one lookup, only then).
+    worker_claimed = bool(repo.claimed_worker_ids([booking["worker_id"]])) if is_operator else True
+    kind = notification_rules.EVENT_FOR_ACTION[action]
+    recipient = None
     try:
-        role = rules.check_booking_actor(booking, g.user)
+        role = rules.check_booking_actor(booking, g.user, is_demo_operator=is_operator, worker_claimed=worker_claimed)
         new_status = rules.next_status(booking["status"], action, role)
-        repo.transition_booking(booking_id, booking["status"], new_status)
+        request_row = repo.get_request(booking["request_id"])
+        recipient, payload = notify.prepare(kind, repo, booking=booking,
+                                            request_title=request_row["title"] if request_row else None,
+                                            actor_user_id=g.user["user_id"], operator=operator)
+        repo.transition_booking(booking_id, booking["status"], new_status, notification=payload)
     except rules.NotAuthorized:
         abort(404)  # do not confirm that someone else's booking exists
     except rules.InvalidTransition:
@@ -331,6 +392,7 @@ def booking_action(booking_id: int, action: str):
         flash("Another booking for this request is already active.")
     else:
         flash(f"Booking {booking_id} is now {new_status}.")
+        notify.email_after_commit(repo, kind, recipient, booking_id=booking_id, worker_id=booking["worker_id"])
     return redirect(safe_next_url(request.form.get("return_to")) or url_for("marketplace.bookings_page"))
 
 
@@ -349,10 +411,16 @@ def review_booking(booking_id: int):
     if errors:
         flash(next(iter(errors.values())))
         return redirect(url_for("marketplace.review_page", booking_id=booking_id))
+    kind = notification_rules.REVIEW_RECEIVED
+    request_row = repo.get_request(booking["request_id"])
+    recipient, payload = notify.prepare(kind, repo, booking=booking, request_title=request_row["title"] if request_row else None,
+                                        actor_user_id=g.user["user_id"], operator=notify.demo_operator(repo),
+                                        rating=data["rating"])
     try:
-        repo.create_review(booking_id, data["rating"], data["review_text"])
+        repo.create_review(booking_id, data["rating"], data["review_text"], notification=payload)
     except DuplicateReview:
         flash("This booking has already been reviewed.")
     else:
         flash("Thank you. Your review has been saved.")
+        notify.email_after_commit(repo, kind, recipient, booking_id=booking_id, worker_id=booking["worker_id"])
     return redirect(url_for("marketplace.bookings_page"))

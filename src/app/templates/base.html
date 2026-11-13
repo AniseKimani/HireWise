@@ -6,6 +6,7 @@
   <title>{% block title %}HireWise{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   <script src="{{ url_for('static', filename='js/site.js') }}" defer></script>
+  {% if current_user is not none %}<script type="module" src="{{ url_for('static', filename='js/notifications.js') }}"></script>{% endif %}
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to main content</a>
@@ -15,6 +16,18 @@
         {{ icon("logo", "brand__logo") }}<span class="brand__name">Hire<span>Wise</span></span>
       </a>
       {% set path = request.path %}
+      {% if current_user is not none %}
+      {# Notifications bell (Milestone 3): outside the collapsible menu, so it stays visible on phones. The unread count
+         is rendered here on the server; static/js/notifications.js refreshes it every data-poll-seconds while the tab is
+         visible. Without JavaScript it is simply a link with the count from the last page load. #}
+      {% set unread = notification_unread %}
+      <a class="notif-bell" href="{{ url_for('notifications.list_page') }}" data-notification-bell
+         data-count-url="{{ url_for('notifications.unread_count') }}" data-poll-seconds="{{ notifications_poll_seconds }}"
+         {% if path.startswith('/notifications') %}aria-current="page"{% endif %}
+         aria-label="Notifications{% if unread %}, {{ unread }} unread{% endif %}">
+        {{ icon("bell", "icon notif-bell__icon") }}<span class="notif-bell__count" data-notification-count{% if not unread %} hidden{% endif %}>{{ ('99+' if unread > 99 else unread) if unread else '' }}</span>
+      </a>
+      {% endif %}
       {# Shown only on phones, and only once static/js/site.js has initialised the collapsible menu. #}
       <button type="button" class="nav-toggle" aria-expanded="false" aria-controls="site-menu">
         <span class="nav-toggle__bars" aria-hidden="true"></span>

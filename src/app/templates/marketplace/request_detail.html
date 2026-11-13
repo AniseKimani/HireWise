@@ -36,6 +36,7 @@
   <section class="card request-bookings" aria-labelledby="bookings-heading">
     <h2 id="bookings-heading">Bookings for this request</h2>
     {% if active_booking %}<p class="note">Active booking #{{ active_booking.booking_id }} ({{ active_booking.status }}). Cancel it to book someone else.</p>{% endif %}
+    {% if bookings_note %}<p class="honesty-note">{{ icon("info", "icon honesty-note__icon") }}<span>{{ bookings_note }}</span></p>{% endif %}
     {{ booking_table(request_bookings, rules, 'client', url_for('marketplace.request_detail', request_id=req.request_id)) }}
   </section>
 </div>
@@ -71,7 +72,8 @@
   {% endif %}
   {% if result.recommendations %}
   <ol class="worker-cards">
-    {% for rec in result.recommendations %}{{ worker_card(rec, req.request_id, active_booking, req.skills) }}{% endfor %}
+    {% for rec in result.recommendations %}{{ worker_card(rec, req.request_id, active_booking, req.skills,
+         simulated_label if rec.worker.worker_id in simulated_workers else none) }}{% endfor %}
   </ol>
   {% else %}
   <div class="card dash-empty dash-empty--page">

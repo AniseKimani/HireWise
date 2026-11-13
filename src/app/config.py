@@ -20,6 +20,16 @@ except ImportError:
     pass  # python-dotenv is optional; variables may already be exported
 
 
+def _env_flag(name: str) -> bool:
+    return os.environ.get(name, "").strip().lower() in ("1", "true", "yes", "on")
+
+
+def _env_int(name: str, default: int) -> int:
+    """An integer setting; a missing or non-numeric value keeps the default (src/app/factory.py validates ranges)."""
+    raw = os.environ.get(name, "").strip()
+    return int(raw) if raw.lstrip("-").isdigit() else default
+
+
 class BaseConfig:
     DEBUG = False
     TESTING = False
@@ -97,6 +107,21 @@ class BaseConfig:
     PENDING_GOOGLE_SIGNUP_TTL = timedelta(minutes=15)
     GOOGLE_CALLBACK_LIMIT = (20, 15 * 60)         # callback requests per client address
 
+    # ---- Notifications and demo mode (pre-deployment Milestone 3) ---------------------------
+    NOTIFICATIONS_PER_PAGE = 20
+    # The header bell refreshes its unread count this often while the tab is visible (minimum 5 seconds).
+    NOTIFICATIONS_POLL_SECONDS = _env_int("HIREWISE_NOTIFICATIONS_POLL_SECONDS", 30)
+    # Notification emails are never sent to addresses in these domains (comma-separated); the documented demo
+    # accounts use demo.local.
+    NOTIFICATION_EMAIL_SKIP_DOMAINS = os.environ.get("HIREWISE_NOTIFICATION_EMAIL_SKIP_DOMAINS", "demo.local")
+    # Demo mode: the demo operator (a verified worker account with no linked catalogue profile, found by this
+    # email) accepts or declines bookings for catalogue workers that have no linked account. Off by default; a
+    # missing or invalid operator logs a warning and leaves demo mode off.
+    DEMO_MODE = _env_flag("HIREWISE_DEMO_MODE")
+    DEMO_OPERATOR_EMAIL = os.environ.get("HIREWISE_DEMO_OPERATOR_EMAIL") or None
+    # At most this many demo-operator notification emails per UTC day; in-app notifications continue above it.
+    DEMO_OPERATOR_EMAIL_DAILY_CAP = _env_int("HIREWISE_DEMO_OPERATOR_EMAIL_DAILY_CAP", 50)
+
 
 class DevelopmentConfig(BaseConfig):
     DEBUG = True
@@ -120,6 +145,12 @@ class TestingConfig(BaseConfig):
     # Google sign-in is off in tests unless a test configures it explicitly (never from the environment).
     GOOGLE_CLIENT_ID = ""
     GOOGLE_CLIENT_SECRET = ""
+    # Likewise demo mode and the notification settings: fixed defaults, never from the developer's environment.
+    DEMO_MODE = False
+    DEMO_OPERATOR_EMAIL = None
+    DEMO_OPERATOR_EMAIL_DAILY_CAP = 50
+    NOTIFICATION_EMAIL_SKIP_DOMAINS = "demo.local"
+    NOTIFICATIONS_POLL_SECONDS = 30
 
 
 class ProductionConfig(BaseConfig):

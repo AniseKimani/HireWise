@@ -13,9 +13,9 @@
 {% endfor %}
 <div class="page-head client-head">
   <div>
-    <p class="eyebrow">Bookings</p>
+    <p class="eyebrow">Bookings{% if is_demo_operator %} <span class="badge badge--warning demo-label">Demo account</span>{% endif %}</p>
     <h1>Service History</h1>
-    <p class="page-head__sub">{% if role == 'client' %}Your bookings, their status and your reviews{% else %}Bookings assigned to you{% endif %}</p>
+    <p class="page-head__sub">{% if role == 'client' %}Your bookings, their status and your reviews{% elif is_demo_operator %}Bookings for simulated research profiles (catalogue workers with no linked account), handled by the demo account{% else %}Bookings assigned to you{% endif %}</p>
   </div>
 </div>
 
@@ -30,7 +30,7 @@
 {% endif %}
 
 <section class="card bookings-page" aria-label="Bookings">
-  {% if role == 'worker' and not current_user.worker_id %}
+  {% if role == 'worker' and not current_user.worker_id and not is_demo_operator %}
   <p class="note">New worker profiles are not yet part of the recommender's catalogue, so they do not receive bookings.</p>
   {% endif %}
   {% if bookings_list %}

@@ -4,13 +4,22 @@
 {% block title %}Dashboard · HireWise{% endblock %}
 {% block content %}
 {% set pending = bookings_list|selectattr('status', 'equalto', 'pending')|list %}
+{# Bookings are handled by an account linked to a catalogue profile, or (demo mode) by the demo operator. #}
+{% set handles_bookings = profile_source in ('imported', 'demo_operator') %}
 <div class="page-head client-head">
   <div>
+    {% if is_demo_operator %}
+    <p class="eyebrow">Worker dashboard <span class="badge badge--warning demo-label">Demo account</span></p>
+    <h1>Welcome back, {{ current_user.display_name }}</h1>
+    <p class="page-head__sub">You are the HireWise demo account. You respond to bookings for simulated research profiles
+      (catalogue workers that have no linked account). Each booking shows the simulated worker's ID.</p>
+    {% else %}
     <p class="eyebrow">Worker dashboard</p>
     <h1>Welcome back, {{ current_user.display_name }}</h1>
     <p class="page-head__sub">Respond to booking requests, follow your work in progress and see the reviews clients leave you.</p>
+    {% endif %}
   </div>
-  <a class="button button--secondary page-head__cta" href="{{ url_for('marketplace.profile') }}">{{ icon("user") }} View profile</a>
+  {% if not is_demo_operator %}<a class="button button--secondary page-head__cta" href="{{ url_for('marketplace.profile') }}">{{ icon("user") }} View profile</a>{% endif %}
 </div>
 
 {# The four existing counts. Reviews are left on completed jobs, so the last two overlap (said below). #}
@@ -38,7 +47,7 @@
     {# What needs the worker now (catalogue-linked workers only: new profiles cannot receive bookings, which
        the bookings section and the profile note already say). Accept / Decline stay in the bookings table
        below, so each action exists once on the page. #}
-    {% if profile_source == 'imported' %}
+    {% if handles_bookings %}
     <section class="card dash-section worker-attention{% if pending %} worker-attention--pending{% endif %}" aria-labelledby="attention-heading">
       <div class="dash-section__head">
         <h2 id="attention-heading">{% if pending %}Booking requests waiting for you{% else %}Your next step{% endif %}</h2>
@@ -50,7 +59,7 @@
         <li class="request-row request-row--pending">
           <div class="request-row__body">
             <span class="request-row__title">{{ b.request_title }}</span>
-            <p class="request-row__meta">Booking #{{ b.booking_id }}{% if b.created_at %} · requested {{ short_date(b.created_at) }}{% endif %}</p>
+            <p class="request-row__meta">Booking #{{ b.booking_id }}{% if is_demo_operator %} · simulated worker {{ b.worker_id }}{% endif %}{% if b.created_at %} · requested {{ short_date(b.created_at) }}{% endif %}</p>
           </div>
           <span class="status-badge status-badge--pending">pending</span>
         </li>
@@ -75,9 +84,9 @@
     <section class="card dash-section" aria-labelledby="bookings-heading">
       <div class="dash-section__head">
         <h2 id="bookings-heading">Bookings assigned to you</h2>
-        {% if profile_source == 'imported' and bookings_list %}<a class="dash-section__link" href="{{ url_for('marketplace.bookings_page') }}">Open service history</a>{% endif %}
+        {% if handles_bookings and bookings_list %}<a class="dash-section__link" href="{{ url_for('marketplace.bookings_page') }}">Open service history</a>{% endif %}
       </div>
-      {% if profile_source == 'imported' %}
+      {% if handles_bookings %}
       {{ booking_table(bookings_list, rules, 'worker', url_for('marketplace.dashboard')) }}
       {% else %}
       <p class="empty-state">New worker profiles are not yet part of the recommendation catalogue, so they do not receive bookings yet.</p>
@@ -122,6 +131,12 @@
       {{ skills_chips(profile.skills, "Your skills") }}
       <p class="note worker-summary__note">{% if profile_source == 'imported' %}Demo account linked to a catalogue profile, so clients can be recommended to book you.{% else %}New worker profile. The recommender uses a frozen research catalogue, so new profiles are not recommended to clients yet.{% endif %}</p>
       <a class="button button--secondary button--block" href="{{ url_for('marketplace.profile') }}">Open your full profile</a>
+      {% elif is_demo_operator %}
+      <h2 id="profile-heading">Demo account</h2>
+      <p class="note">This account has no worker profile of its own. In demo mode it accepts or declines bookings for
+        catalogue workers that have no linked account, so a live demonstration can show the whole booking flow. Clients
+        see a note that these are simulated research profiles handled by the demo account.</p>
+      <p class="note">It never acts on bookings for workers that have their own account, and it has no client powers.</p>
       {% else %}<h2 id="profile-heading">Profile</h2><p class="empty-state">No profile found.</p>{% endif %}
     </section>
   </aside>

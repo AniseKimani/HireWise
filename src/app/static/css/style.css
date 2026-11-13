@@ -1478,3 +1478,56 @@ a.request-row__title { color: var(--accent); }
 @media (max-width: 479px) {
   :root { --card-pad: 1rem; --panel-pad: 0.9rem 1rem; }
 }
+
+/* ---- Notifications and demo mode (pre-deployment Milestone 3) ------------------------------------------------
+   Bell: outside the collapsible phone menu (always visible). Desktop: after the menu, at the far right of the
+   header row. Phones: on the first row, between the brand and the Menu button. The count badge uses the decorative
+   coral with navy text (4.9:1). Unread notifications: brand surface and a brand edge, plus the word "Unread" (colour
+   is never the only signal). */
+.notif-bell {
+  order: 1; position: relative; display: inline-grid; place-items: center; flex: none;
+  width: var(--tap); height: var(--tap); border: 1px solid var(--border); border-radius: 50%;
+  background: var(--surface); color: var(--color-heading); text-decoration: none; transition: var(--transition-colors);
+}
+.notif-bell__icon { width: 1.3rem; height: 1.3rem; }
+.notif-bell[aria-current="page"] { border-color: var(--color-brand); color: var(--color-brand); background: var(--color-surface-brand); }
+@media (hover: hover) and (pointer: fine) {
+  .notif-bell:hover { border-color: var(--color-brand-border); background: var(--color-surface-brand); color: var(--color-brand-hover); }
+}
+.notif-bell__count {
+  position: absolute; top: -0.3rem; right: -0.35rem; min-width: 1.25rem; height: 1.25rem; padding: 0 0.3rem;
+  border-radius: var(--radius-pill); background: var(--color-decor-coral); color: var(--color-heading);
+  font-size: 0.72rem; font-weight: 700; line-height: 1.25rem; text-align: center; box-shadow: 0 0 0 2px var(--surface);
+}
+.notif-bell__count[hidden] { display: none; }
+
+.notification-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.75rem; }
+.notification {
+  display: flex; align-items: flex-start; gap: 0.85rem; padding: 0.9rem 1rem;
+  border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface);
+}
+.notification--unread { background: var(--color-surface-brand); border-color: var(--color-brand-border); border-left: 4px solid var(--color-brand); }
+.notification__icon { flex: none; width: 2.25rem; height: 2.25rem; border-radius: 50%; display: grid; place-items: center;
+  background: var(--color-surface-warm); color: var(--color-brand); }
+.notification__body { flex: 1 1 auto; min-width: 0; }
+.notification__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.75rem; margin: 0 0 0.3rem;
+  color: var(--color-text-muted); font-size: var(--font-size-sm); }
+.notification__unread { color: var(--color-brand-hover); font-weight: 700; }
+.notification__message { margin: 0 0 0.3rem; color: var(--color-text); overflow-wrap: anywhere; }
+.notification__link { font-size: var(--font-size-sm); }
+.notification__action { flex: none; }
+.pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.75rem; margin-top: 1.25rem; }
+.pager__status { color: var(--color-text-muted); }
+
+.honesty-note { display: flex; align-items: flex-start; gap: 0.6rem; margin: 0.75rem 0 0; padding: 0.7rem 0.9rem; color: var(--color-text);
+  background: var(--color-info-bg); border: 1px solid var(--color-info-border); border-left: 4px solid var(--color-info); border-radius: var(--radius-sm); }
+.honesty-note__icon { flex: none; color: var(--color-info); width: 1.2rem; height: 1.2rem; margin-top: 0.1rem; }
+.demo-label, .simulated-label { vertical-align: middle; }
+
+@media (max-width: 767px) {
+  .notif-bell { order: 0; margin-left: auto; }
+  .nav-enhanced .notif-bell + .nav-toggle { margin-left: 0; }
+  .notification { flex-wrap: wrap; }
+  .notification__action { flex: 1 1 100%; }
+  .notification__action .button { width: 100%; min-height: var(--tap); }
+}

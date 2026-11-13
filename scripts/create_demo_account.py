@@ -10,6 +10,14 @@ Usage (from repository root):
     python scripts/create_demo_account.py --role client --email client@demo.local --name "Demo Client"
     python scripts/create_demo_account.py --role worker --email worker@demo.local --name "Demo Worker" --worker-id W001674
     python scripts/create_demo_account.py --show-demo-recommendation   # top workers for the documented demo request
+    python scripts/create_demo_account.py --demo-operator --email operator@example.com --name "HireWise Demo"
+
+--demo-operator (Milestone 3) creates the DEMO OPERATOR: a verified worker
+account with no linked catalogue profile. With HIREWISE_DEMO_MODE=1 and
+HIREWISE_DEMO_OPERATOR_EMAIL set to its address, it accepts or declines
+bookings for catalogue workers that have no linked account. Use an address
+outside HIREWISE_NOTIFICATION_EMAIL_SKIP_DOMAINS (default demo.local) if the
+operator should receive notification emails.
 
 The password is read from HIREWISE_DEMO_PASSWORD if set, otherwise
 prompted (not echoed). It is never stored in plain text, printed, or
@@ -59,15 +67,22 @@ def main() -> int:
     parser.add_argument("--worker-id", help="link a worker account to this imported worker_id")
     parser.add_argument("--test-db", action="store_true")
     parser.add_argument("--show-demo-recommendation", action="store_true")
+    parser.add_argument("--demo-operator", action="store_true",
+                        help="create the demo operator: a worker account with no linked catalogue profile (Milestone 3)")
     args = parser.parse_args()
     if args.show_demo_recommendation:
         return show_demo_recommendation()
+    if args.demo_operator:
+        if args.role not in (None, "worker") or args.client_id or args.worker_id:
+            parser.error("--demo-operator creates a worker account and cannot be linked to an imported profile")
+        args.role = "worker"
     if not (args.role and args.email and args.name):
-        parser.error("--role, --email and --name are required")
+        parser.error("--role, --email and --name are required (--demo-operator implies --role worker)")
     if (args.client_id and args.role != "client") or (args.worker_id and args.role != "worker"):
         parser.error("--client-id is for client accounts and --worker-id for worker accounts")
-    if args.role == "worker" and not args.worker_id:
-        parser.error("worker demo accounts must be linked to an imported profile with --worker-id")
+    if args.role == "worker" and not args.worker_id and not args.demo_operator:
+        parser.error("worker demo accounts must be linked to an imported profile with --worker-id "
+                     "(or use --demo-operator for the demo operator account)")
 
     errors: dict = {}
     email = validate_email(args.email, errors)
@@ -97,6 +112,9 @@ def main() -> int:
         return 2
     link = args.client_id or args.worker_id
     print(f"Created {args.role} account #{user_id} for {email}" + (f", linked to imported profile {link}" if link else ""))
+    if args.demo_operator:
+        print("This is the demo operator account. To use it, set HIREWISE_DEMO_MODE=1 and "
+              "HIREWISE_DEMO_OPERATOR_EMAIL to this address, then restart the app.")
     return 0
 
 

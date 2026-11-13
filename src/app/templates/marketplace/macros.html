@@ -30,7 +30,7 @@
 {# One "Recommended Workers" card (real values only; the list order is the recommender's rank order).
    request_skills (optional) lets the card list the worker's declared skills that are also in the request
    first; it is a display order only and changes no value. #}
-{% macro worker_card(rec, request_id, booking_locked, request_skills=()) -%}
+{% macro worker_card(rec, request_id, booking_locked, request_skills=(), simulated_label=none) -%}
 {% set w = rec.worker %}
 {% set matched = w.declared_skills|select('in', request_skills)|list %}
 {% set others = w.declared_skills|reject('in', request_skills)|list %}
@@ -40,7 +40,7 @@
   <div class="worker-card__head">
     <div class="avatar" aria-hidden="true">{{ icon("user") }}</div>
     <div class="worker-card__identity">
-      <p class="worker-card__rank">Rank #{{ rec.rank }}{% if rec.rank == 1 %} <span class="badge badge--brand">Top ranked</span>{% endif %}</p>
+      <p class="worker-card__rank">Rank #{{ rec.rank }}{% if rec.rank == 1 %} <span class="badge badge--brand">Top ranked</span>{% endif %}{% if simulated_label %} <span class="badge badge--neutral simulated-label">{{ simulated_label }}</span>{% endif %}</p>
       <h3 class="worker-card__name">Worker {{ w.worker_id }}</h3>
       <p class="meta-row">
         {% if w.primary_category %}<span>{{ icon("tools") }} {{ w.primary_category }}</span>{% endif %}

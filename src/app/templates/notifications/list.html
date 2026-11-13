@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% from "marketplace/macros.html" import csrf_field, short_date %}
+{% from "_icons.html" import icon %}
+{% block title %}Notifications · HireWise{% endblock %}
+{% block content %}
+{% set kind_labels = {"booking_requested": "New booking", "booking_accepted": "Accepted", "booking_declined": "Declined",
+                      "booking_cancelled": "Cancelled", "booking_completed": "Completed", "review_received": "Review"} %}
+{% set return_to = url_for('notifications.list_page', page=page) %}
+<div class="page-head client-head">
+  <div>
+    <p class="eyebrow">Account</p>
+    <h1>Notifications</h1>
+    <p class="page-head__sub">Updates about your bookings and reviews, newest first.
+      {% if unread_total %}{{ unread_total }} unread.{% else %}Everything is read.{% endif %}</p>
+  </div>
+  {% if unread_total %}
+  <form method="post" action="{{ url_for('notifications.mark_all_read') }}" class="inline-form page-head__cta">
+    {{ csrf_field() }}
+    <input type="hidden" name="return_to" value="{{ return_to }}">
+    <button type="submit" class="button button--secondary">{{ icon("check") }} Mark all as read</button>
+  </form>
+  {% endif %}
+</div>
+
+<section class="card notifications-page" aria-label="Notifications">
+  {% if items %}
+  <ul class="notification-list">
+    {% for n in items %}
+    <li class="notification{% if n.read_at is none %} notification--unread{% endif %}">
+      <span class="notification__icon" aria-hidden="true">{{ icon("bell") }}</span>
+      <div class="notification__body">
+        <p class="notification__meta">
+          <span class="badge badge--{{ 'brand' if n.read_at is none else 'neutral' }}">{{ kind_labels.get(n.kind, "Update") }}</span>
+          {% if n.read_at is none %}<span class="notification__unread">Unread</span>{% endif %}
+          {% if n.booking_id %}<span>Booking #{{ n.booking_id }}</span>{% endif %}
+          {% if n.created_at %}<span>{{ short_date(n.created_at) }}</span>{% endif %}
+        </p>
+        <p class="notification__message">{{ n.message }}</p>
+        {% if n.booking_id %}<a class="notification__link" href="{{ url_for('marketplace.bookings_page') }}">Open Service History</a>{% endif %}
+      </div>
+      {% if n.read_at is none %}
+      <form method="post" action="{{ url_for('notifications.mark_read', notification_id=n.notification_id) }}" class="inline-form notification__action">
+        {{ csrf_field() }}
+        <input type="hidden" name="return_to" value="{{ return_to }}">
+        <button type="submit" class="button button--ghost">Mark as read<span class="visually-hidden"> (notification {{ loop.index }})</span></button>
+      </form>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% if pages > 1 %}
+  <nav class="pager" aria-label="Notification pages">
+    {% if page > 1 %}<a class="button button--secondary" href="{{ url_for('notifications.list_page', page=page - 1) }}">Newer</a>{% endif %}
+    <span class="pager__status">Page {{ page }} of {{ pages }}</span>
+    {% if page < pages %}<a class="button button--secondary" href="{{ url_for('notifications.list_page', page=page + 1) }}">Older</a>{% endif %}
+  </nav>
+  {% endif %}
+  {% else %}
+  <div class="dash-empty">
+    <span class="dash-empty__icon">{{ icon("bell") }}</span>
+    <p>No notifications yet. You will be notified here when a booking you are part of changes, or when a review is left.</p>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

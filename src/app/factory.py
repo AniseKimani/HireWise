@@ -34,7 +34,9 @@ from src.app.config import resolve_config
 from src.app.errors import register_error_handlers
 from src.app.marketplace.account import account
 from src.app.marketplace.google_auth import GoogleConfigError, configure_google, google_auth, google_enabled
+from src.app.marketplace import notify
 from src.app.marketplace.mailer import MailConfigError, build_mailer, resolve_settings
+from src.app.marketplace.notification_views import notification_bp
 from src.app.marketplace.runtime import RuntimeRecommender
 from src.app.marketplace.security import LoginRateLimiter, csrf_token, load_current_user, protect_against_csrf
 from src.app.marketplace.views import marketplace
@@ -122,6 +124,42 @@ def _configure_secret_key(app: Flask) -> None:
                        "development" if app.debug else "non-production")
 
 
+MIN_POLL_SECONDS = 5
+
+
+def _configure_notifications(app: Flask) -> None:
+    """Range-check the Milestone 3 settings. An out-of-range value falls back to its default with a warning (never a
+    crash); the values themselves are not secret."""
+    defaults = {"NOTIFICATIONS_POLL_SECONDS": 30, "DEMO_OPERATOR_EMAIL_DAILY_CAP": 50}
+    poll = app.config.get("NOTIFICATIONS_POLL_SECONDS")
+    if not isinstance(poll, int) or poll < MIN_POLL_SECONDS:
+        logger.warning("NOTIFICATIONS_POLL_SECONDS must be a whole number >= %s; using %s", MIN_POLL_SECONDS,
+                       defaults["NOTIFICATIONS_POLL_SECONDS"])
+        app.config["NOTIFICATIONS_POLL_SECONDS"] = defaults["NOTIFICATIONS_POLL_SECONDS"]
+    cap = app.config.get("DEMO_OPERATOR_EMAIL_DAILY_CAP")
+    if not isinstance(cap, int) or cap < 0:
+        logger.warning("DEMO_OPERATOR_EMAIL_DAILY_CAP must be a whole number >= 0; using %s",
+                       defaults["DEMO_OPERATOR_EMAIL_DAILY_CAP"])
+        app.config["DEMO_OPERATOR_EMAIL_DAILY_CAP"] = defaults["DEMO_OPERATOR_EMAIL_DAILY_CAP"]
+
+
+def _check_demo_mode(app: Flask) -> None:
+    """Report the demo-mode state at start-up when the database can be reached; otherwise it is checked on first use.
+    Never stops start-up."""
+    if not app.config.get("DEMO_MODE"):
+        return
+    repo = app.extensions.get("hirewise_marketplace")
+    if repo is None:
+        return
+    try:
+        with app.app_context():
+            if notify.demo_operator(repo) is not None:
+                logger.info("demo mode is ON: the demo operator handles bookings for unclaimed catalogue workers")
+    except Exception as exc:
+        logger.warning("demo mode could not be checked at start-up (error=%s); it is checked again on use",
+                       type(exc).__name__)
+
+
 class StrictJSONProvider(DefaultJSONProvider):
     """Refuses NaN/Infinity instead of emitting invalid JSON."""
 
@@ -154,6 +192,7 @@ def create_app(config=None, service: RecommendationService | None = None, neo4j_
     except GoogleConfigError as exc:
         raise InvalidGoogleConfig(str(exc)) from None
     _install_token_redaction()
+    _configure_notifications(app)
     proxies = int(app.config.get("TRUSTED_PROXY_COUNT") or 0)
     if proxies > 0:  # trust X-Forwarded-For/-Proto from exactly this many proxies (client address for rate limits)
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=proxies, x_proto=proxies)
@@ -209,7 +248,12 @@ def create_app(config=None, service: RecommendationService | None = None, neo4j_
 
     @app.context_processor
     def template_context():
-        return {"current_user": g.get("user"), "google_enabled": google_enabled()}
+        user = g.get("user")
+        unread = None
+        if user is not None and app.extensions.get("hirewise_marketplace") is not None:
+            unread = notify.unread_count(app.extensions["hirewise_marketplace"], user["user_id"])
+        return {"current_user": user, "google_enabled": google_enabled(), "notification_unread": unread,
+                "notifications_poll_seconds": app.config["NOTIFICATIONS_POLL_SECONDS"]}
 
     register_error_handlers(app)
     app.register_blueprint(api)
@@ -217,6 +261,8 @@ def create_app(config=None, service: RecommendationService | None = None, neo4j_
     app.register_blueprint(marketplace)
     app.register_blueprint(account)
     app.register_blueprint(google_auth)
+    app.register_blueprint(notification_bp)
+    _check_demo_mode(app)
 
     @app.after_request
     def security_headers(response):
