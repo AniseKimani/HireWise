@@ -8,6 +8,7 @@
 - Never add `Co-Authored-By`, `Generated-By`, `Assisted-By`, or equivalent AI-attribution trailers.
 - Commit messages should contain only the normal project commit subject/body.
 - Never rewrite existing Git history, force-push, or modify remotes unless I explicitly request it.
+- Commit when I approve, using your own focused commit message, but never run `git push` (or any command that pushes, such as `git push --force` or pushing tags). I push myself.
 
 ## Existing project decisions
 
