@@ -33,8 +33,9 @@ Days 1–12 are complete:
 | 12 | Accounts and marketplace workflow: register, request, book, complete, review | `docs/day12_marketplace_report.md` |
 
 Pre-deployment milestones since Day 12: email verification and password reset (Milestone 1, schema v3), Continue
-with Google (Milestone 2, schema v4), and booking notifications, notification email and demo mode (Milestone 3,
-schema v5, `docs/m3_notifications_report.md`). Deployment preparation is in `docs/deployment.md`.
+with Google (Milestone 2, schema v4), booking notifications, notification email and demo mode (Milestone 3,
+schema v5, `docs/m3_notifications_report.md`), and profile editing, self-reported worker credentials and initials
+avatars (Milestone 4, schema v6, `docs/m4_profiles_report.md`). Deployment preparation is in `docs/deployment.md`.
 
 The recommender models, their selected configurations and all
 experimental results (`results/`) are **frozen**.
@@ -92,8 +93,8 @@ features, without retraining or fabricated history (see the Day 12 report).
    ```
 5. **PostgreSQL.** This needs PostgreSQL 18, plus a role `hirewise_app` that owns the databases `hirewise` and `hirewise_test`; see `docs/day11_postgresql_report.md`.
    ```powershell
-   python scripts/init_postgres.py      # create missing tables (schema v5), incl. the marketplace tables (never drops)
-   python scripts/migrate_schema_v5.py  # only for an EXISTING older database (v2-v4); try --test-db first
+   python scripts/init_postgres.py      # create missing tables (schema v6), incl. the marketplace tables (never drops)
+   python scripts/migrate_schema_v6.py  # only for an EXISTING older database (v2-v5); try --test-db first
    python scripts/load_postgres.py      # load; no-op if identical; refuses differences without --reset
    python scripts/verify_postgres.py
    ```
@@ -114,6 +115,10 @@ password comes from `HIREWISE_DEMO_PASSWORD` or a hidden prompt):
 python scripts/create_demo_account.py --show-demo-recommendation
 python scripts/create_demo_account.py --role worker --email worker@demo.local --name "Demo Worker" --worker-id W001674
 ```
+
+Signed-in users can change their details under **Edit profile** in the account menu (Milestone 4). Self-registered
+workers can also add a bio and self-reported certifications, experience and portfolio links; accounts linked to the
+research catalogue can change only their display name (`docs/m4_profiles_report.md`).
 
 Signed-in users see a notifications bell for booking events and reviews (Milestone 3). Most recommended workers
 are simulated catalogue profiles with no account; for a live demonstration, **demo mode** lets one demo operator

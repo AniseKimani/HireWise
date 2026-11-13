@@ -132,11 +132,20 @@ gunicorn --config deployment/gunicorn.conf.py "src.app:create_app()"
 - **Health check:** the image's `HEALTHCHECK` calls the existing `/api/health`, unchanged. It returns 200 when
   "ok"/"degraded" (Neo4j down) and 503 when the recommender or PostgreSQL is unavailable.
 
+### Database schema version
+
+The image needs schema version 6. Upgrade an existing database with `python scripts/migrate_schema_v6.py` (after a
+backup; try `--test-db` first); a new database gets version 6 from `scripts/init_postgres.py`.
+
+### Profiles and credentials (Milestone 4)
+
+No new environment variables. The bio length, the number of credentials per kind and the avatar palette size are code
+configuration in `src/app/config.py` (`docs/m4_profiles_report.md`). Nothing is uploaded, so the image still needs no
+writable storage.
+
 ### Notifications and demo mode (Milestone 3)
 
-The image needs schema version 5. Upgrade an existing database with `python scripts/migrate_schema_v5.py` (after a
-backup; try `--test-db` first); a new database gets version 5 from `scripts/init_postgres.py`. Optional settings,
-all read from the environment at run time (`docs/m3_notifications_report.md`):
+Optional settings, all read from the environment at run time (`docs/m3_notifications_report.md`):
 
 | Setting | Default | Notes |
 |---|---|---|
