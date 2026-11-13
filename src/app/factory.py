@@ -36,7 +36,9 @@ from src.app.marketplace.account import account
 from src.app.marketplace.google_auth import GoogleConfigError, configure_google, google_auth, google_enabled
 from src.app.marketplace import notify
 from src.app.marketplace.mailer import MailConfigError, build_mailer, resolve_settings
+from src.app.marketplace.avatars import initials, palette_index
 from src.app.marketplace.notification_views import notification_bp
+from src.app.marketplace.profile_views import profile_bp
 from src.app.marketplace.runtime import RuntimeRecommender
 from src.app.marketplace.security import LoginRateLimiter, csrf_token, load_current_user, protect_against_csrf
 from src.app.marketplace.views import marketplace
@@ -245,6 +247,9 @@ def create_app(config=None, service: RecommendationService | None = None, neo4j_
     app.before_request(load_current_user)
 
     app.jinja_env.globals["csrf_token"] = csrf_token  # a global, so imported macros can use it too
+    # Initials avatars (Milestone 4): globals, so the shared avatar macro works from any template.
+    app.jinja_env.globals["avatar_initials"] = initials
+    app.jinja_env.globals["avatar_slot"] = lambda user_id: palette_index(user_id, app.config["AVATAR_PALETTE_SIZE"])
 
     @app.context_processor
     def template_context():
@@ -262,6 +267,7 @@ def create_app(config=None, service: RecommendationService | None = None, neo4j_
     app.register_blueprint(account)
     app.register_blueprint(google_auth)
     app.register_blueprint(notification_bp)
+    app.register_blueprint(profile_bp)
     _check_demo_mode(app)
 
     @app.after_request

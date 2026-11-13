@@ -1,15 +1,19 @@
 {% extends "base.html" %}
 {% from "marketplace/macros.html" import booking_table, rating_summary %}
 {% from "_icons.html" import icon %}
+{% from "_avatar.html" import account_avatar %}
 {% block title %}Dashboard · HireWise{% endblock %}
 {% block content %}
 {% set active = requests_list|selectattr('request_id', 'in', requests_in_progress)|list %}
 {% set others = requests_list|rejectattr('request_id', 'in', requests_in_progress)|list %}
 <div class="page-head client-head">
-  <div>
-    <p class="eyebrow">Client dashboard</p>
-    <h1>Welcome back, {{ current_user.display_name }}</h1>
-    <p class="page-head__sub">Your requests, recommended workers and bookings in one place.</p>
+  <div class="page-head__identity">
+    {{ account_avatar(current_user, "avatar-initials--lg") }}
+    <div>
+      <p class="eyebrow">Client dashboard</p>
+      <h1>Welcome back, {{ current_user.display_name }}</h1>
+      <p class="page-head__sub">Your requests, recommended workers and bookings in one place.</p>
+    </div>
   </div>
   <a class="button button--lg page-head__cta" href="{{ url_for('marketplace.new_request') }}">{{ icon("plus") }} Post a new request</a>
 </div>

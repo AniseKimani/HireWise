@@ -66,6 +66,25 @@ def check_booking_actor(booking: dict, user: dict, *, is_demo_operator: bool = F
     raise NotAuthorized("not your booking")
 
 
+def profile_edit_fields(user: dict, has_runtime_profile: bool) -> frozenset[str]:
+    """What an account may edit on its own profile (Milestone 4). Email and password are never part of it.
+
+    - client: display name and location (client_country);
+    - worker linked to an imported catalogue profile (users.worker_id): display name ONLY -- the location, worker
+      profile, bio and credentials come from (or would sit beside) research data;
+    - self-registered worker (has a runtime profile): display name, location, the worker profile (with bio) and
+      credentials;
+    - any other worker account (the demo operator: no profile, no link): display name and location.
+    """
+    if user["role"] == "client":
+        return frozenset({"display_name", "client_country"})
+    if user.get("worker_id"):
+        return frozenset({"display_name"})
+    if has_runtime_profile:
+        return frozenset({"display_name", "worker_country", "worker_profile", "credentials"})
+    return frozenset({"display_name", "worker_country"})
+
+
 def can_review(booking: dict, user: dict, existing_review) -> bool:
     return (user["role"] == "client" and booking["client_user_id"] == user["user_id"]
             and booking["status"] == "completed" and existing_review is None)

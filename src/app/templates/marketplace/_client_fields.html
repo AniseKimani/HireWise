@@ -1,0 +1,14 @@
+{# Client-only account details (location). Included by _role_details.html (registration, Google completion) and by
+   profile/edit.html (Milestone 4), so every form uses exactly the same markup and field names. #}
+{% from "marketplace/macros.html" import field_error %}
+            <fieldset data-role="client">
+              <legend class="visually-hidden">Client details</legend>
+              <div class="field">
+                <label for="client_country">Your location (optional)</label>
+                <select id="client_country" name="client_country"{% if errors.get('client_country') %} aria-describedby="client_country-error" aria-invalid="true"{% endif %}>
+                  <option value="">Prefer not to say</option>
+                  {% for c in countries %}<option value="{{ c }}" {% if form.get('client_country') == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+                </select>
+                {{ field_error(errors, 'client_country') }}
+              </div>
+            </fieldset>

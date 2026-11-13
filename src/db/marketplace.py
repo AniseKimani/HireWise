@@ -1,6 +1,7 @@
 """Runtime marketplace persistence (Day 12): users, runtime worker
 profiles, client-created requests, bookings and application reviews; in-app
-notifications since Milestone 3 (schema v5).
+notifications since Milestone 3 (schema v5); profile editing and self-reported
+worker credentials since Milestone 4 (schema v6).
 
 Two implementations share one interface and one test suite:
 - PostgresMarketplaceRepository -- the application's store; the database
@@ -32,9 +33,12 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from src.db.repositories import DatabaseUnavailable
 from src.db.schema import (
-    ACTIVE_BOOKING_STATUSES, IDENTITY_PROVIDERS, NOTIFICATION_KINDS, NOTIFICATION_MESSAGE_MAX_LENGTH, TOKEN_PURPOSES,
+    ACTIVE_BOOKING_STATUSES, BIO_MAX_LENGTH, CREDENTIAL_DESCRIPTION_MAX_LENGTH, CREDENTIAL_KINDS,
+    CREDENTIAL_ORGANISATION_MAX_LENGTH, CREDENTIAL_TITLE_MAX_LENGTH, CREDENTIAL_URL_MAX_LENGTH, CREDENTIAL_YEAR_DB_MAX,
+    CREDENTIAL_YEAR_MIN, IDENTITY_PROVIDERS, NOTIFICATION_KINDS, NOTIFICATION_MESSAGE_MAX_LENGTH, TOKEN_PURPOSES,
     app_reviews, auth_tokens, bookings, categories, clients, notifications, runtime_request_skills, runtime_requests,
-    runtime_worker_profiles, runtime_worker_skills, skills, user_email_verification, user_identities, users, workers,
+    runtime_worker_profiles, runtime_worker_skills, skills, user_email_verification, user_identities, users,
+    worker_credentials, workers,
 )
 
 # Outcomes of looking up / consuming an auth token (src/app/marketplace/auth_tokens.py).
@@ -58,6 +62,10 @@ class DuplicateEmail(ValueError):
 
 class ProfileAlreadyLinked(ValueError):
     pass
+
+
+class CredentialLimitReached(ValueError):
+    """The worker already has the maximum number of credentials of this kind (Milestone 4)."""
 
 
 class ActiveBookingExists(ValueError):
@@ -97,6 +105,9 @@ _CONSTRAINT_ERRORS = {
 NOTIFICATION_FIELDS = ("notification_id", "user_id", "booking_id", "kind", "message", "created_at", "read_at")
 IDENTITY_FIELDS = ("identity_id", "user_id", "provider", "subject", "email_at_link", "created_at", "last_login_at")
 WORKER_PROFILE_COLUMNS = ("primary_category", "experience_level", "experience_years", "rate", "country")
+CREDENTIAL_FIELDS = ("credential_id", "user_id", "kind", "title", "organisation", "year", "url", "description", "created_at")
+CREDENTIAL_DATA = ("kind", "title", "organisation", "year", "url", "description")
+_UNCHANGED = object()  # update_profile: leave users.country as it is
 
 
 def _guard(method):
@@ -321,6 +332,83 @@ class PostgresMarketplaceRepository:
                                       .order_by(runtime_worker_skills.c.skill))
             return {**dict(row._mapping), "skills": [r[0] for r in skill_rows]}
 
+    # ---- profile editing (schema v6) -------------------------------------------------
+    @_guard
+    def update_profile(self, user_id: int, display_name: str, country=_UNCHANGED, worker_profile: dict | None = None) -> None:
+        """One transaction: users.display_name (and users.country unless _UNCHANGED); with `worker_profile`, the
+        runtime profile (category, experience, rate, country, bio) and its skills are replaced too. Email, password
+        and catalogue links are never touched."""
+        values = {"display_name": display_name}
+        if country is not _UNCHANGED:
+            values["country"] = country
+        with self.engine.begin() as conn:
+            if conn.execute(update(users).where(users.c.user_id == user_id).values(**values)).rowcount != 1:
+                raise ValueError("constraint violated: unknown user")
+            if worker_profile is not None:
+                changed = conn.execute(update(runtime_worker_profiles).where(runtime_worker_profiles.c.user_id == user_id)
+                                       .values(**{k: worker_profile[k] for k in WORKER_PROFILE_COLUMNS},
+                                               bio=worker_profile.get("bio"))).rowcount
+                if changed != 1:
+                    raise ValueError("constraint violated: no runtime worker profile")
+                conn.execute(runtime_worker_skills.delete().where(runtime_worker_skills.c.user_id == user_id))
+                if worker_profile["skills"]:
+                    conn.execute(insert(runtime_worker_skills),
+                                 [{"user_id": user_id, "skill": s} for s in sorted(set(worker_profile["skills"]))])
+
+    # ---- self-reported credentials (schema v6): always one worker's own rows -------------------
+    @_guard
+    def list_credentials(self, user_id: int) -> list[dict]:
+        with self.engine.connect() as conn:
+            rows = conn.execute(select(*[worker_credentials.c[f] for f in CREDENTIAL_FIELDS])
+                                .where(worker_credentials.c.user_id == user_id)
+                                .order_by(worker_credentials.c.kind, worker_credentials.c.created_at,
+                                          worker_credentials.c.credential_id))
+            return [dict(r._mapping) for r in rows]
+
+    @_guard
+    def get_credential(self, user_id: int, credential_id: int) -> dict | None:
+        with self.engine.connect() as conn:
+            row = conn.execute(select(*[worker_credentials.c[f] for f in CREDENTIAL_FIELDS]).where(
+                worker_credentials.c.credential_id == credential_id, worker_credentials.c.user_id == user_id)).first()
+        return dict(row._mapping) if row else None
+
+    @staticmethod
+    def _lock_profile_and_count(conn, user_id: int, kind: str, exclude_id: int | None = None) -> int:
+        """Lock the worker's profile row (serialises concurrent adds, so the per-kind limit holds) and count."""
+        if conn.execute(select(runtime_worker_profiles.c.user_id).where(runtime_worker_profiles.c.user_id == user_id)
+                        .with_for_update()).first() is None:
+            raise ValueError("constraint violated: no runtime worker profile")
+        conditions = [worker_credentials.c.user_id == user_id, worker_credentials.c.kind == kind]
+        if exclude_id is not None:
+            conditions.append(worker_credentials.c.credential_id != exclude_id)
+        return conn.execute(select(func.count()).select_from(worker_credentials).where(*conditions)).scalar_one()
+
+    @_guard
+    def add_credential(self, user_id: int, data: dict, per_kind_limit: int) -> int:
+        with self.engine.begin() as conn:
+            if self._lock_profile_and_count(conn, user_id, data["kind"]) >= per_kind_limit:
+                raise CredentialLimitReached(data["kind"])
+            return conn.execute(insert(worker_credentials).values(user_id=user_id, **{k: data[k] for k in CREDENTIAL_DATA})
+                                .returning(worker_credentials.c.credential_id)).scalar_one()
+
+    @_guard
+    def update_credential(self, user_id: int, credential_id: int, data: dict, per_kind_limit: int) -> bool:
+        """False if the credential is not this worker's (or does not exist)."""
+        owned = and_(worker_credentials.c.credential_id == credential_id, worker_credentials.c.user_id == user_id)
+        with self.engine.begin() as conn:
+            if conn.execute(select(worker_credentials.c.credential_id).where(owned)).first() is None:
+                return False
+            if self._lock_profile_and_count(conn, user_id, data["kind"], exclude_id=credential_id) >= per_kind_limit:
+                raise CredentialLimitReached(data["kind"])
+            conn.execute(update(worker_credentials).where(owned).values(**{k: data[k] for k in CREDENTIAL_DATA}))
+            return True
+
+    @_guard
+    def delete_credential(self, user_id: int, credential_id: int) -> bool:
+        with self.engine.begin() as conn:
+            return conn.execute(worker_credentials.delete().where(
+                worker_credentials.c.credential_id == credential_id, worker_credentials.c.user_id == user_id)).rowcount == 1
+
     # ---- runtime requests --------------------------------------------------------
     @_guard
     def create_request(self, client_user_id, title, category, skills_list, pay_type, budget, hourly_low, hourly_high,
@@ -486,9 +574,10 @@ class InMemoryMarketplaceRepository:
         self._tokens: dict[str, dict] = {}                      # auth_tokens, keyed by token_hash (unique)
         self._identities: dict[tuple[str, str], dict] = {}     # user_identities, keyed by (provider, subject)
         self._notifications: dict[int, dict] = {}               # notifications (schema v5)
+        self._credentials: dict[int, dict] = {}                 # worker_credentials (schema v6)
         self._lock = threading.RLock()                          # makes token consumption atomic, like the database
         self._ids = {name: itertools.count(1) for name in ("user", "request", "booking", "token", "identity",
-                                                           "notification")}
+                                                           "notification", "credential")}
 
     @classmethod
     def from_artifacts(cls) -> "InMemoryMarketplaceRepository":
@@ -542,7 +631,7 @@ class InMemoryMarketplaceRepository:
         self._verification[user_id] = (now or self._now()) if verified else None
         if worker_profile is not None:
             self._worker_profiles[user_id] = {"user_id": user_id, **{k: worker_profile[k] for k in WORKER_PROFILE_COLUMNS},
-                                              "skills": sorted(set(worker_profile["skills"]))}
+                                              "bio": None, "skills": sorted(set(worker_profile["skills"]))}
         return user_id
 
     def get_credentials(self, email):
@@ -658,6 +747,85 @@ class InMemoryMarketplaceRepository:
     def get_runtime_worker_profile(self, user_id):
         p = self._worker_profiles.get(user_id)
         return dict(p) if p else None
+
+    # ---- profile editing and credentials (schema v6): the database constraints, checked before any write ----------
+    def update_profile(self, user_id, display_name, country=_UNCHANGED, worker_profile=None):
+        with self._lock:
+            user = self._users.get(user_id)
+            if user is None or not 1 <= len(display_name or "") <= 200:
+                raise ValueError("constraint violated")
+            if worker_profile is not None:
+                if user_id not in self._worker_profiles:
+                    raise ValueError("constraint violated: no runtime worker profile")
+                bio = worker_profile.get("bio")
+                if worker_profile["primary_category"] not in self._categories \
+                        or not set(worker_profile["skills"]) <= set(self._skills) \
+                        or worker_profile["experience_level"] not in ("entry", "intermediate", "expert") \
+                        or not 0 <= worker_profile["experience_years"] <= 60 or not worker_profile["rate"] > 0 \
+                        or not worker_profile["country"] or (bio is not None and len(bio) > BIO_MAX_LENGTH):
+                    raise ValueError("constraint violated")
+            user["display_name"] = display_name
+            if country is not _UNCHANGED:
+                user["country"] = country
+            if worker_profile is not None:
+                self._worker_profiles[user_id].update({k: worker_profile[k] for k in WORKER_PROFILE_COLUMNS},
+                                                      bio=worker_profile.get("bio"),
+                                                      skills=sorted(set(worker_profile["skills"])))
+
+    @staticmethod
+    def _check_credential(data):
+        def too_long(value, limit):
+            return value is not None and len(value) > limit
+        if data["kind"] not in CREDENTIAL_KINDS or not 1 <= len(data["title"] or "") <= CREDENTIAL_TITLE_MAX_LENGTH \
+                or too_long(data["organisation"], CREDENTIAL_ORGANISATION_MAX_LENGTH) \
+                or too_long(data["description"], CREDENTIAL_DESCRIPTION_MAX_LENGTH) \
+                or (data["year"] is not None and not CREDENTIAL_YEAR_MIN <= data["year"] <= CREDENTIAL_YEAR_DB_MAX) \
+                or (data["url"] is not None and (len(data["url"]) > CREDENTIAL_URL_MAX_LENGTH
+                                                 or not data["url"].lower().startswith(("http://", "https://")))):
+            raise ValueError("constraint violated")
+
+    def _count_kind(self, user_id, kind, exclude_id=None):
+        return sum(1 for c in self._credentials.values()
+                   if c["user_id"] == user_id and c["kind"] == kind and c["credential_id"] != exclude_id)
+
+    def list_credentials(self, user_id):
+        rows = [c for c in self._credentials.values() if c["user_id"] == user_id]
+        return [dict(c) for c in sorted(rows, key=lambda c: (c["kind"], c["created_at"], c["credential_id"]))]
+
+    def get_credential(self, user_id, credential_id):
+        c = self._credentials.get(credential_id)
+        return dict(c) if c and c["user_id"] == user_id else None
+
+    def add_credential(self, user_id, data, per_kind_limit):
+        with self._lock:
+            if user_id not in self._worker_profiles:
+                raise ValueError("constraint violated: no runtime worker profile")
+            self._check_credential(data)
+            if self._count_kind(user_id, data["kind"]) >= per_kind_limit:
+                raise CredentialLimitReached(data["kind"])
+            credential_id = next(self._ids["credential"])
+            self._credentials[credential_id] = {"credential_id": credential_id, "user_id": user_id,
+                                                **{k: data[k] for k in CREDENTIAL_DATA}, "created_at": self._now()}
+            return credential_id
+
+    def update_credential(self, user_id, credential_id, data, per_kind_limit):
+        with self._lock:
+            c = self._credentials.get(credential_id)
+            if c is None or c["user_id"] != user_id:
+                return False
+            self._check_credential(data)
+            if self._count_kind(user_id, data["kind"], exclude_id=credential_id) >= per_kind_limit:
+                raise CredentialLimitReached(data["kind"])
+            c.update({k: data[k] for k in CREDENTIAL_DATA})
+            return True
+
+    def delete_credential(self, user_id, credential_id):
+        with self._lock:
+            c = self._credentials.get(credential_id)
+            if c is None or c["user_id"] != user_id:
+                return False
+            del self._credentials[credential_id]
+            return True
 
     def create_request(self, client_user_id, title, category, skills_list, pay_type, budget, hourly_low, hourly_high,
                        price_tier, location_requirement):

@@ -1,0 +1,13 @@
+{# Initials avatar for an ACCOUNT (Milestone 4): the first letters of the display name on a palette colour chosen
+   from the user ID (src/app/marketplace/avatars.py). One CSS class per palette colour, so no inline style is needed
+   and the strict CSP holds. A name without letters falls back to the person icon. Decorative (aria-hidden): the
+   name is always shown next to it. Catalogue workers (shown by worker ID) never use this macro. #}
+{% from "_icons.html" import icon %}
+{% macro account_avatar(user, extra="") -%}
+{% set letters = avatar_initials(user.display_name) %}
+{%- if letters -%}
+<span class="avatar-initials avatar-initials--{{ avatar_slot(user.user_id) }}{% if extra %} {{ extra }}{% endif %}" aria-hidden="true">{{ letters }}</span>
+{%- else -%}
+<span class="avatar-initials avatar-initials--icon{% if extra %} {{ extra }}{% endif %}" aria-hidden="true">{{ icon("user") }}</span>
+{%- endif -%}
+{%- endmacro %}

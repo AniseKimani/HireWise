@@ -1,14 +1,17 @@
 {% extends "base.html" %}
 {% from "marketplace/macros.html" import rating_summary, skills_chips %}
 {% from "_icons.html" import icon %}
+{% from "_avatar.html" import account_avatar %}
 {% block title %}Profile · HireWise{% endblock %}
 {% block content %}
 {% if profile %}
 {# The worker's own profile: only the fields the application stores (catalogue profile for demo accounts
-   linked to the research catalogue, or the profile entered at registration). Not editable here. #}
+   linked to the research catalogue, or the profile entered at registration). Self-registered workers edit it on
+   /profile/edit (Milestone 4); a catalogue-linked profile is read-only. #}
 <section class="card worker-hero own-profile__head" aria-labelledby="profile-heading">
   <div class="worker-hero__top">
-    <div class="avatar" aria-hidden="true">{{ icon("user") }}</div>
+    {% if profile_source == 'imported' %}<div class="avatar" aria-hidden="true">{{ icon("user") }}</div>
+    {% else %}{{ account_avatar(current_user, "avatar-initials--hero") }}{% endif %}
     <div class="worker-hero__identity">
       <p class="eyebrow">Your worker profile</p>
       <h1 id="profile-heading">{% if profile.worker_id %}Worker {{ profile.worker_id }}{% else %}{{ current_user.display_name }}{% endif %}</h1>
@@ -32,7 +35,55 @@
     {% else %}<span class="badge badge--neutral">Not yet recommended</span>
       New worker profile. The recommender uses a frozen research catalogue, so new profiles are not recommended to clients yet.{% endif %}
   </p>
+  {% if profile_source == 'imported' %}
+  <p class="honesty-note">{{ icon("info", "icon honesty-note__icon") }}<span>{{ read_only_note }}. You can still change your display name in <a href="{{ url_for('profile.edit') }}">Edit profile</a>.</span></p>
+  {% else %}
+  {% if profile.bio %}<div class="own-profile__bio"><h2 class="section-title">About <span class="badge badge--neutral self-reported">Self-reported</span></h2><p>{{ profile.bio }}</p></div>{% endif %}
+  <p class="own-profile__actions"><a class="button button--secondary" href="{{ url_for('profile.edit') }}">{{ icon("pencil") }} Edit profile</a></p>
+  {% endif %}
 </section>
+{% if profile_source != 'imported' %}
+{# Self-reported credentials (Milestone 4): text and links entered by the worker, never verified by HireWise and never
+   read by the recommender. Links are plain text links with rel="noopener noreferrer nofollow". #}
+<section class="card dash-section credentials" aria-labelledby="credentials-heading">
+  <div class="dash-section__head">
+    <h2 id="credentials-heading" class="section-title">{{ icon("shield") }} Credentials <span class="badge badge--neutral self-reported">Self-reported</span></h2>
+    <a class="button button--secondary" href="{{ url_for('profile.new_credential') }}">{{ icon("plus") }} Add a credential</a>
+  </div>
+  <p class="note">Entered by you and not checked by HireWise, so every entry is labelled “Self-reported”. Up to {{ credentials_per_kind }} of each kind. Files cannot be uploaded.</p>
+  <div class="credential-groups">
+    {% for kind, label in credential_kinds.items() %}
+    {% set items = credentials|selectattr('kind', 'equalto', kind)|list %}
+    <section class="credential-group" aria-labelledby="credentials-{{ kind }}">
+      <h3 id="credentials-{{ kind }}">{{ {"certification": "Certifications", "experience": "Experience", "portfolio": "Portfolio"}[kind] }}
+        <span class="badge badge--neutral self-reported">Self-reported</span> <span class="section-title__count">{{ items|length }}</span></h3>
+      {% if items %}
+      <ul class="credential-list">
+        {% for c in items %}
+        <li class="credential">
+          <div class="credential__body">
+            <p class="credential__title">{{ c.title }}</p>
+            {% if c.organisation or c.year %}<p class="credential__meta">{{ c.organisation or '' }}{% if c.organisation and c.year %} · {% endif %}{{ c.year or '' }}</p>{% endif %}
+            {% if c.description %}<p class="credential__description">{{ c.description }}</p>{% endif %}
+            {% if c.url %}<p class="credential__link"><a href="{{ c.url }}" rel="noopener noreferrer nofollow">{{ c.url }}</a></p>{% endif %}
+          </div>
+          <div class="credential__actions">
+            <a class="button button--ghost" href="{{ url_for('profile.edit_credential', credential_id=c.credential_id) }}">Edit<span class="visually-hidden"> {{ c.title }}</span></a>
+            <form method="post" action="{{ url_for('profile.delete_credential', credential_id=c.credential_id) }}" class="inline-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="button button--danger">Delete<span class="visually-hidden"> {{ c.title }}</span></button>
+            </form>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}<p class="empty-state">None listed.</p>{% endif %}
+      {% if items|length < credentials_per_kind %}<a class="credential-group__add" href="{{ url_for('profile.new_credential', kind=kind) }}">Add {{ label|lower }}</a>{% endif %}
+    </section>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
 <div class="own-profile__grid">
   <section class="card dash-section" aria-labelledby="skills-heading">
     <h2 id="skills-heading" class="section-title">{{ icon("tools") }} Associated skills <span class="section-title__count">{{ profile.skills|length }}</span></h2>

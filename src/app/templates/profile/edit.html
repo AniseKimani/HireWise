@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% from "marketplace/macros.html" import field_error, csrf_field %}
+{% from "_avatar.html" import account_avatar %}
+{% from "_icons.html" import icon %}
+{% block title %}Edit profile · HireWise{% endblock %}
+{% block content %}
+{# Milestone 4. The fields shown are exactly the ones this account may edit (rules.profile_edit_fields); the server
+   refuses anything else. Worker fields reuse the registration markup (_worker_fields.html) and rules. #}
+<div class="page-head client-head">
+  <div class="page-head__identity">
+    {{ account_avatar(current_user, "avatar-initials--lg") }}
+    <div>
+      <p class="eyebrow">Account</p>
+      <h1>Edit profile</h1>
+      <p class="page-head__sub">Changes are saved to your HireWise account. Your email address and password are not changed here.</p>
+    </div>
+  </div>
+</div>
+
+{% if errors %}
+<div class="form-alert form-alert--danger" role="alert">
+  {{ icon("x-circle", "icon form-alert__icon") }}
+  <div><p><strong>Please correct the highlighted fields.</strong></p></div>
+</div>
+{% endif %}
+
+<form method="post" action="{{ url_for('profile.edit') }}" class="card profile-edit form-grid" novalidate>
+  {{ csrf_field() }}
+  <div class="field">
+    <label for="display_name">Your name</label>
+    <input id="display_name" name="display_name" type="text" maxlength="80" required autocomplete="name" value="{{ form.get('display_name', '') }}"
+           {% if errors.get('display_name') %}aria-describedby="display_name-error" aria-invalid="true"{% endif %}>
+    {{ field_error(errors, 'display_name') }}
+  </div>
+
+  {% if 'client_country' in scope %}
+    {% include "marketplace/_client_fields.html" %}
+  {% elif 'worker_profile' in scope %}
+    {% include "marketplace/_worker_fields.html" %}
+    <div class="field">
+      <label for="bio">About you (optional)</label>
+      <textarea id="bio" name="bio" rows="5" maxlength="{{ bio_max }}"
+                aria-describedby="bio-hint{% if errors.get('bio') %} bio-error{% endif %}"{% if errors.get('bio') %} aria-invalid="true"{% endif %}>{{ form.get('bio', '') }}</textarea>
+      <p class="field-hint" id="bio-hint">Up to {{ '{:,}'.format(bio_max) }} characters. Self-reported: HireWise does not verify it.</p>
+      {{ field_error(errors, 'bio') }}
+    </div>
+  {% elif 'worker_country' in scope %}
+    {# A worker account without a worker profile (the demo operator): location only, optional. #}
+    <div class="field">
+      <label for="worker_country">Location (optional)</label>
+      <select id="worker_country" name="worker_country"{% if errors.get('worker_country') %} aria-describedby="worker_country-error" aria-invalid="true"{% endif %}>
+        <option value="">Prefer not to say</option>
+        {% for c in countries %}<option value="{{ c }}" {% if form.get('worker_country') == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+      </select>
+      {{ field_error(errors, 'worker_country') }}
+    </div>
+  {% else %}
+    <p class="honesty-note">{{ icon("info", "icon honesty-note__icon") }}<span>{{ read_only_note }}. Only your display name can be changed here.</span></p>
+  {% endif %}
+
+  <div class="profile-edit__actions">
+    <button type="submit" class="button">Save changes</button>
+    <a class="button button--secondary" href="{{ url_for('marketplace.profile') if current_user.role == 'worker' else url_for('marketplace.dashboard') }}">Cancel</a>
+  </div>
+  {% if 'worker_profile' in scope %}<datalist id="skill-list">{% for s in skills %}<option value="{{ s }}">{% endfor %}</datalist>{% endif %}
+</form>
+
+{% if 'credentials' in scope %}
+<p class="note profile-edit__more">{{ icon("info") }} Certifications, experience and portfolio links are managed on
+  <a href="{{ url_for('marketplace.profile') }}#credentials-heading">your profile page</a>.</p>
+{% endif %}
+{% endblock %}

@@ -20,6 +20,12 @@ except ImportError:
     pass  # python-dotenv is optional; variables may already be exported
 
 
+from src.db.schema import (  # noqa: E402  (after the optional .env load, like every other import here)
+    BIO_MAX_LENGTH, CREDENTIAL_DESCRIPTION_MAX_LENGTH, CREDENTIAL_ORGANISATION_MAX_LENGTH, CREDENTIAL_TITLE_MAX_LENGTH,
+    CREDENTIAL_URL_MAX_LENGTH, CREDENTIAL_YEAR_MIN,
+)
+
+
 def _env_flag(name: str) -> bool:
     return os.environ.get(name, "").strip().lower() in ("1", "true", "yes", "on")
 
@@ -121,6 +127,18 @@ class BaseConfig:
     DEMO_OPERATOR_EMAIL = os.environ.get("HIREWISE_DEMO_OPERATOR_EMAIL") or None
     # At most this many demo-operator notification emails per UTC day; in-app notifications continue above it.
     DEMO_OPERATOR_EMAIL_DAILY_CAP = _env_int("HIREWISE_DEMO_OPERATOR_EMAIL_DAILY_CAP", 50)
+
+    # ---- Profile editing, self-reported credentials and avatars (pre-deployment Milestone 4) ------------
+    # Code configuration only (no environment variables). The database enforces the same text lengths
+    # (src/db/schema.py), so these may be lowered but never raised above them.
+    PROFILE_BIO_MAX_LENGTH = BIO_MAX_LENGTH
+    CREDENTIALS_PER_KIND = 10
+    CREDENTIAL_LIMITS = {"title": CREDENTIAL_TITLE_MAX_LENGTH, "organisation": CREDENTIAL_ORGANISATION_MAX_LENGTH,
+                         "url": CREDENTIAL_URL_MAX_LENGTH, "description": CREDENTIAL_DESCRIPTION_MAX_LENGTH,
+                         "year_min": CREDENTIAL_YEAR_MIN}
+    # Number of initials-avatar colours: one CSS custom property and class per colour in static/css/style.css
+    # (--avatar-1 ... --avatar-N, .avatar-initials--1 ... --N), each with at least 4.5:1 contrast for white text.
+    AVATAR_PALETTE_SIZE = 6
 
 
 class DevelopmentConfig(BaseConfig):

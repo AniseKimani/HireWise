@@ -78,7 +78,8 @@ def _worker_profile(user: dict) -> tuple[dict | None, str]:
         return None, "runtime"
     return {"worker_id": None, "primary_category": p["primary_category"], "secondary_categories": [], "skills": p["skills"],
             "experience_level": p["experience_level"], "experience_years": p["experience_years"], "rate": p["rate"],
-            "country": p["country"], "training_review_count": None, "training_mean_rating": None}, "runtime"
+            "country": p["country"], "bio": p.get("bio"), "training_review_count": None,
+            "training_mean_rating": None}, "runtime"
 
 
 def _own_request(request_id: int) -> dict:
@@ -221,9 +222,14 @@ def _app_reviews_for(worker_id: str | None) -> list[dict]:
 @marketplace.get("/profile")
 @role_required("worker")
 def profile():
+    from src.app.marketplace.profile_views import KIND_LABELS, READ_ONLY_NOTE
+
     worker_profile, source = _worker_profile(g.user)
+    credentials = _repo().list_credentials(g.user["user_id"]) if source == "runtime" and worker_profile else []
     return render_template("marketplace/profile.html", profile=worker_profile, profile_source=source,
-                           reviews=_app_reviews_for(g.user.get("worker_id")))
+                           reviews=_app_reviews_for(g.user.get("worker_id")), credentials=credentials,
+                           credential_kinds=KIND_LABELS, read_only_note=READ_ONLY_NOTE,
+                           credentials_per_kind=current_app.config["CREDENTIALS_PER_KIND"])
 
 
 @marketplace.get("/workers/<worker_id>")

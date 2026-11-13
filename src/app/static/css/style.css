@@ -1531,3 +1531,72 @@ a.request-row__title { color: var(--accent); }
   .notification__action { flex: 1 1 100%; }
   .notification__action .button { width: 100%; min-height: var(--tap); }
 }
+
+/* ---- Profiles, credentials and initials avatars (pre-deployment Milestone 4) ---------------------------------
+   Avatar palette: one custom property and one class per colour (AVATAR_PALETTE_SIZE in src/app/config.py). White
+   text on each colour (WCAG 2 contrast ratio, checked by tests/test_profiles.py): 1 teal 6.4:1, 2 blue 8.2:1,
+   3 plum 8.7:1, 4 purple 8.2:1, 5 brown 6.3:1, 6 green 6.4:1. Red is left out so an avatar never reads as an error. */
+:root {
+  --avatar-1: #0b6b61;
+  --avatar-2: #1e4f8f;
+  --avatar-3: #7a2e66;
+  --avatar-4: #5b3c99;
+  --avatar-5: #8a5300;
+  --avatar-6: #2f6b2f;
+  --avatar-text: #ffffff;
+}
+.avatar-initials {
+  flex: none; display: inline-grid; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: 50%;
+  background: var(--color-brand); color: var(--avatar-text); font-family: var(--font-heading); font-weight: 800;
+  font-size: 1rem; line-height: 1; letter-spacing: 0.02em; text-transform: none; user-select: none;
+}
+.avatar-initials .icon { width: 55%; height: 55%; }
+.avatar-initials--1 { background: var(--avatar-1); }
+.avatar-initials--2 { background: var(--avatar-2); }
+.avatar-initials--3 { background: var(--avatar-3); }
+.avatar-initials--4 { background: var(--avatar-4); }
+.avatar-initials--5 { background: var(--avatar-5); }
+.avatar-initials--6 { background: var(--avatar-6); }
+.avatar-initials.account-menu__avatar { width: 1.9rem; height: 1.9rem; font-size: 0.78rem; }
+.avatar-initials--md { width: 3.5rem; height: 3.5rem; font-size: 1.25rem; }
+.avatar-initials--lg { width: 3.25rem; height: 3.25rem; font-size: 1.2rem; }
+.avatar-initials--hero { width: 6.5rem; height: 6.5rem; font-size: 2.4rem; }
+.page-head__identity { display: flex; align-items: center; gap: 1rem; min-width: 0; }
+.page-head__identity > div { min-width: 0; }
+
+.account-menu__panel .account-menu__link { margin-top: 0.35rem; }
+.account-menu__link a { display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 600; }
+
+.profile-edit { max-width: 48rem; }
+.profile-edit fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 1rem; }
+.profile-edit textarea { width: 100%; font: inherit; }
+.profile-edit__actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 0.5rem; }
+.profile-edit__more { margin-top: 1rem; }
+.profile-edit__more .icon { vertical-align: -0.15em; }
+.own-profile__bio { margin-top: 1rem; }
+.own-profile__bio p { margin: 0.25rem 0 0; white-space: pre-line; overflow-wrap: anywhere; }
+.own-profile__actions { margin: 1rem 0 0; }
+.own-profile__actions .button { display: inline-flex; align-items: center; gap: 0.4rem; }
+
+.credentials { margin-top: 1.25rem; }
+.credentials .dash-section__head { flex-wrap: wrap; gap: 0.75rem; }
+.credential-groups { display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); }
+.credential-group h3 { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin: 0 0 0.6rem; font-size: 1.05rem; }
+.credential-list { list-style: none; margin: 0 0 0.6rem; padding: 0; display: grid; gap: 0.6rem; }
+.credential { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.5rem; padding: 0.75rem 0.85rem;
+  border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--color-surface-warm); }
+.credential__body { flex: 1 1 12rem; min-width: 0; }
+.credential__body p { margin: 0; overflow-wrap: anywhere; }
+.credential__title { font-weight: 700; color: var(--color-heading); }
+.credential__meta, .credential__description { color: var(--color-text-muted); font-size: var(--font-size-sm); }
+.credential__link { font-size: var(--font-size-sm); }
+.credential__actions { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0.4rem; }
+.credential-group__add { font-size: var(--font-size-sm); font-weight: 600; }
+.self-reported { text-transform: none; }
+
+@media (max-width: 767px) {
+  .avatar-initials--hero { width: 3.5rem; height: 3.5rem; font-size: 1.3rem; }
+  .avatar-initials--lg { width: 2.75rem; height: 2.75rem; font-size: 1rem; }
+  .profile-edit__actions .button, .credential__actions .button { min-height: var(--tap); }
+  .profile-edit__actions .button { flex: 1 1 100%; }
+}
