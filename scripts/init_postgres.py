@@ -1,4 +1,4 @@
-"""Create the HireWise relational schema in PostgreSQL (Day 11; schema v5 since Milestone 3).
+"""Create the HireWise relational schema in PostgreSQL (Day 11; schema v6 since Milestone 4).
 
 Usage (from repository root):
 
@@ -46,7 +46,7 @@ def main() -> int:
             found = "2 (users.auth_version is missing)" if legacy_users else recorded
             print(f"Existing schema version {found} detected; this code needs version {SCHEMA_VERSION}. "
                   "Nothing was changed.\n"
-                  "Upgrade it with: python scripts/migrate_schema_v5.py" + (" --test-db" if args.test_db else ""))
+                  "Upgrade it with: python scripts/migrate_schema_v6.py" + (" --test-db" if args.test_db else ""))
             return 1
         metadata.create_all(engine, checkfirst=True)
         with engine.begin() as conn:  # record the schema version (upsert; never drops or alters)

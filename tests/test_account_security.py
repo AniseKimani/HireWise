@@ -775,9 +775,9 @@ class AccountFlowTests(unittest.TestCase):
 # ---------------------------------------------------------------------------
 @unittest.skipUnless(RUN_PG, "opt-in live PostgreSQL test: set HIREWISE_RUN_POSTGRES_TESTS=1")
 class MigrationTests(unittest.TestCase):
-    """Builds a schema-v2 database on POSTGRES_TEST_DB (by removing the v3, v4 and v5 additions from a fresh
-    schema), then upgrades it: 2 -> 3 (Milestone 1), 2 -> 3 -> 4 and 3 -> 4 (Milestone 2), 4 -> 5 and 2 -> ... -> 5
-    (Milestone 3). Never touches POSTGRES_DB."""
+    """Builds a schema-v2 database on POSTGRES_TEST_DB (by removing the v3-v6 additions from a fresh schema), then
+    upgrades it: 2 -> 3 (Milestone 1), 2 -> 3 -> 4 and 3 -> 4 (Milestone 2), 4 -> 5 and 2 -> ... -> 5 (Milestone 3),
+    5 -> 6 and 2 -> ... -> 6 (Milestone 4). Never touches POSTGRES_DB."""
 
     @classmethod
     def setUpClass(cls):
@@ -803,6 +803,8 @@ class MigrationTests(unittest.TestCase):
         metadata.drop_all(self.engine)
         metadata.create_all(self.engine)
         with self.engine.begin() as conn:  # schema version 2, with two existing accounts
+            conn.execute(text("DROP TABLE worker_credentials"))
+            conn.execute(text("ALTER TABLE runtime_worker_profiles DROP COLUMN bio"))
             conn.execute(text("DROP TABLE notifications"))
             conn.execute(text("DROP TABLE user_identities"))
             conn.execute(text("DROP TABLE auth_tokens"))
@@ -914,7 +916,7 @@ class MigrationTests(unittest.TestCase):
             migrate_to_v4(self.engine)
         self.assertFalse({"auth_tokens", "user_identities"} & self.tables())  # one transaction: nothing changed
         with self.assertRaises(MigrationError):
-            migrate(self.engine, target="6")
+            migrate(self.engine, target="7")
 
     def test_upgrade_v4_to_v5_creates_notifications_only_and_is_repeatable(self):
         from sqlalchemy import text
@@ -950,6 +952,54 @@ class MigrationTests(unittest.TestCase):
                          ["auth_tokens", "notifications", "user_email_verification", "user_identities"])
         self.assertTrue(all(verify_v5(self.engine).values()), verify_v5(self.engine))
 
+    def test_upgrade_v5_to_v6_adds_bio_and_credentials_only_and_is_repeatable(self):
+        from sqlalchemy import inspect, text
+        from src.db.migrations import migrate_to_v5, migrate_to_v6, verify_v5, verify_v6
+
+        migrate_to_v5(self.engine)
+        with self.engine.begin() as conn:  # an existing self-registered worker profile
+            user_id = conn.execute(text("SELECT user_id FROM users WHERE email = 'demo.worker@example.com'")).scalar()
+            conn.execute(text("INSERT INTO runtime_worker_profiles (user_id, primary_category, experience_level, "
+                              "experience_years, rate, country) SELECT :u, name, 'entry', 1, 10, 'Kenya' FROM categories "
+                              "ORDER BY name LIMIT 1"), {"u": user_id})
+        with self.engine.connect() as conn:
+            profiles_before = conn.execute(text("SELECT user_id, primary_category, experience_level, experience_years, "
+                                                "rate, country FROM runtime_worker_profiles")).all()
+            users_before = conn.execute(text("SELECT user_id, email, password_hash, display_name FROM users ORDER BY user_id")).all()
+        report = migrate_to_v6(self.engine)
+        self.assertEqual((report.version_before, report.version_after, report.steps_applied, report.created_tables,
+                          report.added_columns), ("5", "6", ["5->6"], ["worker_credentials"], ["runtime_worker_profiles.bio"]))
+        checks = verify_v6(self.engine)
+        self.assertTrue(all(checks.values()), checks)
+        self.assertIn("worker_credentials constraints present", checks)
+        self.assertFalse(verify_v5(self.engine)["schema_version is 5"])
+        again = migrate_to_v6(self.engine)  # a second run changes nothing
+        self.assertEqual((again.version_before, again.steps_applied, again.created_tables, again.added_columns),
+                         ("6", [], [], []))
+        with self.engine.connect() as conn:
+            self.assertEqual(conn.execute(text("SELECT user_id, primary_category, experience_level, experience_years, "
+                                               "rate, country FROM runtime_worker_profiles")).all(), profiles_before)
+            self.assertEqual(conn.execute(text("SELECT user_id, email, password_hash, display_name FROM users "
+                                               "ORDER BY user_id")).all(), users_before)
+            self.assertIsNone(conn.execute(text("SELECT bio FROM runtime_worker_profiles")).scalar())  # existing rows: NULL
+            self.assertEqual(conn.execute(text("SELECT count(*) FROM worker_credentials")).scalar(), 0)
+        self.assertIn("bio", {c["name"] for c in inspect(self.engine).get_columns("runtime_worker_profiles")})
+
+    def test_upgrade_v2_to_v6_in_one_run_and_inconsistent_v6_refused(self):
+        from sqlalchemy import text
+        from src.db.migrations import MigrationError, migrate_to_v6, verify_v6
+
+        report = migrate_to_v6(self.engine)
+        self.assertEqual((report.version_before, report.version_after, report.steps_applied),
+                         ("2", "6", ["2->3", "3->4", "4->5", "5->6"]))
+        self.assertEqual(sorted(report.created_tables), ["auth_tokens", "notifications", "user_email_verification",
+                                                         "user_identities", "worker_credentials"])
+        self.assertTrue(all(verify_v6(self.engine).values()), verify_v6(self.engine))
+        with self.engine.begin() as conn:  # recorded v6 without the bio column: refused, nothing changed
+            conn.execute(text("ALTER TABLE runtime_worker_profiles DROP COLUMN bio"))
+        with self.assertRaises(MigrationError):
+            migrate_to_v6(self.engine)
+
     def test_inconsistent_or_newer_databases_are_refused(self):
         from sqlalchemy import text
         from src.db.migrations import MigrationError, migrate_to_v3, migrate_to_v4
@@ -969,6 +1019,11 @@ class MigrationTests(unittest.TestCase):
         migrate_to_v5(self.engine)
         with self.assertRaises(MigrationError):  # nor a version 5 database to 4
             migrate_to_v4(self.engine)
+        from src.db.migrations import migrate_to_v6
+
+        migrate_to_v6(self.engine)
+        with self.assertRaises(MigrationError):  # nor a version 6 database to 5
+            migrate_to_v5(self.engine)
 
     def test_init_script_refuses_older_databases_and_migration_scripts_upgrade_them(self):
         env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
@@ -979,7 +1034,7 @@ class MigrationTests(unittest.TestCase):
 
         init = run("scripts/init_postgres.py", "--test-db")
         self.assertEqual(init.returncode, 1, init.stdout)
-        self.assertIn("migrate_schema_v5.py --test-db", init.stdout)
+        self.assertIn("migrate_schema_v6.py --test-db", init.stdout)
         self.assertNotIn("user_identities", self.tables())  # refused: nothing created
         v3 = run("scripts/migrate_schema_v3.py", "--test-db")  # the Milestone 1 script still works on its own
         self.assertEqual(v3.returncode, 0, v3.stdout)
@@ -1010,6 +1065,21 @@ class MigrationTests(unittest.TestCase):
         verify5 = run("scripts/migrate_schema_v5.py", "--test-db", "--verify")
         self.assertEqual(verify5.returncode, 0, verify5.stdout)
         self.assertNotIn("FAIL", verify5.stdout)
+        init = run("scripts/init_postgres.py", "--test-db")  # a version 5 database is refused too
+        self.assertEqual(init.returncode, 1, init.stdout)
+        self.assertIn("schema version 5", init.stdout)
+        v6 = run("scripts/migrate_schema_v6.py", "--test-db")
+        self.assertEqual(v6.returncode, 0, v6.stdout)
+        self.assertIn("steps applied: 5->6", v6.stdout)
+        self.assertIn("tables created: worker_credentials", v6.stdout)
+        self.assertIn("columns added: runtime_worker_profiles.bio", v6.stdout)
+        self.assertNotIn(self.settings.password, v6.stdout + v6.stderr)
+        again6 = run("scripts/migrate_schema_v6.py", "--test-db")  # a second run changes nothing
+        self.assertEqual(again6.returncode, 0, again6.stdout)
+        self.assertIn("steps applied: none (already up to date)", again6.stdout)
+        verify6 = run("scripts/migrate_schema_v6.py", "--test-db", "--verify")
+        self.assertEqual(verify6.returncode, 0, verify6.stdout)
+        self.assertNotIn("FAIL", verify6.stdout)
         init = run("scripts/init_postgres.py", "--test-db")  # now current: init only re-checks it
         self.assertEqual(init.returncode, 0, init.stdout)
 

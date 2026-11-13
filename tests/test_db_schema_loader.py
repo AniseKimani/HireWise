@@ -40,7 +40,9 @@ RUNTIME_COLUMNS = {
     "auth_tokens": {"token_id", "user_id", "purpose", "token_hash", "created_at", "expires_at", "used_at"},
     # schema v4 (Milestone 2) adds linked external sign-in identities (Continue with Google)
     "user_identities": {"identity_id", "user_id", "provider", "subject", "email_at_link", "created_at", "last_login_at"},
-    "runtime_worker_profiles": {"user_id", "primary_category", "experience_level", "experience_years", "rate", "country"},
+    # schema v6 (Milestone 4) adds the optional self-reported bio
+    "runtime_worker_profiles": {"user_id", "primary_category", "experience_level", "experience_years", "rate", "country",
+                                "bio"},
     "runtime_worker_skills": {"user_id", "skill"},
     "runtime_requests": {"request_id", "client_user_id", "title", "category", "pay_type", "budget", "hourly_low",
                          "hourly_high", "price_tier", "location_requirement", "created_at"},
@@ -49,6 +51,9 @@ RUNTIME_COLUMNS = {
     "app_reviews": {"booking_id", "rating", "review_text", "created_at"},
     # schema v5 (Milestone 3) adds in-app notifications
     "notifications": {"notification_id", "user_id", "booking_id", "kind", "message", "created_at", "read_at"},
+    # schema v6 (Milestone 4) adds self-reported worker credentials
+    "worker_credentials": {"credential_id", "user_id", "kind", "title", "organisation", "year", "url", "description",
+                           "created_at"},
 }
 PRIVATE_MARKERS = ("quality", "true_skill", "proficiency", "taste", "utility", "noise", "oracle", "cold_start",
                    "activity_quota", "activity_start", "n_requests_assigned", "relevance", "event", "shortlist")
@@ -63,7 +68,7 @@ class TestSchema(unittest.TestCase):
         self.assertEqual(set(schema.TABLE_LOAD_ORDER) | {"load_metadata"}, set(EXPECTED_COLUMNS))
         self.assertEqual(set(schema.RUNTIME_TABLES), set(RUNTIME_COLUMNS))
         self.assertFalse(set(schema.RUNTIME_TABLES) & set(schema.TABLE_LOAD_ORDER))
-        self.assertEqual(schema.SCHEMA_VERSION, "5")
+        self.assertEqual(schema.SCHEMA_VERSION, "6")
 
     def test_notifications_constraints(self):
         table = schema.metadata.tables["notifications"]
@@ -76,8 +81,24 @@ class TestSchema(unittest.TestCase):
         self.assertFalse(table.c.user_id.nullable or table.c.kind.nullable or table.c.message.nullable)
         self.assertTrue(table.c.booking_id.nullable and table.c.read_at.nullable)
         self.assertEqual({i.name for i in table.indexes}, {"ix_notifications_user_read", "ix_notifications_user_created"})
-        # after its parents, so clearing runtime tables in reverse order removes notifications first
-        self.assertEqual(schema.RUNTIME_TABLES[-1], "notifications")
+        # after its parents, so clearing runtime tables in reverse order removes it before bookings and users
+        self.assertGreater(schema.RUNTIME_TABLES.index("notifications"), schema.RUNTIME_TABLES.index("bookings"))
+
+    def test_worker_credentials_and_bio_constraints(self):
+        table = schema.metadata.tables["worker_credentials"]
+        checks = {c.name for c in table.constraints if c.__class__.__name__ == "CheckConstraint"}
+        self.assertEqual(checks, {"ck_worker_credentials_kind", "ck_worker_credentials_title", "ck_worker_credentials_organisation",
+                                  "ck_worker_credentials_year", "ck_worker_credentials_url", "ck_worker_credentials_description"})
+        # credentials belong to a runtime (self-registered) worker profile, never directly to any user
+        self.assertEqual([fk.column.table.name for fk in table.foreign_keys], ["runtime_worker_profiles"])
+        self.assertFalse(table.c.user_id.nullable or table.c.kind.nullable or table.c.title.nullable)
+        self.assertTrue(all(table.c[c].nullable for c in ("organisation", "year", "url", "description")))
+        self.assertEqual({i.name for i in table.indexes}, {"ix_worker_credentials_user_kind"})
+        self.assertEqual(schema.RUNTIME_TABLES[-1], "worker_credentials")
+        self.assertGreater(schema.RUNTIME_TABLES.index("worker_credentials"), schema.RUNTIME_TABLES.index("runtime_worker_profiles"))
+        profiles = schema.metadata.tables["runtime_worker_profiles"]
+        self.assertTrue(profiles.c.bio.nullable)
+        self.assertIn("ck_runtime_worker_bio_length", {c.name for c in profiles.constraints if c.__class__.__name__ == "CheckConstraint"})
 
     def test_user_identities_constraints(self):
         table = schema.metadata.tables["user_identities"]
@@ -138,7 +159,9 @@ class TestSchema(unittest.TestCase):
                                  # schema v3 (Milestone 1)
                                  "ix_auth_tokens_user_purpose", "ix_auth_tokens_expires_at",
                                  # schema v5 (Milestone 3)
-                                 "ix_notifications_user_read", "ix_notifications_user_created"})
+                                 "ix_notifications_user_read", "ix_notifications_user_created",
+                                 # schema v6 (Milestone 4)
+                                 "ix_worker_credentials_user_kind"})
         dialect = postgresql.dialect()
         for table in schema.metadata.sorted_tables:
             ddl = str(CreateTable(table).compile(dialect=dialect))

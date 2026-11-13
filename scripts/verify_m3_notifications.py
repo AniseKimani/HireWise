@@ -108,6 +108,8 @@ def main() -> int:
     metadata.create_all(engine)
     load(engine)
     with engine.begin() as conn:
+        conn.execute(text("DROP TABLE worker_credentials"))  # schema v6 (Milestone 4) additions
+        conn.execute(text("ALTER TABLE runtime_worker_profiles DROP COLUMN bio"))
         conn.execute(text("DROP TABLE notifications"))
         conn.execute(text("UPDATE load_metadata SET value = '4' WHERE key = 'schema_version'"))
         conn.execute(text("INSERT INTO users (email, password_hash, role, display_name) VALUES ('legacy.m3@example.com', 'h', 'client', 'L')"))
@@ -143,6 +145,12 @@ def main() -> int:
     nullable = {r[0]: r[1] for r in rows("SELECT column_name, is_nullable FROM information_schema.columns WHERE table_name = 'notifications'")}
     check("user_id/kind/message NOT NULL; booking_id/read_at nullable",
           [nullable[c] for c in ("user_id", "kind", "message", "booking_id", "read_at")] == ["NO", "NO", "NO", "YES", "YES"])
+
+    # The application now requires schema v6 (Milestone 4); upgrade with the v6 script before starting it.
+    v6 = subprocess.run([sys.executable, "scripts/migrate_schema_v6.py", "--test-db"], cwd=REPO_ROOT, env=env,
+                        capture_output=True, text=True, timeout=300)
+    check("migrate_schema_v6.py --test-db then succeeds (5 -> 6)", v6.returncode == 0 and "steps applied: 5->6" in v6.stdout,
+          v6.stdout + v6.stderr)
 
     # ---- the application ------------------------------------------------------------------------
     service = RecommendationService.build(repository=PostgresRepository(engine))
@@ -315,7 +323,7 @@ def main() -> int:
     check("frozen recommendations unchanged", json.dumps(service.recommend(probe, 10), sort_keys=True) == recommendations_before)
     check("Day 8 manifest hashes unchanged", all(day8_hashes().values()))
     with engine.begin() as conn:
-        for name in ("notifications", "app_reviews", "bookings", "runtime_request_skills", "runtime_requests", "runtime_worker_skills",
+        for name in ("worker_credentials", "notifications", "app_reviews", "bookings", "runtime_request_skills", "runtime_requests", "runtime_worker_skills",
                      "runtime_worker_profiles", "user_identities", "auth_tokens", "user_email_verification", "users"):
             conn.execute(text(f"DELETE FROM {name}"))
     check("main database unchanged (runtime row counts, schema version, tables)", main_database_snapshot() == main_before)

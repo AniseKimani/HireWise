@@ -57,7 +57,7 @@ from src.app.services import RecommendationService
 from src.db.database import TEST_DATABASE_ENV, load_postgres_settings, make_engine
 from src.db.loader import load
 from src.db.marketplace import IdentityAlreadyLinked, PostgresMarketplaceRepository
-from src.db.migrations import migrate_to_v4, migrate_to_v5, verify_v4, verify_v5
+from src.db.migrations import migrate_to_v4, migrate_to_v5, migrate_to_v6, verify_v4, verify_v5, verify_v6
 from src.db.repositories import PostgresRepository
 from src.db.schema import metadata, user_identities
 
@@ -127,6 +127,8 @@ def main() -> int:
     load(engine)
     repo = PostgresMarketplaceRepository(engine)
     with engine.begin() as conn:
+        conn.execute(text("DROP TABLE worker_credentials"))  # schema v6 (Milestone 4) additions
+        conn.execute(text("ALTER TABLE runtime_worker_profiles DROP COLUMN bio"))
         conn.execute(text("DROP TABLE notifications"))  # schema v5 (Milestone 3) addition
         conn.execute(text("DROP TABLE user_identities"))
         conn.execute(text("UPDATE load_metadata SET value = '3' WHERE key = 'schema_version'"))
@@ -158,6 +160,11 @@ def main() -> int:
     check("migration v4 -> v5 creates only notifications and leaves identities untouched",
           (v5.steps_applied, v5.created_tables) == (["4->5"], ["notifications"]) and all(verify_v5(engine).values()),
           str(v5.lines()))
+    # ... and schema v6 (Milestone 4: worker bio and credentials), the version the application now requires.
+    v6 = migrate_to_v6(engine)
+    check("migration v5 -> v6 adds bio and worker_credentials and leaves identities untouched",
+          (v6.steps_applied, v6.created_tables) == (["5->6"], ["worker_credentials"]) and all(verify_v6(engine).values()),
+          str(v6.lines()))
 
     # ---- the application with Google configured, network calls simulated -------------------------
     class Config(TestingConfig):
@@ -336,7 +343,7 @@ def main() -> int:
 
     # ---- clean up the test database's runtime rows; confirm the main database is unchanged --------------
     with engine.begin() as conn:
-        for name in ("notifications", "app_reviews", "bookings", "runtime_request_skills", "runtime_requests", "runtime_worker_skills",
+        for name in ("worker_credentials", "notifications", "app_reviews", "bookings", "runtime_request_skills", "runtime_requests", "runtime_worker_skills",
                      "runtime_worker_profiles", "user_identities", "auth_tokens", "user_email_verification", "users"):
             conn.execute(text(f"DELETE FROM {name}"))
     check("main database unchanged (runtime row counts, schema version, tables)", main_database_snapshot() == main_before)

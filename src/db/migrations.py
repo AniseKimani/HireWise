@@ -13,6 +13,9 @@ table and never upgrades a recorded version. Existing databases are upgraded her
   4 -> 5  (Milestone 3, notifications)
           creates `notifications` with its constraints and indexes. No existing row is touched, and no
           notification is back-filled for existing bookings.
+  5 -> 6  (Milestone 4, self-reported worker details)
+          adds `runtime_worker_profiles.bio TEXT NULL` with its length CHECK (existing rows get NULL) and creates
+          `worker_credentials` with its constraints and index. No existing row is changed.
 
 `migrate(engine, target)`:
 
@@ -26,8 +29,9 @@ Everything runs in ONE transaction under an advisory lock: on any error nothing 
 truncated or rewritten, so running it again on an up-to-date database only re-checks it. `verify(engine,
 version)` reports the state without changing anything.
 
-`migrate_to_v3` / `verify_v3` and `migrate_to_v4` / `verify_v4` keep the earlier upgrades available unchanged
-(they stop at their own version); the current application needs version 5 (`migrate_to_v5` / `verify_v5`).
+`migrate_to_v3` / `verify_v3`, `migrate_to_v4` / `verify_v4` and `migrate_to_v5` / `verify_v5` keep the earlier
+upgrades available unchanged (they stop at their own version); the current application needs version 6
+(`migrate_to_v6` / `verify_v6`).
 """
 from __future__ import annotations
 
@@ -38,15 +42,16 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.engine import Connection, Engine
 
 from src.db.schema import (
-    ACCOUNT_SECURITY_TABLES, IDENTITY_TABLES, NOTIFICATION_TABLES, SCHEMA_VERSION, load_metadata, metadata,
+    ACCOUNT_SECURITY_TABLES, BIO_MAX_LENGTH, CREDENTIAL_TABLES, IDENTITY_TABLES, NOTIFICATION_TABLES, SCHEMA_VERSION,
+    load_metadata, metadata,
 )
 
-TARGET_VERSION = "5"
+TARGET_VERSION = "6"
 assert SCHEMA_VERSION == TARGET_VERSION, "schema.py and the migrations disagree on the current version"
-KNOWN_VERSIONS = ("2", "3", "4", "5")
+KNOWN_VERSIONS = ("2", "3", "4", "5", "6")
 REQUIRED_BASE_TABLES = ("users", "load_metadata")
 # Tables each version introduced (a table not listed here already existed at version 2).
-TABLES_INTRODUCED = {"3": ACCOUNT_SECURITY_TABLES, "4": IDENTITY_TABLES, "5": NOTIFICATION_TABLES}
+TABLES_INTRODUCED = {"3": ACCOUNT_SECURITY_TABLES, "4": IDENTITY_TABLES, "5": NOTIFICATION_TABLES, "6": CREDENTIAL_TABLES}
 AUTH_TOKEN_CONSTRAINTS = {"ck_auth_tokens_purpose", "ck_auth_tokens_token_hash", "ck_auth_tokens_expiry"}
 AUTH_TOKEN_INDEXES = {"ix_auth_tokens_user_purpose", "ix_auth_tokens_expires_at"}
 IDENTITY_CHECKS = {"ck_user_identities_provider", "ck_user_identities_subject", "ck_user_identities_email"}
@@ -54,6 +59,10 @@ IDENTITY_UNIQUES = {"uq_user_identities_provider_subject", "uq_user_identities_u
 NOTIFICATION_CHECKS = {"ck_notifications_kind", "ck_notifications_message_length", "ck_notifications_read_at"}
 NOTIFICATION_UNIQUES = {"uq_notifications_booking_kind_user"}
 NOTIFICATION_INDEXES = {"ix_notifications_user_read", "ix_notifications_user_created"}
+CREDENTIAL_CHECKS = {"ck_worker_credentials_kind", "ck_worker_credentials_title", "ck_worker_credentials_organisation",
+                     "ck_worker_credentials_year", "ck_worker_credentials_url", "ck_worker_credentials_description"}
+CREDENTIAL_INDEXES = {"ix_worker_credentials_user_kind"}
+BIO_CHECK = "ck_runtime_worker_bio_length"
 
 
 class MigrationError(RuntimeError):
@@ -68,13 +77,15 @@ class MigrationReport:
     added_auth_version: bool = False
     created_tables: list[str] = field(default_factory=list)
     grandfathered_users: int = 0
+    added_columns: list[str] = field(default_factory=list)
 
     def lines(self) -> list[str]:
         return [f"schema_version before: {self.version_before}", f"schema_version after: {self.version_after}",
                 f"steps applied: {', '.join(self.steps_applied) or 'none (already up to date)'}",
                 f"users.auth_version added: {'yes' if self.added_auth_version else 'no (already present)'}",
                 f"tables created: {', '.join(self.created_tables) or 'none (already present)'}",
-                f"existing accounts marked verified: {self.grandfathered_users}"]
+                f"existing accounts marked verified: {self.grandfathered_users}",
+                f"columns added: {', '.join(self.added_columns) or 'none (already present)'}"]
 
 
 def _recorded_version(conn: Connection) -> str | None:
@@ -130,7 +141,31 @@ def _step_v4_to_v5(conn: Connection, report: MigrationReport) -> None:
     metadata.create_all(conn, tables=created, checkfirst=True)
 
 
-STEPS = (("2", "3", _step_v2_to_v3), ("3", "4", _step_v3_to_v4), ("4", "5", _step_v4_to_v5))
+def _bio_column(conn: Connection) -> dict | None:
+    return next((c for c in inspect(conn).get_columns("runtime_worker_profiles") if c["name"] == "bio"), None)
+
+
+def _bio_ok(conn: Connection) -> bool:
+    column = _bio_column(conn)
+    checks = {c["name"] for c in inspect(conn).get_check_constraints("runtime_worker_profiles")}
+    return bool(column) and column["nullable"] and "text" in str(column["type"]).lower() and BIO_CHECK in checks
+
+
+def _step_v5_to_v6(conn: Connection, report: MigrationReport) -> None:
+    if _bio_column(conn) is None:
+        conn.execute(text("ALTER TABLE runtime_worker_profiles ADD COLUMN bio TEXT NULL"))
+        conn.execute(text(f"ALTER TABLE runtime_worker_profiles ADD CONSTRAINT {BIO_CHECK} "
+                          f"CHECK (bio IS NULL OR char_length(bio) <= {BIO_MAX_LENGTH})"))
+        report.added_columns.append("runtime_worker_profiles.bio")
+    elif not _bio_ok(conn):
+        raise MigrationError("runtime_worker_profiles.bio exists but is not a nullable TEXT column with its length check")
+    tables = set(inspect(conn).get_table_names())
+    created = [metadata.tables[name] for name in CREDENTIAL_TABLES]
+    report.created_tables += [t.name for t in created if t.name not in tables]
+    metadata.create_all(conn, tables=created, checkfirst=True)
+
+
+STEPS = (("2", "3", _step_v2_to_v3), ("3", "4", _step_v3_to_v4), ("4", "5", _step_v4_to_v5), ("5", "6", _step_v5_to_v6))
 
 
 def _check_recorded_structure(conn: Connection, version: str) -> None:
@@ -142,6 +177,8 @@ def _check_recorded_structure(conn: Connection, version: str) -> None:
             raise MigrationError(f"schema_version {version} is recorded but tables {missing} are missing")
     if int(version) >= 3 and not _auth_version_ok(_users_auth_version_column(conn)):
         raise MigrationError(f"schema_version {version} is recorded but users.auth_version is missing or different")
+    if int(version) >= 6 and not _bio_ok(conn):
+        raise MigrationError(f"schema_version {version} is recorded but runtime_worker_profiles.bio is missing or different")
 
 
 def migrate(engine: Engine, target: str = TARGET_VERSION) -> MigrationReport:
@@ -186,15 +223,20 @@ def migrate_to_v4(engine: Engine) -> MigrationReport:
 
 
 def migrate_to_v5(engine: Engine) -> MigrationReport:
-    """Upgrade to the current version: 2 -> 3 -> 4 -> 5, 3 -> 4 -> 5, or 4 -> 5."""
+    """Milestone 3 upgrade: to version 5 from 2, 3 or 4 (stops at version 5)."""
     return migrate(engine, target="5")
+
+
+def migrate_to_v6(engine: Engine) -> MigrationReport:
+    """Upgrade to the current version: to version 6 from 2, 3, 4 or 5."""
+    return migrate(engine, target="6")
 
 
 # ---------------------------------------------------------------------------
 # Read-only verification
 # ---------------------------------------------------------------------------
 def verify(engine: Engine, version: str = TARGET_VERSION) -> dict[str, bool]:
-    """Read-only checks that the database is exactly at `version` (3, 4 or 5) with every structure it needs."""
+    """Read-only checks that the database is exactly at `version` (3 to 6) with every structure it needs."""
     with engine.connect() as conn:
         inspector = inspect(conn)
         tables = set(inspector.get_table_names())
@@ -234,6 +276,19 @@ def verify(engine: Engine, version: str = TARGET_VERSION) -> dict[str, bool]:
                        for fk in inspector.get_foreign_keys("notifications")}
                 checks["notifications reference users and bookings"] = {
                     ("users", ("user_id",)), ("bookings", ("booking_id",))} <= fks
+        if int(version) >= 6:
+            checks["runtime_worker_profiles.bio is nullable TEXT with its length check"] = (
+                "runtime_worker_profiles" in tables and _bio_ok(conn))
+            checks["worker_credentials table exists"] = set(CREDENTIAL_TABLES) <= tables
+            if checks["worker_credentials table exists"]:
+                ck = {c["name"] for c in inspector.get_check_constraints("worker_credentials")}
+                checks["worker_credentials constraints present"] = CREDENTIAL_CHECKS <= ck
+                ix = {i["name"] for i in inspector.get_indexes("worker_credentials")}
+                checks["worker_credentials index present"] = CREDENTIAL_INDEXES <= ix
+                fks = inspector.get_foreign_keys("worker_credentials")
+                checks["worker_credentials.user_id references runtime_worker_profiles"] = any(
+                    fk["referred_table"] == "runtime_worker_profiles" and fk["constrained_columns"] == ["user_id"]
+                    for fk in fks)
         return checks
 
 
@@ -247,3 +302,7 @@ def verify_v4(engine: Engine) -> dict[str, bool]:
 
 def verify_v5(engine: Engine) -> dict[str, bool]:
     return verify(engine, "5")
+
+
+def verify_v6(engine: Engine) -> dict[str, bool]:
+    return verify(engine, "6")

@@ -50,6 +50,14 @@ has exactly one recipient (users.user_id); the message is a short plain
 sentence (at most 500 characters, enforced by the database). Nothing about
 notifications ever reaches the frozen recommender. scripts/migrate_schema_v5.py
 upgrades a version 2, 3 or 4 database step by step.
+
+Schema version 6 (pre-deployment Milestone 4) adds self-reported worker
+details for NEWLY registered workers only: `runtime_worker_profiles.bio`
+(at most 1,000 characters) and `worker_credentials` (certifications,
+experience and portfolio entries, each referencing a runtime worker
+profile, so the database itself refuses credentials for clients and for
+accounts linked to an imported catalogue worker). Nothing here is read by the
+frozen recommender. scripts/migrate_schema_v6.py upgrades older databases.
 """
 from __future__ import annotations
 
@@ -58,7 +66,17 @@ from sqlalchemy import (
     Integer, MetaData, PrimaryKeyConstraint, SmallInteger, Table, Text, UniqueConstraint, func, text,
 )
 
-SCHEMA_VERSION = "5"
+SCHEMA_VERSION = "6"
+
+# Self-reported worker details (schema version 6): limits enforced by the database and by validation.
+BIO_MAX_LENGTH = 1000
+CREDENTIAL_KINDS = ("certification", "experience", "portfolio")
+CREDENTIAL_TITLE_MAX_LENGTH = 120
+CREDENTIAL_ORGANISATION_MAX_LENGTH = 120
+CREDENTIAL_URL_MAX_LENGTH = 500
+CREDENTIAL_DESCRIPTION_MAX_LENGTH = 500
+CREDENTIAL_YEAR_MIN = 1950
+CREDENTIAL_YEAR_DB_MAX = 2100  # static database bound; validation enforces "current year + 1"
 metadata = MetaData()
 
 
@@ -222,9 +240,11 @@ runtime_worker_profiles = Table(
     Column("experience_years", Double, nullable=False),
     Column("rate", Double, nullable=False),
     Column("country", Text, nullable=False),
+    Column("bio", Text, nullable=True),  # schema v6 (Milestone 4): self-reported, optional
     CheckConstraint("experience_level IN ('entry', 'intermediate', 'expert')", name="ck_runtime_worker_experience_level"),
     CheckConstraint("experience_years >= 0 AND experience_years <= 60", name="ck_runtime_worker_experience_years"),
     CheckConstraint("rate > 0", name="ck_runtime_worker_rate"),
+    CheckConstraint(f"bio IS NULL OR char_length(bio) <= {BIO_MAX_LENGTH}", name="ck_runtime_worker_bio_length"),
 )
 
 runtime_worker_skills = Table(
@@ -390,10 +410,40 @@ Index("ix_notifications_user_created", notifications.c.user_id, notifications.c.
 
 NOTIFICATION_TABLES = ("notifications",)
 
+# ---------------------------------------------------------------------------
+# Self-reported worker credentials (schema version 6)
+# ---------------------------------------------------------------------------
+worker_credentials = Table(
+    "worker_credentials", metadata,
+    Column("credential_id", BigInteger, Identity(), primary_key=True),
+    # Only workers with a runtime (self-registered) profile can hold credentials.
+    Column("user_id", BigInteger, ForeignKey("runtime_worker_profiles.user_id"), nullable=False),
+    Column("kind", Text, nullable=False),
+    Column("title", Text, nullable=False),
+    Column("organisation", Text),
+    Column("year", SmallInteger),
+    Column("url", Text),
+    Column("description", Text),
+    _timestamp("created_at", nullable=False, server_default=func.now()),
+    CheckConstraint("kind IN ('certification', 'experience', 'portfolio')", name="ck_worker_credentials_kind"),
+    CheckConstraint(f"char_length(title) BETWEEN 1 AND {CREDENTIAL_TITLE_MAX_LENGTH}", name="ck_worker_credentials_title"),
+    CheckConstraint(f"organisation IS NULL OR char_length(organisation) <= {CREDENTIAL_ORGANISATION_MAX_LENGTH}",
+                    name="ck_worker_credentials_organisation"),
+    CheckConstraint(f"year IS NULL OR year BETWEEN {CREDENTIAL_YEAR_MIN} AND {CREDENTIAL_YEAR_DB_MAX}",
+                    name="ck_worker_credentials_year"),
+    CheckConstraint(f"url IS NULL OR (char_length(url) <= {CREDENTIAL_URL_MAX_LENGTH} AND url ~* '^https?://')",
+                    name="ck_worker_credentials_url"),
+    CheckConstraint(f"description IS NULL OR char_length(description) <= {CREDENTIAL_DESCRIPTION_MAX_LENGTH}",
+                    name="ck_worker_credentials_description"),
+)
+Index("ix_worker_credentials_user_kind", worker_credentials.c.user_id, worker_credentials.c.kind)
+
+CREDENTIAL_TABLES = ("worker_credentials",)
+
 # Dependent tables come after their parents, so reversed(RUNTIME_TABLES) clears children first.
 RUNTIME_TABLES = ("users", "user_email_verification", "auth_tokens", "user_identities", "runtime_worker_profiles",
                   "runtime_worker_skills", "runtime_requests", "runtime_request_skills", "bookings", "app_reviews",
-                  "notifications")
+                  "notifications", "worker_credentials")
 
 # Load order respects foreign keys.
 TABLE_LOAD_ORDER = (
