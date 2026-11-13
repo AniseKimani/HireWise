@@ -32,6 +32,10 @@ Days 1–12 are complete:
 | 11 | PostgreSQL application database | `docs/day11_postgresql_report.md` |
 | 12 | Accounts and marketplace workflow: register, request, book, complete, review | `docs/day12_marketplace_report.md` |
 
+Pre-deployment milestones since Day 12: email verification and password reset (Milestone 1, schema v3), Continue
+with Google (Milestone 2, schema v4), and booking notifications, notification email and demo mode (Milestone 3,
+schema v5, `docs/m3_notifications_report.md`). Deployment preparation is in `docs/deployment.md`.
+
 The recommender models, their selected configurations and all
 experimental results (`results/`) are **frozen**.
 
@@ -88,7 +92,8 @@ features, without retraining or fabricated history (see the Day 12 report).
    ```
 5. **PostgreSQL.** This needs PostgreSQL 18, plus a role `hirewise_app` that owns the databases `hirewise` and `hirewise_test`; see `docs/day11_postgresql_report.md`.
    ```powershell
-   python scripts/init_postgres.py      # create missing tables, incl. the marketplace tables (never drops)
+   python scripts/init_postgres.py      # create missing tables (schema v5), incl. the marketplace tables (never drops)
+   python scripts/migrate_schema_v5.py  # only for an EXISTING older database (v2-v4); try --test-db first
    python scripts/load_postgres.py      # load; no-op if identical; refuses differences without --reset
    python scripts/verify_postgres.py
    ```
@@ -108,6 +113,16 @@ password comes from `HIREWISE_DEMO_PASSWORD` or a hidden prompt):
 ```powershell
 python scripts/create_demo_account.py --show-demo-recommendation
 python scripts/create_demo_account.py --role worker --email worker@demo.local --name "Demo Worker" --worker-id W001674
+```
+
+Signed-in users see a notifications bell for booking events and reviews (Milestone 3). Most recommended workers
+are simulated catalogue profiles with no account; for a live demonstration, **demo mode** lets one demo operator
+account accept or decline their bookings, and clients are told the profile is simulated
+(`docs/m3_notifications_report.md`):
+
+```powershell
+python scripts/create_demo_account.py --demo-operator --email operator@example.com --name "HireWise Demo"
+# then in .env: HIREWISE_DEMO_MODE=1 and HIREWISE_DEMO_OPERATOR_EMAIL=operator@example.com
 ```
 
 - `src.app:create_app` with no arguments uses production settings (debug off).

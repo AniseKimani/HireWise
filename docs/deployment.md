@@ -132,6 +132,23 @@ gunicorn --config deployment/gunicorn.conf.py "src.app:create_app()"
 - **Health check:** the image's `HEALTHCHECK` calls the existing `/api/health`, unchanged. It returns 200 when
   "ok"/"degraded" (Neo4j down) and 503 when the recommender or PostgreSQL is unavailable.
 
+### Notifications and demo mode (Milestone 3)
+
+The image needs schema version 5. Upgrade an existing database with `python scripts/migrate_schema_v5.py` (after a
+backup; try `--test-db` first); a new database gets version 5 from `scripts/init_postgres.py`. Optional settings,
+all read from the environment at run time (`docs/m3_notifications_report.md`):
+
+| Setting | Default | Notes |
+|---|---|---|
+| `HIREWISE_DEMO_MODE` | `0` | `1` lets the demo operator answer bookings for catalogue workers with no linked account. Clients are told these are simulated profiles |
+| `HIREWISE_DEMO_OPERATOR_EMAIL` | unset | Address of the demo operator (`scripts/create_demo_account.py --demo-operator`). If missing or invalid, a warning is logged and demo mode stays off |
+| `HIREWISE_DEMO_OPERATOR_EMAIL_DAILY_CAP` | `50` | Demo-operator emails per UTC day; in-app notifications continue above it |
+| `HIREWISE_NOTIFICATION_EMAIL_SKIP_DOMAINS` | `demo.local` | Comma-separated domains that never receive notification email |
+| `HIREWISE_NOTIFICATIONS_POLL_SECONDS` | `30` | Header bell refresh interval (minimum 5) |
+
+Notification emails use the same `MAIL_*` / `SMTP_*` configuration as verification and reset emails. For the operator
+to receive email, its address must be verified and outside the skipped domains.
+
 ### Security settings to make at deployment
 
 - **`HIREWISE_SECURE_COOKIES=1`:** the site is served over HTTPS, so session cookies must be `Secure`.
