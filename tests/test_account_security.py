@@ -775,8 +775,9 @@ class AccountFlowTests(unittest.TestCase):
 # ---------------------------------------------------------------------------
 @unittest.skipUnless(RUN_PG, "opt-in live PostgreSQL test: set HIREWISE_RUN_POSTGRES_TESTS=1")
 class MigrationTests(unittest.TestCase):
-    """Builds a schema-v2 database on POSTGRES_TEST_DB (by removing the v3 and v4 additions from a fresh schema),
-    then upgrades it: 2 -> 3 (Milestone 1), 2 -> 3 -> 4 and 3 -> 4 (Milestone 2). Never touches POSTGRES_DB."""
+    """Builds a schema-v2 database on POSTGRES_TEST_DB (by removing the v3, v4 and v5 additions from a fresh
+    schema), then upgrades it: 2 -> 3 (Milestone 1), 2 -> 3 -> 4 and 3 -> 4 (Milestone 2), 4 -> 5 and 2 -> ... -> 5
+    (Milestone 3). Never touches POSTGRES_DB."""
 
     @classmethod
     def setUpClass(cls):
@@ -802,6 +803,7 @@ class MigrationTests(unittest.TestCase):
         metadata.drop_all(self.engine)
         metadata.create_all(self.engine)
         with self.engine.begin() as conn:  # schema version 2, with two existing accounts
+            conn.execute(text("DROP TABLE notifications"))
             conn.execute(text("DROP TABLE user_identities"))
             conn.execute(text("DROP TABLE auth_tokens"))
             conn.execute(text("DROP TABLE user_email_verification"))
@@ -912,7 +914,41 @@ class MigrationTests(unittest.TestCase):
             migrate_to_v4(self.engine)
         self.assertFalse({"auth_tokens", "user_identities"} & self.tables())  # one transaction: nothing changed
         with self.assertRaises(MigrationError):
-            migrate(self.engine, target="5")
+            migrate(self.engine, target="6")
+
+    def test_upgrade_v4_to_v5_creates_notifications_only_and_is_repeatable(self):
+        from sqlalchemy import text
+        from src.db.marketplace import PostgresMarketplaceRepository
+        from src.db.migrations import migrate_to_v4, migrate_to_v5, verify_v4, verify_v5
+
+        migrate_to_v4(self.engine)
+        with self.engine.connect() as conn:
+            users_before = conn.execute(text("SELECT user_id, email, password_hash, auth_version FROM users ORDER BY user_id")).all()
+        report = migrate_to_v5(self.engine)
+        self.assertEqual((report.version_before, report.version_after, report.steps_applied, report.created_tables,
+                          report.grandfathered_users, report.added_auth_version),
+                         ("4", "5", ["4->5"], ["notifications"], 0, False))
+        checks = verify_v5(self.engine)
+        self.assertTrue(all(checks.values()), checks)
+        self.assertIn("notifications constraints present", checks)
+        self.assertFalse(verify_v4(self.engine)["schema_version is 4"])
+        again = migrate_to_v5(self.engine)  # a second run changes nothing
+        self.assertEqual((again.version_before, again.steps_applied, again.created_tables), ("5", [], []))
+        with self.engine.connect() as conn:
+            self.assertEqual(conn.execute(text("SELECT user_id, email, password_hash, auth_version FROM users "
+                                               "ORDER BY user_id")).all(), users_before)
+            self.assertEqual(conn.execute(text("SELECT count(*) FROM notifications")).scalar(), 0)  # no back-fill
+        self.assert_existing_accounts_preserved(PostgresMarketplaceRepository(self.engine))
+
+    def test_upgrade_v2_to_v5_in_one_run(self):
+        from src.db.migrations import migrate_to_v5, verify_v5
+
+        report = migrate_to_v5(self.engine)
+        self.assertEqual((report.version_before, report.version_after, report.steps_applied),
+                         ("2", "5", ["2->3", "3->4", "4->5"]))
+        self.assertEqual(sorted(report.created_tables),
+                         ["auth_tokens", "notifications", "user_email_verification", "user_identities"])
+        self.assertTrue(all(verify_v5(self.engine).values()), verify_v5(self.engine))
 
     def test_inconsistent_or_newer_databases_are_refused(self):
         from sqlalchemy import text
@@ -928,6 +964,11 @@ class MigrationTests(unittest.TestCase):
         migrate_to_v4(self.engine)
         with self.assertRaises(MigrationError):  # never "downgrade" a version 4 database to 3
             migrate_to_v3(self.engine)
+        from src.db.migrations import migrate_to_v5
+
+        migrate_to_v5(self.engine)
+        with self.assertRaises(MigrationError):  # nor a version 5 database to 4
+            migrate_to_v4(self.engine)
 
     def test_init_script_refuses_older_databases_and_migration_scripts_upgrade_them(self):
         env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
@@ -938,7 +979,7 @@ class MigrationTests(unittest.TestCase):
 
         init = run("scripts/init_postgres.py", "--test-db")
         self.assertEqual(init.returncode, 1, init.stdout)
-        self.assertIn("migrate_schema_v4.py --test-db", init.stdout)
+        self.assertIn("migrate_schema_v5.py --test-db", init.stdout)
         self.assertNotIn("user_identities", self.tables())  # refused: nothing created
         v3 = run("scripts/migrate_schema_v3.py", "--test-db")  # the Milestone 1 script still works on its own
         self.assertEqual(v3.returncode, 0, v3.stdout)
@@ -955,6 +996,20 @@ class MigrationTests(unittest.TestCase):
         verify = run("scripts/migrate_schema_v4.py", "--test-db", "--verify")
         self.assertEqual(verify.returncode, 0, verify.stdout)
         self.assertNotIn("FAIL", verify.stdout)
+        init = run("scripts/init_postgres.py", "--test-db")  # a version 4 database is refused too
+        self.assertEqual(init.returncode, 1, init.stdout)
+        self.assertIn("schema version 4", init.stdout)
+        v5 = run("scripts/migrate_schema_v5.py", "--test-db")
+        self.assertEqual(v5.returncode, 0, v5.stdout)
+        self.assertIn("steps applied: 4->5", v5.stdout)
+        self.assertIn("tables created: notifications", v5.stdout)
+        self.assertNotIn(self.settings.password, v5.stdout + v5.stderr)
+        again = run("scripts/migrate_schema_v5.py", "--test-db")  # a second run changes nothing
+        self.assertEqual(again.returncode, 0, again.stdout)
+        self.assertIn("steps applied: none (already up to date)", again.stdout)
+        verify5 = run("scripts/migrate_schema_v5.py", "--test-db", "--verify")
+        self.assertEqual(verify5.returncode, 0, verify5.stdout)
+        self.assertNotIn("FAIL", verify5.stdout)
         init = run("scripts/init_postgres.py", "--test-db")  # now current: init only re-checks it
         self.assertEqual(init.returncode, 0, init.stdout)
 

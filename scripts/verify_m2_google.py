@@ -57,7 +57,7 @@ from src.app.services import RecommendationService
 from src.db.database import TEST_DATABASE_ENV, load_postgres_settings, make_engine
 from src.db.loader import load
 from src.db.marketplace import IdentityAlreadyLinked, PostgresMarketplaceRepository
-from src.db.migrations import migrate_to_v4, verify_v4
+from src.db.migrations import migrate_to_v4, migrate_to_v5, verify_v4, verify_v5
 from src.db.repositories import PostgresRepository
 from src.db.schema import metadata, user_identities
 
@@ -127,6 +127,7 @@ def main() -> int:
     load(engine)
     repo = PostgresMarketplaceRepository(engine)
     with engine.begin() as conn:
+        conn.execute(text("DROP TABLE notifications"))  # schema v5 (Milestone 3) addition
         conn.execute(text("DROP TABLE user_identities"))
         conn.execute(text("UPDATE load_metadata SET value = '3' WHERE key = 'schema_version'"))
     existing_unverified = repo.create_user("google.person@example.com", hash_password(PASSWORD), "client", "Existing",
@@ -152,6 +153,11 @@ def main() -> int:
         except IntegrityError:
             refused += 1
     check("PostgreSQL enforces provider, subject, lower-case email and user FK constraints", refused == len(bad_rows))
+    # The application now requires schema v5 (Milestone 3): add notifications before starting it.
+    v5 = migrate_to_v5(engine)
+    check("migration v4 -> v5 creates only notifications and leaves identities untouched",
+          (v5.steps_applied, v5.created_tables) == (["4->5"], ["notifications"]) and all(verify_v5(engine).values()),
+          str(v5.lines()))
 
     # ---- the application with Google configured, network calls simulated -------------------------
     class Config(TestingConfig):
@@ -330,7 +336,7 @@ def main() -> int:
 
     # ---- clean up the test database's runtime rows; confirm the main database is unchanged --------------
     with engine.begin() as conn:
-        for name in ("app_reviews", "bookings", "runtime_request_skills", "runtime_requests", "runtime_worker_skills",
+        for name in ("notifications", "app_reviews", "bookings", "runtime_request_skills", "runtime_requests", "runtime_worker_skills",
                      "runtime_worker_profiles", "user_identities", "auth_tokens", "user_email_verification", "users"):
             conn.execute(text(f"DELETE FROM {name}"))
     check("main database unchanged (runtime row counts, schema version, tables)", main_database_snapshot() == main_before)

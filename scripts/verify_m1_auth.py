@@ -42,7 +42,7 @@ from src.app.services import RecommendationService
 from src.db.database import TEST_DATABASE_ENV, load_postgres_settings, make_engine
 from src.db.loader import load
 from src.db.marketplace import PostgresMarketplaceRepository
-from src.db.migrations import migrate_to_v3, migrate_to_v4, verify_v3, verify_v4
+from src.db.migrations import migrate_to_v3, migrate_to_v4, migrate_to_v5, verify_v3, verify_v4, verify_v5
 from src.db.repositories import PostgresRepository
 from src.db.schema import metadata
 
@@ -83,6 +83,7 @@ def main() -> int:
     metadata.create_all(engine)
     load(engine)
     with engine.begin() as conn:
+        conn.execute(text("DROP TABLE notifications"))    # schema v5 (Milestone 3) addition
         conn.execute(text("DROP TABLE user_identities"))  # schema v4 (Milestone 2) addition
         conn.execute(text("DROP TABLE auth_tokens"))
         conn.execute(text("DROP TABLE user_email_verification"))
@@ -117,6 +118,13 @@ def main() -> int:
     check("legacy accounts unchanged by the v4 step", [tuple(r) for r in after_v4] == [tuple(r) for r in legacy])
     again_v4 = migrate_to_v4(engine)
     check("repeat v4 migration changes nothing", (again_v4.steps_applied, again_v4.created_tables) == ([], []))
+
+    # ---- schema v5 (Milestone 3): the version the application now requires ------------------------
+    v5 = migrate_to_v5(engine)
+    check("migration v4 -> v5 creates only notifications",
+          (v5.version_before, v5.version_after, v5.steps_applied, v5.created_tables) == ("4", "5", ["4->5"], ["notifications"]),
+          str(v5.lines()))
+    check("verify_v5: every structural check passes", all(verify_v5(engine).values()), str(verify_v5(engine)))
 
     # ---- the application on the migrated database --------------------------------------------
     service = RecommendationService.build(repository=PostgresRepository(engine))
@@ -225,7 +233,7 @@ def main() -> int:
 
     # ---- clean up the test database's runtime rows; confirm the main database is unchanged --------------
     with engine.begin() as conn:
-        for name in ("app_reviews", "bookings", "runtime_request_skills", "runtime_requests", "runtime_worker_skills",
+        for name in ("notifications", "app_reviews", "bookings", "runtime_request_skills", "runtime_requests", "runtime_worker_skills",
                      "runtime_worker_profiles", "user_identities", "auth_tokens", "user_email_verification", "users"):
             conn.execute(text(f"DELETE FROM {name}"))
     check("main database unchanged (runtime row counts, schema version, tables)", main_database_snapshot() == main_before)

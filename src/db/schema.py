@@ -42,6 +42,14 @@ one identity per provider. Accounts created through Google carry an
 unusable random password hash until the owner sets a password through the
 password-reset flow. scripts/migrate_schema_v4.py upgrades a version 2 or
 3 database step by step (src/db/migrations.py).
+
+Schema version 5 (pre-deployment Milestone 3) adds `notifications`: in-app
+messages about booking and review events, one row per recipient account,
+written in the same transaction as the booking or review change. Each row
+has exactly one recipient (users.user_id); the message is a short plain
+sentence (at most 500 characters, enforced by the database). Nothing about
+notifications ever reaches the frozen recommender. scripts/migrate_schema_v5.py
+upgrades a version 2, 3 or 4 database step by step.
 """
 from __future__ import annotations
 
@@ -50,7 +58,7 @@ from sqlalchemy import (
     Integer, MetaData, PrimaryKeyConstraint, SmallInteger, Table, Text, UniqueConstraint, func, text,
 )
 
-SCHEMA_VERSION = "4"
+SCHEMA_VERSION = "5"
 metadata = MetaData()
 
 
@@ -353,9 +361,39 @@ user_identities = Table(
 
 IDENTITY_TABLES = ("user_identities",)
 
-# Dependent tables come after "users", so reversed(RUNTIME_TABLES) clears children first.
+# ---------------------------------------------------------------------------
+# In-app notifications (schema version 5)
+# ---------------------------------------------------------------------------
+NOTIFICATION_KINDS = ("booking_requested", "booking_accepted", "booking_declined", "booking_cancelled",
+                      "booking_completed", "review_received")
+NOTIFICATION_MESSAGE_MAX_LENGTH = 500
+
+notifications = Table(
+    "notifications", metadata,
+    Column("notification_id", BigInteger, Identity(), primary_key=True),
+    Column("user_id", BigInteger, ForeignKey("users.user_id"), nullable=False),      # the one recipient
+    Column("booking_id", BigInteger, ForeignKey("bookings.booking_id"), nullable=True),
+    Column("kind", Text, nullable=False),
+    Column("message", Text, nullable=False),
+    _timestamp("created_at", nullable=False, server_default=func.now()),
+    _timestamp("read_at"),
+    CheckConstraint("kind IN ('booking_requested', 'booking_accepted', 'booking_declined', 'booking_cancelled', "
+                    "'booking_completed', 'review_received')", name="ck_notifications_kind"),
+    CheckConstraint(f"char_length(message) BETWEEN 1 AND {NOTIFICATION_MESSAGE_MAX_LENGTH}",
+                    name="ck_notifications_message_length"),
+    CheckConstraint("read_at IS NULL OR read_at >= created_at", name="ck_notifications_read_at"),
+    # Each event happens at most once per booking, so one row per (booking, event, recipient).
+    UniqueConstraint("booking_id", "kind", "user_id", name="uq_notifications_booking_kind_user"),
+)
+Index("ix_notifications_user_read", notifications.c.user_id, notifications.c.read_at)              # unread count
+Index("ix_notifications_user_created", notifications.c.user_id, notifications.c.created_at.desc())  # newest first
+
+NOTIFICATION_TABLES = ("notifications",)
+
+# Dependent tables come after their parents, so reversed(RUNTIME_TABLES) clears children first.
 RUNTIME_TABLES = ("users", "user_email_verification", "auth_tokens", "user_identities", "runtime_worker_profiles",
-                  "runtime_worker_skills", "runtime_requests", "runtime_request_skills", "bookings", "app_reviews")
+                  "runtime_worker_skills", "runtime_requests", "runtime_request_skills", "bookings", "app_reviews",
+                  "notifications")
 
 # Load order respects foreign keys.
 TABLE_LOAD_ORDER = (

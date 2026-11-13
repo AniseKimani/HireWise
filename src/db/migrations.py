@@ -10,6 +10,9 @@ table and never upgrades a recorded version. Existing databases are upgraded her
           repeat run never verifies an account created after the upgrade.
   3 -> 4  (Milestone 2, Continue with Google)
           creates `user_identities` with its constraints. No existing row is touched.
+  4 -> 5  (Milestone 3, notifications)
+          creates `notifications` with its constraints and indexes. No existing row is touched, and no
+          notification is back-filled for existing bookings.
 
 `migrate(engine, target)`:
 
@@ -23,8 +26,8 @@ Everything runs in ONE transaction under an advisory lock: on any error nothing 
 truncated or rewritten, so running it again on an up-to-date database only re-checks it. `verify(engine,
 version)` reports the state without changing anything.
 
-`migrate_to_v3` / `verify_v3` keep the Milestone 1 upgrade (2 -> 3 only) available unchanged; the current
-application needs version 4 (`migrate_to_v4` / `verify_v4`).
+`migrate_to_v3` / `verify_v3` and `migrate_to_v4` / `verify_v4` keep the earlier upgrades available unchanged
+(they stop at their own version); the current application needs version 5 (`migrate_to_v5` / `verify_v5`).
 """
 from __future__ import annotations
 
@@ -34,18 +37,23 @@ from sqlalchemy import inspect, select, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.engine import Connection, Engine
 
-from src.db.schema import ACCOUNT_SECURITY_TABLES, IDENTITY_TABLES, SCHEMA_VERSION, load_metadata, metadata
+from src.db.schema import (
+    ACCOUNT_SECURITY_TABLES, IDENTITY_TABLES, NOTIFICATION_TABLES, SCHEMA_VERSION, load_metadata, metadata,
+)
 
-TARGET_VERSION = "4"
+TARGET_VERSION = "5"
 assert SCHEMA_VERSION == TARGET_VERSION, "schema.py and the migrations disagree on the current version"
-KNOWN_VERSIONS = ("2", "3", "4")
+KNOWN_VERSIONS = ("2", "3", "4", "5")
 REQUIRED_BASE_TABLES = ("users", "load_metadata")
 # Tables each version introduced (a table not listed here already existed at version 2).
-TABLES_INTRODUCED = {"3": ACCOUNT_SECURITY_TABLES, "4": IDENTITY_TABLES}
+TABLES_INTRODUCED = {"3": ACCOUNT_SECURITY_TABLES, "4": IDENTITY_TABLES, "5": NOTIFICATION_TABLES}
 AUTH_TOKEN_CONSTRAINTS = {"ck_auth_tokens_purpose", "ck_auth_tokens_token_hash", "ck_auth_tokens_expiry"}
 AUTH_TOKEN_INDEXES = {"ix_auth_tokens_user_purpose", "ix_auth_tokens_expires_at"}
 IDENTITY_CHECKS = {"ck_user_identities_provider", "ck_user_identities_subject", "ck_user_identities_email"}
 IDENTITY_UNIQUES = {"uq_user_identities_provider_subject", "uq_user_identities_user_provider"}
+NOTIFICATION_CHECKS = {"ck_notifications_kind", "ck_notifications_message_length", "ck_notifications_read_at"}
+NOTIFICATION_UNIQUES = {"uq_notifications_booking_kind_user"}
+NOTIFICATION_INDEXES = {"ix_notifications_user_read", "ix_notifications_user_created"}
 
 
 class MigrationError(RuntimeError):
@@ -115,7 +123,14 @@ def _step_v3_to_v4(conn: Connection, report: MigrationReport) -> None:
     metadata.create_all(conn, tables=identity, checkfirst=True)
 
 
-STEPS = (("2", "3", _step_v2_to_v3), ("3", "4", _step_v3_to_v4))
+def _step_v4_to_v5(conn: Connection, report: MigrationReport) -> None:
+    tables = set(inspect(conn).get_table_names())
+    created = [metadata.tables[name] for name in NOTIFICATION_TABLES]
+    report.created_tables += [t.name for t in created if t.name not in tables]
+    metadata.create_all(conn, tables=created, checkfirst=True)
+
+
+STEPS = (("2", "3", _step_v2_to_v3), ("3", "4", _step_v3_to_v4), ("4", "5", _step_v4_to_v5))
 
 
 def _check_recorded_structure(conn: Connection, version: str) -> None:
@@ -166,15 +181,20 @@ def migrate_to_v3(engine: Engine) -> MigrationReport:
 
 
 def migrate_to_v4(engine: Engine) -> MigrationReport:
-    """Upgrade to the current version: 2 -> 3 -> 4, or 3 -> 4."""
+    """Milestone 2 upgrade: 2 -> 3 -> 4, or 3 -> 4 (stops at version 4)."""
     return migrate(engine, target="4")
+
+
+def migrate_to_v5(engine: Engine) -> MigrationReport:
+    """Upgrade to the current version: 2 -> 3 -> 4 -> 5, 3 -> 4 -> 5, or 4 -> 5."""
+    return migrate(engine, target="5")
 
 
 # ---------------------------------------------------------------------------
 # Read-only verification
 # ---------------------------------------------------------------------------
 def verify(engine: Engine, version: str = TARGET_VERSION) -> dict[str, bool]:
-    """Read-only checks that the database is exactly at `version` (3 or 4) with every structure it needs."""
+    """Read-only checks that the database is exactly at `version` (3, 4 or 5) with every structure it needs."""
     with engine.connect() as conn:
         inspector = inspect(conn)
         tables = set(inspector.get_table_names())
@@ -202,6 +222,18 @@ def verify(engine: Engine, version: str = TARGET_VERSION) -> dict[str, bool]:
                 fks = inspector.get_foreign_keys("user_identities")
                 checks["user_identities.user_id references users"] = any(
                     fk["referred_table"] == "users" and fk["constrained_columns"] == ["user_id"] for fk in fks)
+        if int(version) >= 5:
+            checks["notifications table exists"] = set(NOTIFICATION_TABLES) <= tables
+            if checks["notifications table exists"]:
+                ck = {c["name"] for c in inspector.get_check_constraints("notifications")}
+                uq = {c["name"] for c in inspector.get_unique_constraints("notifications")}
+                checks["notifications constraints present"] = NOTIFICATION_CHECKS <= ck and NOTIFICATION_UNIQUES <= uq
+                ix = {i["name"] for i in inspector.get_indexes("notifications")}
+                checks["notifications indexes present"] = NOTIFICATION_INDEXES <= ix
+                fks = {(fk["referred_table"], tuple(fk["constrained_columns"]))
+                       for fk in inspector.get_foreign_keys("notifications")}
+                checks["notifications reference users and bookings"] = {
+                    ("users", ("user_id",)), ("bookings", ("booking_id",))} <= fks
         return checks
 
 
@@ -211,3 +243,7 @@ def verify_v3(engine: Engine) -> dict[str, bool]:
 
 def verify_v4(engine: Engine) -> dict[str, bool]:
     return verify(engine, "4")
+
+
+def verify_v5(engine: Engine) -> dict[str, bool]:
+    return verify(engine, "5")

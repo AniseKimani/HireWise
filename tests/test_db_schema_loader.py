@@ -47,6 +47,8 @@ RUNTIME_COLUMNS = {
     "runtime_request_skills": {"request_id", "skill"},
     "bookings": {"booking_id", "request_id", "client_user_id", "worker_id", "status", "created_at", "updated_at", "completed_at"},
     "app_reviews": {"booking_id", "rating", "review_text", "created_at"},
+    # schema v5 (Milestone 3) adds in-app notifications
+    "notifications": {"notification_id", "user_id", "booking_id", "kind", "message", "created_at", "read_at"},
 }
 PRIVATE_MARKERS = ("quality", "true_skill", "proficiency", "taste", "utility", "noise", "oracle", "cold_start",
                    "activity_quota", "activity_start", "n_requests_assigned", "relevance", "event", "shortlist")
@@ -61,7 +63,21 @@ class TestSchema(unittest.TestCase):
         self.assertEqual(set(schema.TABLE_LOAD_ORDER) | {"load_metadata"}, set(EXPECTED_COLUMNS))
         self.assertEqual(set(schema.RUNTIME_TABLES), set(RUNTIME_COLUMNS))
         self.assertFalse(set(schema.RUNTIME_TABLES) & set(schema.TABLE_LOAD_ORDER))
-        self.assertEqual(schema.SCHEMA_VERSION, "4")
+        self.assertEqual(schema.SCHEMA_VERSION, "5")
+
+    def test_notifications_constraints(self):
+        table = schema.metadata.tables["notifications"]
+        uniques = {c.name: [col.name for col in c.columns] for c in table.constraints
+                   if c.__class__.__name__ == "UniqueConstraint"}
+        self.assertEqual(uniques, {"uq_notifications_booking_kind_user": ["booking_id", "kind", "user_id"]})
+        checks = {c.name for c in table.constraints if c.__class__.__name__ == "CheckConstraint"}
+        self.assertEqual(checks, {"ck_notifications_kind", "ck_notifications_message_length", "ck_notifications_read_at"})
+        self.assertEqual(sorted(fk.column.table.name for fk in table.foreign_keys), ["bookings", "users"])
+        self.assertFalse(table.c.user_id.nullable or table.c.kind.nullable or table.c.message.nullable)
+        self.assertTrue(table.c.booking_id.nullable and table.c.read_at.nullable)
+        self.assertEqual({i.name for i in table.indexes}, {"ix_notifications_user_read", "ix_notifications_user_created"})
+        # after its parents, so clearing runtime tables in reverse order removes notifications first
+        self.assertEqual(schema.RUNTIME_TABLES[-1], "notifications")
 
     def test_user_identities_constraints(self):
         table = schema.metadata.tables["user_identities"]
@@ -120,7 +136,9 @@ class TestSchema(unittest.TestCase):
                                  "uq_bookings_one_active_per_request", "ix_bookings_worker_id",
                                  "ix_bookings_client_user_id", "ix_runtime_requests_client_user_id",
                                  # schema v3 (Milestone 1)
-                                 "ix_auth_tokens_user_purpose", "ix_auth_tokens_expires_at"})
+                                 "ix_auth_tokens_user_purpose", "ix_auth_tokens_expires_at",
+                                 # schema v5 (Milestone 3)
+                                 "ix_notifications_user_read", "ix_notifications_user_created"})
         dialect = postgresql.dialect()
         for table in schema.metadata.sorted_tables:
             ddl = str(CreateTable(table).compile(dialect=dialect))
